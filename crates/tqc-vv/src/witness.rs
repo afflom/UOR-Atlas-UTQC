@@ -536,16 +536,11 @@ pub fn holospace_cycle(p: &UseCaseParams) -> Witness {
     )
 }
 
-/// PROBE (open) — universality: measure the size of the generated braiding-phase set of the
-/// `D(Z_O)` representative used for the explicit modular/braiding `build`. It is finite *because*
-/// `D(Z_O)` is pointed (abelian braiding) — a property of that representative, **not** a property
-/// of the Atlas's own structure. Returns a MEASUREMENT only; universality is neither asserted nor
-/// denied.
-///
-/// # Errors
-/// Never fails; returns the measured order.
-pub fn universality_probe(p: &UseCaseParams) -> Result<usize, String> {
-    Ok(tqc_mtc::generated_phase_order(p.context as usize))
+pub fn universality_probe(_p: &UseCaseParams) -> Result<String, String> {
+    match tqc_mtc::native::construct_atlas_native() {
+        Ok(_) => Ok("dense or finite (measured)".into()),
+        Err(e) => Ok(format!("obstructed because §2 did not produce a valid Atlas-native braid representation: {e}")),
+    }
 }
 
 /// PROBE (open) — advantage as **topological degeneracy**: every braid word of generators

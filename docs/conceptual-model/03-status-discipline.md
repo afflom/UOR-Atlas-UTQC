@@ -28,6 +28,6 @@ The honesty gate fails CI if any feature line affirmatively asserts, as establis
 claim:
 
 - **universality** — density of the generated subgroup;
-- **advantage** — sub-classical cost from content elision.
+- **advantage** — topological degeneracy (braid paths per distinct result κ).
 
 These may be *probed and reported*; their truth value is never green.

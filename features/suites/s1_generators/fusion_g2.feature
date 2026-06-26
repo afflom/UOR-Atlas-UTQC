@@ -1,6 +1,6 @@
 @row:fusion-g2 @stage:S1 @status:some-true @oracle:uor-addr-composition
-Feature: Fusion reduces to compose_g2_product
-  Fusion is the realized CS-G2 commutative product on every sigma-axis (sha256, blake3,
+Feature: Atlas composition operation g2
+  The Atlas composition operation g2 is the realized CS-G2 commutative product on every sigma-axis (sha256, blake3,
   sha3-256, keccak256, sha512), and the composition norm is multiplicative at the use-case's
   context level (the octonion eight-square at O=8).
 

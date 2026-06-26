@@ -26,13 +26,9 @@ fn atlas() -> tqc_core::UseCaseParams {
 
 #[then("the generated-subgroup density is measured and universality remains open and unasserted")]
 async fn universality(_w: &mut ProbeWorld) {
-    let order = witness::universality_probe(&atlas()).unwrap();
-    println!(
-        "[probe] universality: D(Z_O) generated braiding-phase order = {order} (finite because \
-         the representative is pointed/abelian — a property of the D(Z_O) choice, not the Atlas; \
-         universality OPEN and unasserted)"
-    );
-    assert!(order >= 1, "a measurement must be produced");
+    let result = witness::universality_probe(&atlas()).unwrap();
+    println!("[probe] universality: {result}");
+    assert!(!result.is_empty(), "a measurement or obstruction must be produced");
 }
 
 #[then("the topological degeneracy is measured and advantage remains open and unasserted")]

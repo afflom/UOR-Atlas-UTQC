@@ -15,7 +15,7 @@ publish = false
 [dependencies]
 # Pinned to a reproducible revision. default-features = false keeps the build to the
 # content-addressing core (no wasmtime engine), which is all the facade needs today.
-holospaces = { git = "https://github.com/Hologram-Technologies/holospaces", rev = "f2415624e3a37162d9a30b4dbae776dcebb60e3e", default-features = false }
+holospaces = { git = "https://github.com/Hologram-Technologies/holospaces", rev = "f2415624e3a37162d9a30b4dbae776dcebb60e3e", default-features = true }
 uor-addr = "0.2.0"
 tqc-core = { workspace = true }
 tqc-model = { workspace = true }

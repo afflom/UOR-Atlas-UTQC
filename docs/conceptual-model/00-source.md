@@ -117,12 +117,12 @@ fusion ring on the classes, and there is nothing there to obstruct.
 `modular-s-t` and `braiding-r-matrix` rows therefore *construct* the explicit `S`/`T`/`R` and
 validate them against the universal MTC axioms (SL(2,ℤ): `S` symmetric & unitary, `S⁴=1`,
 `(ST)³=S²`, `S²=C`; hexagon; Yang–Baxter; Verlinde). The current build realizes them via the
-generic quantum double `D(Z_O)` (`O = context`) — a concrete, anomaly-free pointed MTC that lets
+generic quantum double `D(Z_n)` (instantiated as `D(Z_O)` for `O = context`) — a concrete, anomaly-free pointed MTC that lets
 the axioms be exercised, never claimed to be the Atlas's own category. The Atlas supplies the
 *native data* to build these matrices directly — the modular forms (`AtlasModular`), the
 reflection generators, the E₈ Weyl symmetry (`AtlasCoxeter`), and the 24-dim carrier — and
 deriving the `S`/`T`/`R` from that data, axiom-consistent, is the genuine remaining direction
-(not obstructed, just not yet done). `D(Z_O)` is the stand-in until then.
+(not obstructed, just not yet done). `D(Z_n)` is the generic representative MTC build, with `D(Z_O)` as the current Atlas-parameterized stand-in (not the Atlas-native category).
 
 The Atlas's §9 is explicit that its definite composition norm is a *different object* from the
 signed prime form whose positivity is RH (F1's open crux). The TQC uses only the definite /
@@ -131,12 +131,12 @@ composition / addressing structure; it never touches that crux.
 ## Status ledger
 
 - **some-true** (sourced — F1 theorem, realized uor-addr operation, or `vv` witness):
-  objects/labels, the belt and `A_∞` address space, the Euclidean inner product, fusion
+  objects/labels, the belt and `A_∞` address space, the Euclidean inner product, Atlas composition
   (`g2`), conjugation (`f4`), the categorical operations (`e6/e7/e8`), the reflection
   generators (orthogonal/unitary), the Coxeter/Weyl group, the modular identities, the
   spectrum, the E8 PSD seed, the coherence/ground-space laws.
 - **build** (construction on sourced pieces, validated against the universal MTC axioms only):
-  - the **braiding R-matrix** — the braid datum satisfying hexagon / Yang–Baxter. Fusion
+  - the **braiding R-matrix** — the braid datum satisfying hexagon / Yang–Baxter. The Atlas composition
     (`g2`) is commutative, so braiding is extra data, not one of the composition operations.
   - the **modular S/T matrices** — the SL(2,ℤ) representation; the sources carry the modular
     identities, the build supplies the matrices.
@@ -146,9 +146,9 @@ composition / addressing structure; it never touches that crux.
 - **open** (genuine unknowns, measured and reported, never asserted true):
   - **Universality** — whether the generators + braiding act densely in `U` of the fusion
     space (Freedman–Larsen–Wang). Measured (the generated braiding-phase order); reported.
-  - **Advantage** — whether content-addressed elision (`content_reuse`, `cache_hits`)
-    collapses the fusion-space computation below classical cost. Measured (the content-reuse
-    ratio); reported. No verdict is asserted.
+  - **Advantage** — measured as topological degeneracy (braid paths per distinct result κ).
+    Reported without asserting a speedup class. `content_reuse` / `cache_hits` are downstream
+    consequences of κ collapse.
 
 ## Build stages
 
@@ -172,7 +172,7 @@ no-loss/round-trip (`CC-29`/`CC-30` idiom) as the topological-protection witness
 Exit: content-addressing round-trips with no loss.
 
 **S4 (open questions, measured).** Probe universality (generated-subgroup density) and
-elision advantage (`content_reuse`). Report; assert nothing the measurements don't show.
-Exit: numbers recorded; universality and advantage stay `open` until established.
+topological degeneracy (advantage). Report; assert nothing the measurements don't show.
+Exit: numbers recorded; universality and advantage stay `open`.
 
 [F1]: https://github.com/afflom/F1

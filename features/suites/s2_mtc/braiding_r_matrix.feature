@@ -1,9 +1,9 @@
 @row:braiding-r-matrix @stage:S2 @status:build @oracle:mtc-axioms
 Feature: Braiding R-matrix
-  Constructed as the bicharacter braiding of the quantum double D(Z_n) (n = context) and
+  Constructed as the bicharacter braiding of the generic representative quantum double D(Z_n) (n = context) and
   validated against the MTC axioms only: unitary R-phases, the hexagon (bimultiplicativity in
   both arguments / Yang-Baxter for a pointed category), and the monodromy R_xy R_yx tying R to
-  the modular data S. (status: build; never assumed sound.)
+  the modular data S. (status: build; D(Z_O) is the Atlas-parameterized stand-in, not the Atlas-native category.)
 
   Scenario: the R-matrix satisfies the hexagon and Yang-Baxter for the Atlas
     Given the UOR Atlas use-case

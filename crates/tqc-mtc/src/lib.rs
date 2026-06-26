@@ -12,6 +12,9 @@
 
 #![forbid(unsafe_code)]
 
+pub mod native;
+pub mod verifier;
+
 use core::f64::consts::PI;
 
 /// The default numerical tolerance for axiom checks.
