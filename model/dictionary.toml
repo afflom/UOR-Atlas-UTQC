@@ -211,7 +211,7 @@ feature = "features/targets/s4_open/universality.feature"
 [[row]]
 id = "advantage"
 tqc = "Advantage (open)"
-atlas = "topological degeneracy (braid paths per distinct result κ)"
+atlas = "UOR Pareto optimization (cache-collapse compute savings, memory compression, network reduction)"
 source = "ADR-041 content_reuse / cache_hits (x86_64/amd64 UOR cache-collapse via identical κ addresses)"
 status = "open"
 stage = "S4"

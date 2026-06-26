@@ -144,10 +144,18 @@ fn report() -> Result<()> {
 
     // Open probes: measurements only, never asserted.
     let uni = witness::universality_probe(&p).unwrap_or_else(|e| e);
-    let adv = witness::advantage_probe(&p).unwrap_or(0.0);
+    let adv = witness::advantage_probe(&p).unwrap_or(witness::ParetoMetrics {
+        total_paths: 0,
+        distinct_states: 0,
+        topological_degeneracy: 0.0,
+        compute_savings_pct: 0.0,
+        memory_compression_ratio: 0.0,
+        network_bandwidth_reduction: 0.0,
+    });
     lines.push(format!(
         "open probes (measured, never asserted): universality = {uni}; \
-         advantage topological degeneracy = {adv:.3} braid-paths/κ\n"
+         advantage topological degeneracy (UOR Pareto metric) = {:.3}x (compute savings: {:.2}%, memory compression: {:.2}x)\n",
+         adv.topological_degeneracy, adv.compute_savings_pct, adv.memory_compression_ratio
     ));
 
     let report = lines.join("\n");

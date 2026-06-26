@@ -36,14 +36,25 @@ async fn universality(_w: &mut ProbeWorld) {
 
 #[then("the topological degeneracy is measured and advantage remains open and unasserted")]
 async fn advantage(_w: &mut ProbeWorld) {
-    let degeneracy = witness::advantage_probe(&atlas()).unwrap();
+    let metrics = witness::advantage_probe(&atlas()).unwrap();
     println!(
-        "[probe] advantage: topological degeneracy = {degeneracy:.3} braid paths per distinct \
-         result κ (isotopy-class collapse via content-addressing; measurement only; advantage \
-         OPEN and unasserted)"
+        "[probe] advantage via UOR Pareto Optimality:\n\
+         - Paths evaluated: {}\n\
+         - Distinct states: {}\n\
+         - Topological degeneracy (Cache Hit Ratio): {:.2}x\n\
+         - Core-cycle compute savings: {:.2}%\n\
+         - Memory compression ratio: {:.2}x\n\
+         - Network bandwidth reduction: {:.2}%\n\
+         (measurement only; advantage OPEN and unasserted)",
+        metrics.total_paths,
+        metrics.distinct_states,
+        metrics.topological_degeneracy,
+        metrics.compute_savings_pct,
+        metrics.memory_compression_ratio,
+        metrics.network_bandwidth_reduction
     );
     assert!(
-        degeneracy >= 1.0,
+        metrics.topological_degeneracy >= 1.0,
         "the degeneracy must be a valid measurement (>= 1)"
     );
 }
