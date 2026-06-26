@@ -3,6 +3,12 @@
 version = 4
 
 [[package]]
+name = "adler2"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
+
+[[package]]
 name = "aho-corasick"
 version = "1.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10,6 +16,12 @@ checksum = "ddd31a130427c27518df266943a5308ed92d4b226cc639f5a8f1002816174301"
 dependencies = [
  "memchr",
 ]
+
+[[package]]
+name = "allocator-api2"
+version = "0.2.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 
 [[package]]
 name = "anstream"
@@ -68,10 +80,46 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2a4385e2e34eb35d6b3efe798b9eb88096925d87726c0798709bf56d9ed84af3"
 
 [[package]]
+name = "arrayref"
+version = "0.3.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "76a2e8124351fda1ef8aaaa3bbd7ebbcb486bbcd4225aca0aa0d84bb2db8fecb"
+
+[[package]]
+name = "arrayvec"
+version = "0.7.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f02882884d3e1bc524fb12c79f107f6ad0e1cfd498c536ffb494301740995dfe"
+
+[[package]]
+name = "async-trait"
+version = "0.1.89"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9035ad2d096bed7955a320ee7e2230574d28fd3c3a0f186cbea1ff3c7eed5dbb"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "bitflags"
 version = "2.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b4388bee8683e3d04af747c73422af53102d2bd24d9eadb6cbc100baef4b43f8"
+
+[[package]]
+name = "blake3"
+version = "1.5.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b8ee0c1824c4dea5b5f81736aff91bae041d2c07ee1192bec91054e10e3e601e"
+dependencies = [
+ "arrayref",
+ "arrayvec",
+ "cc",
+ "cfg-if",
+ "constant_time_eq",
+]
 
 [[package]]
 name = "block-buffer"
@@ -97,6 +145,16 @@ name = "bytecount"
 version = "0.6.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "175812e0be2bccb6abe50bb8d566126198344f707e304f45c648fd8f2cc0365e"
+
+[[package]]
+name = "cc"
+version = "1.2.65"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e228eec9be7c17ccb640b59b36a5cd805ea2a564a4c5e162c2f659fea30d3b96"
+dependencies = [
+ "find-msvc-tools",
+ "shlex",
+]
 
 [[package]]
 name = "cfg-if"
@@ -163,6 +221,12 @@ dependencies = [
  "unicode-width",
  "windows-sys 0.59.0",
 ]
+
+[[package]]
+name = "constant_time_eq"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7c74b8349d32d297c9134b8c88677813a227df8f779daa29bfc29c183fe3dca6"
 
 [[package]]
 name = "cpufeatures"
@@ -323,6 +387,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "find-msvc-tools"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5baebc0774151f905a1a2cc41989300b1e6fbb29aff0ceffa1064fdd3088d582"
+
+[[package]]
+name = "foldhash"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d9c4f5dac5e15c24eb999c26181a6ca40b39fe946cbe4c263c7209467bc83af2"
+
+[[package]]
 name = "futures"
 version = "0.3.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -463,6 +539,17 @@ dependencies = [
 
 [[package]]
 name = "hashbrown"
+version = "0.15.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9229cfe53dfd69f0609a49f65461bd93001ea1ef889cd5529dd176593f5338a1"
+dependencies = [
+ "allocator-api2",
+ "equivalent",
+ "foldhash",
+]
+
+[[package]]
+name = "hashbrown"
 version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
@@ -484,6 +571,82 @@ name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
+
+[[package]]
+name = "hologram-bare-hal"
+version = "0.6.0"
+source = "git+https://github.com/Hologram-Technologies/hologram?rev=18f553d8578997ce32e7b653786a0bcf9b09a2c0#18f553d8578997ce32e7b653786a0bcf9b09a2c0"
+dependencies = [
+ "async-trait",
+ "spin",
+]
+
+[[package]]
+name = "hologram-host"
+version = "0.6.0"
+source = "git+https://github.com/Hologram-Technologies/hologram?rev=18f553d8578997ce32e7b653786a0bcf9b09a2c0#18f553d8578997ce32e7b653786a0bcf9b09a2c0"
+dependencies = [
+ "uor-foundation",
+ "uor-foundation-sdk",
+ "uor-prism",
+]
+
+[[package]]
+name = "hologram-net-bare"
+version = "0.6.0"
+source = "git+https://github.com/Hologram-Technologies/hologram?rev=18f553d8578997ce32e7b653786a0bcf9b09a2c0#18f553d8578997ce32e7b653786a0bcf9b09a2c0"
+dependencies = [
+ "async-trait",
+ "hashbrown 0.15.5",
+ "hologram-bare-hal",
+ "hologram-substrate-core",
+ "spin",
+]
+
+[[package]]
+name = "hologram-realizations"
+version = "0.6.0"
+source = "git+https://github.com/Hologram-Technologies/hologram?rev=18f553d8578997ce32e7b653786a0bcf9b09a2c0#18f553d8578997ce32e7b653786a0bcf9b09a2c0"
+dependencies = [
+ "hologram-substrate-core",
+]
+
+[[package]]
+name = "hologram-store-mem"
+version = "0.6.0"
+source = "git+https://github.com/Hologram-Technologies/hologram?rev=18f553d8578997ce32e7b653786a0bcf9b09a2c0#18f553d8578997ce32e7b653786a0bcf9b09a2c0"
+dependencies = [
+ "hashbrown 0.15.5",
+ "hologram-substrate-core",
+ "spin",
+]
+
+[[package]]
+name = "hologram-substrate-core"
+version = "0.6.0"
+source = "git+https://github.com/Hologram-Technologies/hologram?rev=18f553d8578997ce32e7b653786a0bcf9b09a2c0#18f553d8578997ce32e7b653786a0bcf9b09a2c0"
+dependencies = [
+ "async-trait",
+ "hashbrown 0.15.5",
+ "hologram-host",
+ "uor-addr",
+]
+
+[[package]]
+name = "holospaces"
+version = "0.0.0"
+source = "git+https://github.com/Hologram-Technologies/holospaces?rev=f2415624e3a37162d9a30b4dbae776dcebb60e3e#f2415624e3a37162d9a30b4dbae776dcebb60e3e"
+dependencies = [
+ "async-trait",
+ "hologram-bare-hal",
+ "hologram-net-bare",
+ "hologram-realizations",
+ "hologram-store-mem",
+ "hologram-substrate-core",
+ "libm",
+ "miniz_oxide",
+ "spin",
+]
 
 [[package]]
 name = "humantime"
@@ -514,7 +677,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d466e9454f08e4a911e14806c24e16fba1b4c121d1ea474396f396069cf949d9"
 dependencies = [
  "equivalent",
- "hashbrown",
+ "hashbrown 0.17.1",
 ]
 
 [[package]]
@@ -554,6 +717,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 
 [[package]]
+name = "keccak"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb26cec98cce3a3d96cbb7bced3c4b16e3d13f27ec56dbd62cbc8f39cfb9d653"
+dependencies = [
+ "cpufeatures",
+]
+
+[[package]]
 name = "lazy-regex"
 version = "3.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -581,6 +753,12 @@ name = "libc"
 version = "0.2.186"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68ab91017fe16c622486840e4c83c9a37afeff978bd239b5293d61ece587de66"
+
+[[package]]
+name = "libm"
+version = "0.2.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6d2cec3eae94f9f509c767b45932f1ada8350c4bdb85af2fcab4a3c14807981"
 
 [[package]]
 name = "linked-hash-map"
@@ -611,6 +789,15 @@ name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
+
+[[package]]
+name = "miniz_oxide"
+version = "0.8.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1fa76a2c86f704bdb222d66965fb3d63269ce38518b83cb0575fca855ebb6316"
+dependencies = [
+ "adler2",
+]
 
 [[package]]
 name = "nom"
@@ -771,6 +958,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
 
 [[package]]
+name = "ryu"
+version = "1.0.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9774ba4a74de5f7b1c1451ed6cd5285a32eddb5cccb8cc655a4e50009e06477f"
+
+[[package]]
 name = "same-file"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -855,6 +1048,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "sha3"
+version = "0.10.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77fd7028345d415a4034cf8777cd4f8ab1851274233b45f84e3d955502d93874"
+dependencies = [
+ "digest",
+ "keccak",
+]
+
+[[package]]
+name = "shlex"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba"
+
+[[package]]
 name = "slab"
 version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -876,6 +1085,12 @@ name = "smawk"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e8e2fb0f499abb4d162f2bedad68f5ef91a1682b5a03596ddb67efd37768d100"
+
+[[package]]
+name = "spin"
+version = "0.9.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6980e8d7511241f8acf4aebddbb1ff938df5eebe98691418c4468d0b72a96a67"
 
 [[package]]
 name = "strsim"
@@ -1063,6 +1278,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "tqc-substrate"
+version = "0.1.0"
+dependencies = [
+ "holospaces",
+ "tqc-core",
+ "tqc-model",
+ "uor-addr",
+]
+
+[[package]]
 name = "tqc-vv"
 version = "0.1.0"
 dependencies = [
@@ -1073,6 +1298,7 @@ dependencies = [
  "tqc-atlas",
  "tqc-core",
  "tqc-model",
+ "tqc-substrate",
 ]
 
 [[package]]
@@ -1118,6 +1344,97 @@ name = "unicode-width"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b4ac048d71ede7ee76d585517add45da530660ef4390e49b098733c6e897f254"
+
+[[package]]
+name = "uor-addr"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b6e2d88d6ef066384c4eccbadc6dca625657493096b0776081dc106cd552eb6"
+dependencies = [
+ "ryu",
+ "uor-foundation",
+ "uor-foundation-sdk",
+ "uor-prism",
+ "uor-prism-tensor",
+]
+
+[[package]]
+name = "uor-foundation"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0179d3c29eb68e52ed03f9b48136159d4d4d26bd6b8008da3a9864b43ed0492f"
+dependencies = [
+ "libm",
+]
+
+[[package]]
+name = "uor-foundation-sdk"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c9ab22f2053e30eb0b748543182e236326a02c576aa46f1956ad4a3e4396490"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "uor-prism"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d31f122d1466f5a48780fec22cdbef89dbd345e2b9aab8d8ebe89b5502fbb56"
+dependencies = [
+ "uor-foundation",
+ "uor-foundation-sdk",
+ "uor-prism-crypto",
+ "uor-prism-fhe",
+ "uor-prism-numerics",
+ "uor-prism-tensor",
+]
+
+[[package]]
+name = "uor-prism-crypto"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b363e64319dab5e809cd2524c6f9ff97150cc01b56e6c197feb574482c682542"
+dependencies = [
+ "blake3",
+ "sha2",
+ "sha3",
+ "uor-foundation",
+ "uor-foundation-sdk",
+]
+
+[[package]]
+name = "uor-prism-fhe"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "80bc3e193c5ca7a505d6db4937e30562d276ce6a90e9b0bb181815de64cd8ef2"
+dependencies = [
+ "uor-foundation",
+ "uor-foundation-sdk",
+]
+
+[[package]]
+name = "uor-prism-numerics"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "112180275b7f1b94f202f8894441bb7635fce583be291b91fc1be174435bdfa6"
+dependencies = [
+ "uor-foundation",
+ "uor-foundation-sdk",
+]
+
+[[package]]
+name = "uor-prism-tensor"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b69a4f7b49a8acc21823ca567fb962124d3d6b5b2891e20f5308ac1602211601"
+dependencies = [
+ "uor-foundation",
+ "uor-foundation-sdk",
+ "uor-prism-numerics",
+]
 
 [[package]]
 name = "utf8parse"

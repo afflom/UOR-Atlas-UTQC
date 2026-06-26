@@ -29,6 +29,7 @@ pub mod generators;
 pub mod inner;
 pub mod labels;
 pub mod modular;
+pub mod octonion;
 pub mod params;
 pub mod spectrum;
 

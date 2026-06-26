@@ -7,13 +7,12 @@
 #   tqc     the TQC primitive
 #   atlas   the Atlas / uor-addr realization (summary)
 #   source  the F1 / uor-addr / holospaces anchor
-#   status  some-true | build | open | none   (see model/status.toml)
+#   status  some-true | build | open   (see model/status.toml)
 #   stage   S0..S4
-#   oracle  an id from model/oracles.toml ("" for absent/crux)
+#   oracle  an id from model/oracles.toml
 #   tier    suite  = implemented, gating, green
 #           target = defined behavior, not yet built, expected-RED, non-gating
-#           absent = carried for honesty; verified to be NEVER asserted
-#   feature path (relative to repo root) of the Gherkin definition ("" for absent)
+#   feature path (relative to repo root) of the Gherkin definition
 
 [[row]]
 id = "objects-labels"
@@ -103,8 +102,8 @@ source = "uor-addr composition/g2; AtlasComposition eight_square"
 status = "some-true"
 stage = "S1"
 oracle = "uor-addr-composition"
-tier = "target"
-feature = "features/targets/s1_generators/fusion_g2.feature"
+tier = "suite"
+feature = "features/suites/s1_generators/fusion_g2.feature"
 
 [[row]]
 id = "dual-f4"
@@ -114,8 +113,8 @@ source = "uor-addr composition/f4; AtlasClasses mu"
 status = "some-true"
 stage = "S1"
 oracle = "uor-addr-composition"
-tier = "target"
-feature = "features/targets/s1_generators/dual_f4.feature"
+tier = "suite"
+feature = "features/suites/s1_generators/dual_f4.feature"
 
 [[row]]
 id = "categorical-structure"
@@ -125,8 +124,8 @@ source = "uor-addr composition/{e6,e7,e8}"
 status = "some-true"
 stage = "S1"
 oracle = "uor-addr-composition"
-tier = "target"
-feature = "features/targets/s1_generators/categorical_structure.feature"
+tier = "suite"
+feature = "features/suites/s1_generators/categorical_structure.feature"
 
 [[row]]
 id = "definite-anchor-e8"

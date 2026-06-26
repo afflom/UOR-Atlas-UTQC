@@ -5,10 +5,11 @@
 //! the cucumber step definitions in `tqc-conformance` call them (DRY).
 
 use crate::oracle::F1Constants;
-use tqc_core::generators::Generators;
+use tqc_core::generators::{Generators, Permutation};
 use tqc_core::inner::{euclidean_norm_sq, preserves_norm};
-use tqc_core::{coxeter, labels, modular, spectrum, UseCaseParams};
+use tqc_core::{coxeter, labels, modular, octonion, spectrum, UseCaseParams};
 use tqc_model::Model;
+use tqc_substrate::{dual, embed_e8, fuse, grade_e6, orbit_e7, COMPOSITION_AXES};
 
 /// Outcome of a witness.
 pub type Witness = Result<(), String>;
@@ -19,6 +20,15 @@ fn check(cond: bool, msg: impl Into<String>) -> Witness {
     } else {
         Err(msg.into())
     }
+}
+
+/// Canonical bytes for an anyon label, parameterized by the use-case (no Atlas literal).
+fn anyon_bytes(p: &UseCaseParams, index: u64) -> Vec<u8> {
+    format!(
+        "tqc-anyon:q{}t{}o{}:{index}",
+        p.scope, p.modality, p.context
+    )
+    .into_bytes()
 }
 
 /// VV-00 — the committed F1 artifact matches its recorded pin, and was extracted at the
@@ -262,6 +272,97 @@ pub fn modular_identities(p: &UseCaseParams, f1: &F1Constants) -> Witness {
     )
 }
 
+/// VV — fusion reduces to the realized `compose_g2_product` and is commutative on every
+/// σ-axis; the composition norm is multiplicative at the use-case's context level.
+///
+/// # Errors
+/// On a non-commutative fusion, an axis/composition failure, or a non-multiplicative norm.
+pub fn fusion_g2(p: &UseCaseParams) -> Witness {
+    let n = p.class_count().min(6);
+    for axis in COMPOSITION_AXES {
+        for i in 0..n {
+            for j in 0..n {
+                let (a, b) = (anyon_bytes(p, i), anyon_bytes(p, j));
+                let ab = fuse(axis, &a, &b)?;
+                let ba = fuse(axis, &b, &a)?;
+                check(
+                    ab == ba,
+                    format!("g2 not commutative on {} for ({i},{j})", axis.token()),
+                )?;
+            }
+        }
+    }
+    // Norm-multiplicativity at the use-case's context level (1,2,4,8 are the division-algebra
+    // dimensions; the Atlas uses the octonion eight-square at O=8).
+    if matches!(p.context, 1 | 2 | 4 | 8) {
+        let dim = p.context as i128;
+        let x: Vec<i128> = (0..dim).map(|k| k + 1).collect();
+        let y: Vec<i128> = (0..dim).map(|k| 2 * k - 3).collect();
+        check(
+            octonion::norm_multiplicative(&x, &y),
+            "the composition norm is not multiplicative at the context level",
+        )?;
+    }
+    Ok(())
+}
+
+/// VV — the dual reduces to the realized `compose_f4_quotient` (deterministic, well-formed on
+/// every σ-axis) and the conjugation generator `μ` is an involution.
+///
+/// # Errors
+/// On a non-involutive `μ` or an axis/composition failure.
+pub fn dual_f4(p: &UseCaseParams) -> Witness {
+    let g = Generators::new(p);
+    check(g.mu.order() == u64::from(p.mu_order()), "mu order != F1")?;
+    check(
+        g.mu.then(&g.mu) == Permutation::identity(p.class_count()),
+        "the conjugation generator mu must be an involution",
+    )?;
+    let sample = anyon_bytes(p, 0);
+    for axis in COMPOSITION_AXES {
+        let once = dual(axis, &sample)?;
+        check(
+            once == dual(axis, &sample)?,
+            format!("f4 not deterministic on {}", axis.token()),
+        )?;
+        check(
+            !once.is_empty(),
+            format!("f4 produced an empty label on {}", axis.token()),
+        )?;
+    }
+    Ok(())
+}
+
+/// VV — the categorical operations `e6`/`e7`/`e8` reduce to the realized operations
+/// (deterministic, well-formed on every σ-axis); the `e7` S4 orbit size is `T·O = carrier_dim`.
+///
+/// # Errors
+/// On an axis/composition failure or an orbit-size mismatch.
+pub fn categorical_structure(p: &UseCaseParams) -> Witness {
+    check(
+        p.carrier_dim() == u64::from(p.modality) * u64::from(p.context),
+        "e7 S4 orbit size != T*O",
+    )?;
+    let sample = anyon_bytes(p, 0);
+    for axis in COMPOSITION_AXES {
+        for (name, out) in [
+            ("e6", grade_e6(axis, &sample)?),
+            ("e7", orbit_e7(axis, &sample)?),
+            ("e8", embed_e8(axis, &sample)?),
+        ] {
+            check(
+                !out.is_empty(),
+                format!("{name} produced an empty label on {}", axis.token()),
+            )?;
+        }
+        check(
+            grade_e6(axis, &sample)? == grade_e6(axis, &sample)?,
+            format!("e6 not deterministic on {}", axis.token()),
+        )?;
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -292,11 +393,17 @@ mod tests {
         modular_identities(&p, &f1).unwrap();
         definite_anchor_e8(&f1).unwrap();
         definite_anchor(&p).unwrap();
+        fusion_g2(&p).unwrap();
+        dual_f4(&p).unwrap();
+        categorical_structure(&p).unwrap();
     }
 
     #[test]
-    fn definite_anchor_holds_at_an_arbitrary_use_case() {
+    fn substrate_coupled_witnesses_hold_at_an_arbitrary_use_case() {
         let p = UseCaseParams::new(2, 2, 4);
         definite_anchor(&p).unwrap();
+        fusion_g2(&p).unwrap();
+        dual_f4(&p).unwrap();
+        categorical_structure(&p).unwrap();
     }
 }

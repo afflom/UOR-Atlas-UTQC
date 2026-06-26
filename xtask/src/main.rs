@@ -167,6 +167,9 @@ fn run_suite_witness(
         "coxeter-weyl" => witness::coxeter_weyl(p, f1),
         "modular-identities" => witness::modular_identities(p, f1),
         "definite-anchor-e8" => witness::definite_anchor_e8(f1),
+        "fusion-g2" => witness::fusion_g2(p),
+        "dual-f4" => witness::dual_f4(p),
+        "categorical-structure" => witness::categorical_structure(p),
         _ => return None,
     })
 }

@@ -117,6 +117,21 @@ async fn t_anchor_pd(w: &mut TqcWorld) {
     witness::definite_anchor(&w.params()).unwrap();
 }
 
+#[then("fusion reduces to the realized g2 product on every sigma-axis")]
+async fn t_fusion(w: &mut TqcWorld) {
+    witness::fusion_g2(&w.params()).unwrap();
+}
+
+#[then("the dual reduces to the realized f4 mirror involution")]
+async fn t_dual(w: &mut TqcWorld) {
+    witness::dual_f4(&w.params()).unwrap();
+}
+
+#[then("the e6/e7/e8 operations reduce to the realized operations")]
+async fn t_categorical(w: &mut TqcWorld) {
+    witness::categorical_structure(&w.params()).unwrap();
+}
+
 #[tokio::main]
 async fn main() {
     let features = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../features/suites");

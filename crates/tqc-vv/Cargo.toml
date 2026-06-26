@@ -12,6 +12,7 @@ authors.workspace = true
 tqc-core = { workspace = true }
 tqc-model = { workspace = true }
 tqc-atlas = { workspace = true }
+tqc-substrate = { workspace = true }
 serde = { workspace = true, features = ["std"] }
 serde_json = { workspace = true, features = ["std"] }
 sha2 = { workspace = true }
