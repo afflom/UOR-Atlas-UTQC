@@ -17,3 +17,12 @@ Feature: Atlas composition operation g2
       | q | T | O |
       | 4 | 3 | 8 |
       | 2 | 2 | 4 |
+
+  Scenario Outline: the structural quotient maps signed composition to an associative fusion ring
+    Given an arbitrary use-case with scope <q> modality <T> context <O>
+    Then the absolute structural quotient of the composition algebra forms an associative fusion ring
+
+    Examples:
+      | q | T | O |
+      | 4 | 3 | 8 |
+      | 2 | 2 | 4 |

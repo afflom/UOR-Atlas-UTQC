@@ -23,7 +23,7 @@ fn conj(a: &[i128]) -> Vec<i128> {
 }
 
 /// Cayley–Dickson product: `(a,b)(c,d) = (a·c − conj(d)·b, d·a + b·conj(c))`.
-fn cd_mul(a: &[i128], b: &[i128]) -> Vec<i128> {
+pub fn cd_mul(a: &[i128], b: &[i128]) -> Vec<i128> {
     let n = a.len();
     if n == 1 {
         return alloc::vec![a[0] * b[0]];
@@ -40,6 +40,30 @@ fn cd_mul(a: &[i128], b: &[i128]) -> Vec<i128> {
     let mut out = first;
     out.extend(second);
     out
+}
+
+/// Compute the structure constants $C_{ij}^k$ of the Cayley-Dickson algebra of a given dimension.
+#[must_use]
+pub fn structure_constants(dim: usize) -> Vec<(usize, usize, usize, i128)> {
+    let mut constants = Vec::new();
+    if dim == 0 || !dim.is_power_of_two() {
+        return constants;
+    }
+    for i in 0..dim {
+        for j in 0..dim {
+            let mut ei = alloc::vec![0; dim];
+            ei[i] = 1;
+            let mut ej = alloc::vec![0; dim];
+            ej[j] = 1;
+            let ek = cd_mul(&ei, &ej);
+            for (k, &val) in ek.iter().enumerate() {
+                if val != 0 {
+                    constants.push((i, j, k, val));
+                }
+            }
+        }
+    }
+    constants
 }
 
 /// The norm `Σxᵢ²`.
@@ -64,6 +88,57 @@ pub fn norm_multiplicative(a: &[i128], b: &[i128]) -> bool {
 #[must_use]
 pub fn eight_square_holds(a: &[i128; 8], b: &[i128; 8]) -> bool {
     norm_multiplicative(a, b)
+}
+
+/// The structural quotient: taking the absolute value of the structure constants maps the signed
+/// Cayley-Dickson algebra to a non-negative fusion ring. This verifies if the resulting ring
+/// is strictly associative, bypassing the `SignedFusionConstants` obstruction.
+#[must_use]
+pub fn absolute_quotient_is_associative(dim: usize) -> bool {
+    if dim == 0 || !dim.is_power_of_two() {
+        return false;
+    }
+    for i in 0..dim {
+        for j in 0..dim {
+            for k in 0..dim {
+                let mut ei = alloc::vec![0; dim];
+                ei[i] = 1;
+                let mut ej = alloc::vec![0; dim];
+                ej[j] = 1;
+                let mut ek = alloc::vec![0; dim];
+                ek[k] = 1;
+
+                let ij = cd_mul(&ei, &ej);
+                let mut ij_abs = alloc::vec![0; dim];
+                for x in 0..dim {
+                    ij_abs[x] = ij[x].abs();
+                }
+
+                let ij_k = cd_mul(&ij_abs, &ek);
+                let mut ij_k_abs = alloc::vec![0; dim];
+                for x in 0..dim {
+                    ij_k_abs[x] = ij_k[x].abs();
+                }
+
+                let jk = cd_mul(&ej, &ek);
+                let mut jk_abs = alloc::vec![0; dim];
+                for x in 0..dim {
+                    jk_abs[x] = jk[x].abs();
+                }
+
+                let i_jk = cd_mul(&ei, &jk_abs);
+                let mut i_jk_abs = alloc::vec![0; dim];
+                for x in 0..dim {
+                    i_jk_abs[x] = i_jk[x].abs();
+                }
+
+                if ij_k_abs != i_jk_abs {
+                    return false;
+                }
+            }
+        }
+    }
+    true
 }
 
 #[cfg(test)]

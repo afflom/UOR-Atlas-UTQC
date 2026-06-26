@@ -73,5 +73,12 @@ pub fn construct_atlas_native(
         return Err(ConstructionObstruction::IndefiniteSpectralSignature);
     }
 
-    Err(ConstructionObstruction::SignedFusionConstants)
+    let sc = tqc_core::octonion::structure_constants(8);
+    if sc.iter().any(|&(_, _, _, val)| val < 0) {
+        return Err(ConstructionObstruction::SignedFusionConstants);
+    }
+
+    // Fallback if somehow there is another obstruction or we haven't built the true result.
+    // However, the above check will always trip for octonions because e_1 * e_2 = e_3 but e_2 * e_1 = -e_3.
+    unreachable!("Atlas MTC construction succeeded despite obstructions");
 }

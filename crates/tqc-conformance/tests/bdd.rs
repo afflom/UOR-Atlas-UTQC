@@ -92,6 +92,16 @@ async fn t_generator_orders(w: &mut TqcWorld) {
     assert_eq!(g.mu.order(), u64::from(p.mu_order()));
 }
 
+#[then(
+    "the absolute structural quotient of the composition algebra forms an associative fusion ring"
+)]
+async fn structural_quotient_associative(w: &mut TqcWorld) {
+    let p = w.params();
+    assert!(tqc_core::octonion::absolute_quotient_is_associative(
+        p.context as usize
+    ));
+}
+
 #[then("the spectrum reconciles with the F1 multiplicities and signature")]
 async fn t_spectrum(w: &mut TqcWorld) {
     witness::spectrum(&w.params(), w.f1()).unwrap();
