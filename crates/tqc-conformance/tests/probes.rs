@@ -56,8 +56,7 @@ async fn t_atlas_native_mtc_obstruction(_w: &mut ProbeWorld) {
 
 #[tokio::main]
 async fn main() {
-    let targets =
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../features/targets");
+    let targets = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../features/targets");
     ProbeWorld::cucumber()
         .fail_on_skipped()
         .run_and_exit(targets)

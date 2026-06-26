@@ -157,7 +157,6 @@ async fn t_holospace_cycle(w: &mut TqcWorld) {
     witness::holospace_cycle(&w.params()).unwrap();
 }
 
-
 #[tokio::main]
 async fn main() {
     let features = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../features/suites");
