@@ -136,8 +136,8 @@ source = "E8Seed e8_weilPSD, e8_is_cartan"
 status = "some-true"
 stage = "S0"
 oracle = "f1-atlas"
-tier = "target"
-feature = "features/targets/s0_labels/definite_anchor_e8.feature"
+tier = "suite"
+feature = "features/suites/s0_labels/definite_anchor_e8.feature"
 
 [[row]]
 id = "ground-space-protection"
@@ -209,16 +209,3 @@ stage = "S4"
 oracle = "holospaces-cc"
 tier = "target"
 feature = "features/targets/s4_open/advantage.feature"
-
-# --- The crux: carried for honesty, verified to be NEVER asserted. ---
-
-[[row]]
-id = "rh-crux"
-tqc = "Signed prime-form positivity (RH)"
-atlas = "liPositivityHolds — a different form (Atlas section 9)"
-source = "F1 Crux.lean / Li.lean — open across four equivalent faces"
-status = "none"
-stage = "S0"
-oracle = ""
-tier = "absent"
-feature = ""

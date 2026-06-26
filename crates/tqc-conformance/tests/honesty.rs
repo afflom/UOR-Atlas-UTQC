@@ -9,10 +9,6 @@ fn honesty_audit_passes() {
     let report = audit(&model, &workspace_root()).expect("the honesty audit must pass");
     println!("honesty audit OK: {report:?}");
     assert!(report.suites >= 1, "at least one gating suite must exist");
-    assert!(
-        report.absent >= 1,
-        "the crux must be carried as an absent row"
-    );
     assert_eq!(
         report.features_on_disk,
         report.suites + report.targets,

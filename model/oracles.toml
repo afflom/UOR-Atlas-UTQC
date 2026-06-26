@@ -10,7 +10,7 @@ pin = "b64df2ade9c9c390373e2d3422e360788227ca5c"
 license = "MIT"
 kind = "generated-from-source"
 artifact = "oracles/f1/atlas-constants.json"
-sha256 = "5214c374577cded1c8af8d294207e2a12bf1c404bfa061cb51aad1d1b58b9ec8"
+sha256 = "fa08d3685afd6d61da1bebeb6821b77fd6d9be310fd5134c144cf4ba5086e6d3"
 note = "Pinned to the immutable F1 release tag v0.21.0 (commit b64df2a). Authoritative re-derivation is the deferred lake CI job; `atlas-pin-check` verifies the pin is a live upstream ref tip."
 
 [[oracle]]

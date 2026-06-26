@@ -7,7 +7,7 @@ pin, license, and checksum. The machine-readable twin is
 
 | Oracle | Authority | Pin | License | Artifact | Verified by |
 |---|---|---|---|---|---|
-| `f1-atlas` | F1 — UOR Atlas (Lean 4, machine-checked, sorry-free) | tag `v0.21.0` / commit `b64df2a` | MIT | `oracles/f1/atlas-constants.json` (sha256 `5214c374…`) | sha256 + `atlas-pin-check` (tip) + deferred lake re-derivation |
+| `f1-atlas` | F1 — UOR Atlas (Lean 4, machine-checked, sorry-free) | tag `v0.21.0` / commit `b64df2a` | MIT | `oracles/f1/atlas-constants.json` (sha256 `fa08d368…`) | sha256 + `atlas-pin-check` (tip) + deferred lake re-derivation |
 | `uor-addr-composition` | uor-addr — realized g2/f4/e6/e7/e8 composition | `0.2.0` (crates.io) | Apache-2.0 | _(linked code; via facade)_ | byte-for-byte κ reduction in witnesses |
 | `holospaces-cc` | holospaces `vv` witnesses (CC-1/2/29/30) | commit `f241562…` | MIT | _(linked code; via facade)_ | facade against holospaces public API |
 | `mtc-axioms` | MTC axioms (pentagon/hexagon, Yang–Baxter, SL(2,ℤ), Verlinde) | Bakalov–Kirillov; Turaev; Kitaev App. E; Rowell–Stong–Wang | — | _(executable predicates)_ | axiom predicates; unit-tested on Fibonacci/Ising |

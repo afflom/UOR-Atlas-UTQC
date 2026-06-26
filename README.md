@@ -24,8 +24,8 @@ is **verification & validation infrastructure**:
    the [F1] Lean formalization of the UOR Atlas, the realized [uor-addr] composition
    operations, the holospaces `vv` witnesses, and published math standards (NIST/FIPS
    hash KATs, the E8 lattice, modular-form data, the MTC axioms).
-4. **Honesty discipline.** Mirroring F1, a meta-gate proves the suite never asserts an
-   *open* (`universality`, `advantage`) or *none* (the RH crux) claim as established.
+4. **Honesty discipline.** A meta-gate proves the suite never asserts an *open*
+   (`universality`, `advantage`) claim as established.
 
 ## Parametricity
 
@@ -60,10 +60,10 @@ just bdd        # run the Gherkin BDD suite
 
 ## Status
 
-Every row of the dictionary carries one of four honesty levels — `some true` (sourced),
-`build` (a scoped construction on sourced pieces), `open` (a genuine unknown), `none`
-(the RH crux, untouched). See [`docs/conceptual-model/03-status-discipline.md`] and the
-live conformance ledger produced by `just honesty`.
+Every row of the dictionary carries one of three honesty levels — `some-true` (sourced fact
+reproduced), `build` (constructed and axiom-validated), `open` (measured and reported). See
+[`docs/conceptual-model/03-status-discipline.md`] and the live conformance ledger produced by
+`just report`.
 
 [holospaces]: https://github.com/Hologram-Technologies/holospaces
 [F1]: https://github.com/afflom/F1

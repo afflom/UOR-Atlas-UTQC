@@ -88,19 +88,18 @@ formula.
 
 ## 4. Status discipline & the honesty gate
 
-Each dictionary row carries one of four levels (see
+Each dictionary row carries one of three levels (see
 [`../conceptual-model/03-status-discipline.md`](../conceptual-model/03-status-discipline.md)):
-`some true`, `build`, `open`, `none`. The honesty meta-gate (in `tqc-conformance`) enforces,
-in CI:
+`some-true`, `build`, `open`. The honesty meta-gate (in `tqc-conformance`) enforces, in CI:
 
 - **Coverage** — every dictionary row has a feature *and* a witness; every feature/witness
-  maps back to a row.
-- **Status discipline** — a `some true` row's witness must be a green, gating check; a
-  `build` row is validated **only against axioms / sourced reductions**, never assumed sound;
-  an `open`/`none` row may be *probed and reported* but never asserted true.
-- **No-smuggling** — the definite Euclidean inner product (`Σxᵢ²`) is defined independently
-  of the signed prime form, so "generators are unitary" is genuine orthogonality, not a
-  hidden RH-positivity claim.
+  maps back to a row (bidirectional).
+- **Status discipline** — a `some-true` row's witness must be a green, gating check; a
+  `build` row is validated **only against MTC axioms / sourced reductions**, never assumed
+  sound; an `open` row may be *probed and reported* but never asserted true.
+- **Euclidean inner product** — the inner product is the positive-definite Euclidean
+  composition norm `Σxᵢ²`, so "generators are unitary" is genuine orthogonality, established
+  directly. There is no crux.
 
 This mirrors F1's own `scripts/honesty_audit.sh`, promoted from a script to a typed,
 test-enforced invariant.

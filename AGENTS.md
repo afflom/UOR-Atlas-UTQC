@@ -19,8 +19,9 @@ for *how*, read [`docs/architecture/ARCHITECTURE.md`](docs/architecture/ARCHITEC
 5. **External ground truth.** Validation is against authoritative external oracles (F1,
    uor-addr, holospaces `vv`, NIST/FIPS, E8, modular data, MTC axioms) — never
    self-reference. Oracles are committed with provenance + checksum.
-6. **Honesty.** Status (`some true` / `build` / `open` / `none`) is a contract on what V&V
-   may assert. The crux stays `none`. The honesty gate enforces this; do not route around it.
+6. **Honesty.** Status (`some-true` / `build` / `open`) is a contract on what V&V may assert.
+   `open` rows are measured, never asserted. The honesty gate enforces this; do not route
+   around it.
 7. **No half-measures.** A standard is implemented in full or marked `build`/`open`. No
    narrowing (all five σ-axes, the full MTC axiom set, the whole class space).
 

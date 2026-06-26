@@ -77,6 +77,21 @@ pub struct F1Coxeter {
     pub rank: u32,
 }
 
+/// E8 root-lattice seed constants.
+#[derive(Debug, Clone, Deserialize)]
+pub struct F1E8Seed {
+    /// Cartan diagonal (`2`).
+    pub cartan_diag: i64,
+    /// Gram scale factor (`Gram = scale × Cartan`).
+    pub gram_scale: i64,
+    /// Gram diagonal (`8`).
+    pub gram_diag: i64,
+    /// Gram off-diagonal edge weight (`-4`).
+    pub gram_edge: i64,
+    /// Whether the Gram is positive semidefinite.
+    pub psd: bool,
+}
+
 /// Modular-form constants.
 #[derive(Debug, Clone, Deserialize)]
 pub struct F1Modular {
@@ -95,15 +110,6 @@ pub struct F1Modular {
     pub delta: Vec<i64>,
 }
 
-/// The crux, recorded as open — never a value.
-#[derive(Debug, Clone, Deserialize)]
-pub struct F1Crux {
-    /// The provably-equivalent open faces.
-    pub faces: Vec<String>,
-    /// Always `"none"`.
-    pub status: String,
-}
-
 /// The whole F1 oracle.
 #[derive(Debug, Clone, Deserialize)]
 pub struct F1Constants {
@@ -117,10 +123,10 @@ pub struct F1Constants {
     pub spectrum: F1Spectrum,
     /// Coxeter.
     pub coxeter: F1Coxeter,
+    /// E8 seed.
+    pub e8_seed: F1E8Seed,
     /// Modular.
     pub modular: F1Modular,
-    /// The crux (open).
-    pub crux_open: F1Crux,
 }
 
 impl F1Constants {

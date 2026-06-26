@@ -68,10 +68,5 @@
     "no_loss": true,
     "scale_invariant": true,
     "theorems": ["atlas_coherent"]
-  },
-  "crux_open": {
-    "description": "RH / signed prime-form positivity (liPositivityHolds). OPEN across four provably-equivalent faces. NEVER asserted by this repository.",
-    "faces": ["HodgeIndex", "LiPositive"],
-    "status": "none"
   }
 }

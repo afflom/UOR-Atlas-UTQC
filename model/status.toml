@@ -1,6 +1,10 @@
-# The status ledger: the controlled vocabulary inherited from the UOR Atlas / F1.
+# The status ledger: the controlled vocabulary for the TQC.
 # A status is a CONTRACT on what the V&V suite may assert about a row.
 # Parsed by `tqc-model`; enforced by the honesty meta-gate in `tqc-conformance`.
+#
+# The vocabulary is `some-true` / `build` / `open`. There is no crux: the TQC inner product
+# is the positive-definite Euclidean composition norm, and nothing references a signed prime
+# form, so F1's `none` (RH) level has no role here.
 
 [[level]]
 id = "some-true"
@@ -18,10 +22,4 @@ gating = true
 id = "open"
 summary = "A genuine unknown (universality, advantage). Measured and reported, never asserted true."
 may_assert = "measurement-only"
-gating = false
-
-[[level]]
-id = "none"
-summary = "The crux: signed prime-form positivity (RH). Neither assumed nor proved."
-may_assert = "nothing"
 gating = false

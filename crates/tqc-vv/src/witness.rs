@@ -195,6 +195,55 @@ pub fn coxeter_weyl(p: &UseCaseParams, f1: &F1Constants) -> Witness {
     )
 }
 
+/// VV — the definite anchor: the E8 Gram is `4 × Cartan` (diag 8, edges -4) and is
+/// positive-definite, matching the F1 `e8_seed`.
+///
+/// # Errors
+/// On any disagreement with F1 or a non-PD Gram.
+pub fn definite_anchor_e8(f1: &F1Constants) -> Witness {
+    let scale = f1.e8_seed.gram_scale;
+    let cartan = tqc_atlas::e8_cartan();
+    for (i, row) in cartan.iter().enumerate() {
+        check(row[i] == f1.e8_seed.cartan_diag, "E8 Cartan diagonal != F1")?;
+    }
+    let gram = tqc_atlas::e8_gram(scale);
+    for i in 0..8 {
+        check(
+            gram[i][i] == f1.e8_seed.gram_diag,
+            "E8 Gram diagonal != F1 gram_diag",
+        )?;
+        for j in 0..8 {
+            check(
+                gram[i][j] == scale * cartan[i][j],
+                "E8 Gram != scale*Cartan",
+            )?;
+            if i != j && gram[i][j] != 0 {
+                check(
+                    gram[i][j] == f1.e8_seed.gram_edge,
+                    "E8 Gram edge != F1 gram_edge",
+                )?;
+            }
+        }
+    }
+    check(
+        tqc_core::anchor::is_positive_definite(&gram) == f1.e8_seed.psd,
+        "E8 positive-definiteness != F1",
+    )?;
+    check(f1.e8_seed.psd, "F1 records the E8 seed as PSD")
+}
+
+/// VV — the generic definite anchor: the use-case's Euclidean companion is positive-definite.
+///
+/// # Errors
+/// If the companion is not positive-definite.
+pub fn definite_anchor(p: &UseCaseParams) -> Witness {
+    let gram = tqc_core::anchor::euclidean_companion(p.carrier_dim() as usize);
+    check(
+        tqc_core::anchor::is_positive_definite(&gram),
+        "the use-case Euclidean companion must be positive-definite",
+    )
+}
+
 /// VV — the modular identity `E4³ = E6² + 1728·Δ`, plus the weight `T·O/2`.
 ///
 /// # Errors
@@ -241,12 +290,13 @@ mod tests {
         spectrum(&p, &f1).unwrap();
         coxeter_weyl(&p, &f1).unwrap();
         modular_identities(&p, &f1).unwrap();
+        definite_anchor_e8(&f1).unwrap();
+        definite_anchor(&p).unwrap();
     }
 
     #[test]
-    fn the_crux_is_recorded_open_and_never_valued() {
-        let (_, f1, _) = atlas();
-        assert_eq!(f1.crux_open.status, "none");
-        assert!(!f1.crux_open.faces.is_empty());
+    fn definite_anchor_holds_at_an_arbitrary_use_case() {
+        let p = UseCaseParams::new(2, 2, 4);
+        definite_anchor(&p).unwrap();
     }
 }

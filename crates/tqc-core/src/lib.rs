@@ -23,6 +23,7 @@ extern crate alloc;
 #[cfg(test)]
 extern crate std;
 
+pub mod anchor;
 pub mod coxeter;
 pub mod generators;
 pub mod inner;

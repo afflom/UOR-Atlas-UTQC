@@ -47,6 +47,30 @@ pub fn canonical(model: &Model) -> Result<UseCaseParams, AtlasError> {
         .ok_or(AtlasError::NoCanonical)
 }
 
+/// The standard E8 Cartan matrix (Bourbaki), diagonal `2`, adjacency `-1`.
+#[must_use]
+pub fn e8_cartan() -> [[i64; 8]; 8] {
+    [
+        [2, 0, -1, 0, 0, 0, 0, 0],
+        [0, 2, 0, -1, 0, 0, 0, 0],
+        [-1, 0, 2, -1, 0, 0, 0, 0],
+        [0, -1, -1, 2, -1, 0, 0, 0],
+        [0, 0, 0, -1, 2, -1, 0, 0],
+        [0, 0, 0, 0, -1, 2, -1, 0],
+        [0, 0, 0, 0, 0, -1, 2, -1],
+        [0, 0, 0, 0, 0, 0, -1, 2],
+    ]
+}
+
+/// The E8 root-lattice Gram matrix `= scale × Cartan` (the Atlas PSD anchor uses `scale = 4`).
+#[must_use]
+pub fn e8_gram(scale: i64) -> Vec<Vec<i64>> {
+    e8_cartan()
+        .iter()
+        .map(|row| row.iter().map(|&x| scale * x).collect())
+        .collect()
+}
+
 /// Parameters for a use-case by id.
 ///
 /// # Errors

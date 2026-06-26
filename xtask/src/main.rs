@@ -134,7 +134,6 @@ fn report() -> Result<()> {
                 }
             }
             Tier::Target => "target (expected-RED, non-gating)".to_owned(),
-            Tier::Absent => "absent (never asserted)".to_owned(),
         };
         lines.push(format!(
             "| {} | {} | {:?} | {} | {} |",
@@ -167,6 +166,7 @@ fn run_suite_witness(
         "spectrum" => witness::spectrum(p, f1),
         "coxeter-weyl" => witness::coxeter_weyl(p, f1),
         "modular-identities" => witness::modular_identities(p, f1),
+        "definite-anchor-e8" => witness::definite_anchor_e8(f1),
         _ => return None,
     })
 }

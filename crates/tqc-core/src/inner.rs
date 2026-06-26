@@ -1,9 +1,8 @@
-//! The definite Euclidean inner product `⟨x,x⟩ = Σxᵢ²` — the TQC inner product.
+//! The TQC inner product: the positive-definite Euclidean composition norm `⟨x,x⟩ = Σxᵢ²`.
 //!
-//! Realizes the `inner-product` dictionary row. This is the **definite Euclidean companion**,
-//! deliberately defined *independently* of the signed prime form (the RH crux). "Generators
-//! are unitary" means exactly "permutations preserve this `Σxᵢ²`" — genuine orthogonality,
-//! no positivity assumption. The honesty gate forbids conflating this with the crux form.
+//! Realizes the `inner-product` dictionary row. The form is positive-definite outright — a
+//! manifest sum of squares. "Generators are unitary" means exactly "permutations preserve
+//! this `Σxᵢ²`", i.e. genuine orthogonality, established directly.
 
 use crate::generators::Permutation;
 

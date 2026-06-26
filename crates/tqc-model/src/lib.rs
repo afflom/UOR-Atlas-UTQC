@@ -2,9 +2,9 @@
 //!
 //! The model is authored once in `model/*.toml` (see [`docs/conceptual-model`]) and embedded
 //! here at compile time. [`Model::load`] parses it and enforces the structural invariants the
-//! honesty meta-gate relies on: every dictionary row names a known status and oracle, status
-//! discipline holds (an `open`/`none` row can never be a gating `suite`), and the crux is
-//! carried as `absent`.
+//! honesty meta-gate relies on: every dictionary row names a known status and oracle, names a
+//! feature, and status discipline holds (an `open` row can never be a gating `suite`). The
+//! vocabulary is `some-true` / `build` / `open` — there is no crux.
 //!
 //! This crate contains **no mathematics and no substrate** — only the model.
 //!
@@ -29,14 +29,12 @@ pub enum Tier {
     Suite,
     /// Defined behavior, not yet built; expected-RED, non-gating.
     Target,
-    /// Carried for honesty; verified to be never asserted (the crux).
-    Absent,
 }
 
 /// One honesty level from the status ledger (`model/status.toml`).
 #[derive(Debug, Clone, Deserialize)]
 pub struct Status {
-    /// Identifier, e.g. `some-true`, `build`, `open`, `none`.
+    /// Identifier: `some-true`, `build`, or `open`.
     pub id: String,
     /// One-line meaning.
     pub summary: String,
@@ -106,11 +104,11 @@ pub struct Row {
     pub status: String,
     /// Build stage `S0`..`S4`.
     pub stage: String,
-    /// Oracle id (must exist, or empty for `absent`).
+    /// Oracle id (must exist in the registry, or empty if none).
     pub oracle: String,
     /// V&V tier.
     pub tier: Tier,
-    /// Path of the Gherkin feature (empty for `absent`).
+    /// Path of the Gherkin feature.
     pub feature: String,
 }
 
@@ -218,16 +216,6 @@ impl Model {
         let status_ids: BTreeSet<&str> = self.statuses.iter().map(|s| s.id.as_str()).collect();
         let oracle_ids: BTreeSet<&str> = self.oracles.iter().map(|o| o.id.as_str()).collect();
 
-        // The crux level must exist and be non-gating.
-        let none = self
-            .status("none")
-            .ok_or_else(|| ModelError("ledger is missing the `none` (crux) level".into()))?;
-        if none.gating {
-            return Err(ModelError(
-                "the `none` crux level must be non-gating".into(),
-            ));
-        }
-
         let mut seen = BTreeSet::new();
         for r in &self.rows {
             if !seen.insert(r.id.as_str()) {
@@ -240,50 +228,25 @@ impl Model {
                 return Err(ModelError(format!("row `{}`: unknown status", r.id)));
             }
 
-            match r.tier {
-                Tier::Absent => {
-                    // Only the crux is carried absent; it asserts nothing.
-                    if r.status != "none" {
-                        return Err(ModelError(format!(
-                            "row `{}`: tier `absent` is reserved for the `none` crux",
-                            r.id
-                        )));
-                    }
-                    if !r.feature.is_empty() || !r.oracle.is_empty() {
-                        return Err(ModelError(format!(
-                            "row `{}`: an absent row must have empty feature and oracle",
-                            r.id
-                        )));
-                    }
-                }
-                Tier::Suite | Tier::Target => {
-                    if r.feature.is_empty() {
-                        return Err(ModelError(format!(
-                            "row `{}`: tier requires a feature path",
-                            r.id
-                        )));
-                    }
-                    if !r.oracle.is_empty() && !oracle_ids.contains(r.oracle.as_str()) {
-                        return Err(ModelError(format!(
-                            "row `{}`: unknown oracle `{}`",
-                            r.id, r.oracle
-                        )));
-                    }
-                }
+            // Every row names a feature and (if any) a known oracle.
+            if r.feature.is_empty() {
+                return Err(ModelError(format!(
+                    "row `{}`: a row requires a feature path",
+                    r.id
+                )));
+            }
+            if !r.oracle.is_empty() && !oracle_ids.contains(r.oracle.as_str()) {
+                return Err(ModelError(format!(
+                    "row `{}`: unknown oracle `{}`",
+                    r.id, r.oracle
+                )));
             }
 
-            // Status discipline: a non-gating level (open/none) can never be a gating suite.
+            // Status discipline: a non-gating level (open) can never be a gating suite.
             if r.tier == Tier::Suite && !status.gating {
                 return Err(ModelError(format!(
                     "row `{}`: status `{}` is non-gating and may not be a gating `suite`",
                     r.id, r.status
-                )));
-            }
-            // The crux is never realized.
-            if r.status == "none" && r.tier != Tier::Absent {
-                return Err(ModelError(format!(
-                    "row `{}`: the `none` crux must be tier `absent`, never asserted",
-                    r.id
                 )));
             }
         }
@@ -300,7 +263,7 @@ mod tests {
         let m = Model::load().expect("model must load and satisfy its invariants");
         assert!(!m.rows.is_empty(), "dictionary must have rows");
         assert!(m.status("some-true").is_some());
-        assert!(m.status("none").is_some());
+        assert!(m.status("build").is_some());
     }
 
     #[test]
@@ -314,15 +277,18 @@ mod tests {
     }
 
     #[test]
-    fn the_crux_is_carried_and_absent() {
+    fn vocabulary_is_three_levels_with_no_crux() {
         let m = Model::load().unwrap();
-        let crux = m
-            .rows
-            .iter()
-            .find(|r| r.id == "rh-crux")
-            .expect("crux row present");
-        assert_eq!(crux.status, "none");
-        assert_eq!(crux.tier, Tier::Absent);
-        assert!(crux.feature.is_empty());
+        assert!(
+            m.status("none").is_none(),
+            "the RH crux level must not exist in the TQC"
+        );
+        for level in ["some-true", "build", "open"] {
+            assert!(m.status(level).is_some(), "missing status level `{level}`");
+        }
+        assert!(
+            m.rows.iter().all(|r| r.status != "none"),
+            "no row may carry status `none`"
+        );
     }
 }

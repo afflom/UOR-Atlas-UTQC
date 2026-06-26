@@ -107,6 +107,16 @@ async fn t_modular(w: &mut TqcWorld) {
     witness::modular_identities(&w.params(), w.f1()).unwrap();
 }
 
+#[then("the E8 definite anchor reproduces the F1 Atlas")]
+async fn t_e8_anchor(w: &mut TqcWorld) {
+    witness::definite_anchor_e8(w.f1()).unwrap();
+}
+
+#[then("the definite anchor is positive-definite")]
+async fn t_anchor_pd(w: &mut TqcWorld) {
+    witness::definite_anchor(&w.params()).unwrap();
+}
+
 #[tokio::main]
 async fn main() {
     let features = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../features/suites");
