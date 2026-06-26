@@ -469,8 +469,9 @@ pub fn braiding_r_matrix(p: &UseCaseParams) -> Witness {
 /// measures. Read: fusing two label κ resolves deterministically. No-loss: the state round-trips
 /// byte-identically (CC-29/30).
 ///
-/// The full native `.holo`-engine (wasmtime) execution is a heavier follow-up; this realizes
-/// the cycle on the substrate operations the validation path already invokes.
+/// The cycle executes generator gates through the native Hologram execution path in `tqc-substrate`:
+/// a permutation gate is compiled to a Hologram archive and run through `hologram_exec::InferenceSession`.
+/// Persisted/addressable `.holo` artifacts and backend hardening remain follow-up work.
 ///
 /// # Errors
 /// On a failed re-derivation, non-deterministic gate, broken collapse, or lossy round-trip.
@@ -503,8 +504,13 @@ pub fn holospace_cycle(p: &UseCaseParams) -> Witness {
         }
         tqc_substrate::kappa(&amplitude::encode(&amp_state)).to_string()
     };
-    let apply_gate = |targets: &[usize], state_bytes: &[u8]| -> Result<Vec<u8>, String> {
-        tqc_substrate::execute_holo_gate(targets, state_bytes)
+    let apply_gate = |gate_name: &str, targets: &[usize], state_bytes: &[u8]| -> Result<Vec<u8>, String> {
+        let exec = tqc_substrate::execute_holo_gate(gate_name, targets, state_bytes)?;
+        println!(
+            "[holo] provenance record -> gate: {}, params: (scope={}, modality={}, context={}), targets: {:?}, artifact_κ: {}, backend: {}, in_κ: {}, out_κ: {}",
+            exec.artifact.gate_name, p.scope, p.modality, p.context, targets, exec.artifact.kappa, exec.artifact.backend, exec.input_kappa, exec.output_kappa
+        );
+        Ok(exec.output_bytes)
     };
     let get_targets = |perm: &Permutation| -> Vec<usize> {
         (0..p.class_count())
@@ -527,14 +533,14 @@ pub fn holospace_cycle(p: &UseCaseParams) -> Witness {
 
     // Braid: apply a generator word; gate application is deterministic (CC-2).
     let bin0 = encode_binary(&amp0);
-    let st_sigma = apply_gate(&get_targets(&g.sigma), &bin0)?;
-    let st_tau = apply_gate(&get_targets(&g.tau), &st_sigma)?;
-    let st_mu = apply_gate(&get_targets(&g.mu), &st_tau)?;
+    let st_sigma = apply_gate("sigma", &get_targets(&g.sigma), &bin0)?;
+    let st_tau = apply_gate("tau", &get_targets(&g.tau), &st_sigma)?;
+    let st_mu = apply_gate("mu", &get_targets(&g.mu), &st_tau)?;
     let k_word = decode_binary_to_kappa(&st_mu);
 
-    let st_sigma_2 = apply_gate(&get_targets(&g.sigma), &bin0)?;
-    let st_tau_2 = apply_gate(&get_targets(&g.tau), &st_sigma_2)?;
-    let st_mu_2 = apply_gate(&get_targets(&g.mu), &st_tau_2)?;
+    let st_sigma_2 = apply_gate("sigma", &get_targets(&g.sigma), &bin0)?;
+    let st_tau_2 = apply_gate("tau", &get_targets(&g.tau), &st_sigma_2)?;
+    let st_mu_2 = apply_gate("mu", &get_targets(&g.mu), &st_tau_2)?;
     let k_word_2 = decode_binary_to_kappa(&st_mu_2);
     check(
         k_word == k_word_2,
@@ -544,7 +550,7 @@ pub fn holospace_cycle(p: &UseCaseParams) -> Witness {
     // Isotopy collapse: σ^order and the identity are the same operator → the same κ.
     let mut st_pow = bin0.clone();
     for _ in 0..p.sigma_order() {
-        st_pow = apply_gate(&get_targets(&g.sigma), &st_pow)?;
+        st_pow = apply_gate("sigma", &get_targets(&g.sigma), &st_pow)?;
     }
     let k_pow = decode_binary_to_kappa(&st_pow);
     let k_id = decode_binary_to_kappa(&bin0);

@@ -3,9 +3,7 @@ Feature: Braid -> fuse -> read holospace cycle
   The TQC runs as one holospace on the content-addressing substrate: a fusion-space state is
   encoded to a kappa (CC-1), a generator braid word re-addresses deterministically (CC-2),
   isotopic words (same operator) collapse to the same kappa, the fusion outcome reads out, and
-  the state round-trips with no loss (CC-29/30). (status: build; witnessed as a green build, full native .holo-engine
-  execution is future work.)
-
+  the state round-trips with no loss (CC-29/30). The holospace cycle executes generator gates through the native Hologram execution path in `tqc-substrate`: a permutation gate is compiled to a Hologram archive and run through `hologram_exec::InferenceSession`. Persisted/addressable `.holo` artifacts and backend hardening remain follow-up work.
   Scenario: a braid -> fuse -> read cycle runs and is resumable for the Atlas
     Given the UOR Atlas use-case
     Then the braid-fuse-read holospace cycle runs and round-trips

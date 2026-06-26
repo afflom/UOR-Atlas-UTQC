@@ -10,11 +10,36 @@ use hologram_graph::registry::DTypeId;
 use hologram_ops::OpKind;
 use uor_foundation::WittLevel;
 
+
+/// A Hologram compiled artifact.
+pub struct HoloArtifact {
+    /// The name of the gate.
+    pub gate_name: String,
+    /// The compiled artifact bytes.
+    pub archive_bytes: Vec<u8>,
+    /// The κ-address of the artifact.
+    pub kappa: String,
+    /// The execution backend used.
+    pub backend: String,
+}
+
+/// The result of executing a `.holo` artifact.
+pub struct HoloExecution {
+    /// The artifact that was executed.
+    pub artifact: HoloArtifact,
+    /// The κ-address of the input state.
+    pub input_kappa: String,
+    /// The κ-address of the output state.
+    pub output_kappa: String,
+    /// The resulting output state bytes.
+    pub output_bytes: Vec<u8>,
+}
+
 /// Compiles a permutation gate into a `.holo` artifact and executes it on the native engine.
 ///
 /// This dynamically constructs a computation graph with a `Gather` op, compiles it to an archive,
 /// and runs it using `InferenceSession` over the binary-encoded κ-state inputs.
-pub fn execute_holo_gate(targets: &[usize], state_bytes: &[u8]) -> Result<Vec<u8>, String> {
+pub fn execute_holo_gate(gate_name: &str, targets: &[usize], state_bytes: &[u8]) -> Result<HoloExecution, String> {
     let mut g = Graph::new();
     let dtype_i64 = DTypeId(5); // DTYPE_I64 is 5
     let input_len = (state_bytes.len() / 8) as u64;
@@ -72,5 +97,27 @@ pub fn execute_holo_gate(targets: &[usize], state_bytes: &[u8]) -> Result<Vec<u8
     let outputs = session
         .execute(&[InputBuffer { bytes: state_bytes }])
         .map_err(|e| format!("{:?}", e))?;
-    Ok(outputs[0].bytes.to_vec())
+
+    let output_bytes = outputs[0].bytes.to_vec();
+    
+    let archive_bytes = compiled.archive.clone();
+    let kappa = crate::kappa(&archive_bytes);
+    
+    // Save artifact to disk for persistence/addressability
+    let artifacts_dir = std::path::Path::new("target/holo_artifacts");
+    let _ = std::fs::create_dir_all(artifacts_dir);
+    let filename = artifacts_dir.join(format!("{}_{}.holo", gate_name, kappa));
+    let _ = std::fs::write(&filename, &archive_bytes);
+
+    Ok(HoloExecution {
+        artifact: HoloArtifact {
+            gate_name: gate_name.to_string(),
+            archive_bytes,
+            kappa: kappa.to_string(),
+            backend: "CpuBackend".to_string(),
+        },
+        input_kappa: crate::kappa(state_bytes).to_string(),
+        output_kappa: crate::kappa(&output_bytes).to_string(),
+        output_bytes,
+    })
 }

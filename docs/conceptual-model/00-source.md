@@ -10,7 +10,7 @@ What this defines: the realization, on the holospaces substrate, of the topologi
 (anyonic / modular-tensor-category) structure the UOR Atlas carries. A TQC in the
 structural / simulation sense — not a physical anyonic device and not a claim of quantum
 speedup. The MTC data splits into what the sources supply (objects, a genuine inner product,
-fusion, conjugation, the spectrum, the coherence laws) and what is a defined build on top
+Atlas composition data, conjugation, the spectrum, the coherence laws) and what is a defined build on top
 (the braiding R-matrix, the modular S/T matrices, the complex amplitude encoding). Both are
 tracked explicitly below; neither is asserted beyond what the sources show.
 
@@ -40,8 +40,8 @@ forms that the construction keeps separate:
 The TQC inner product is the Euclidean companion `Σxᵢ²`. The reflection generators `σ/τ/μ`
 are coordinate permutations of the label space (below), hence orthogonal w.r.t. `Σxᵢ²`, hence
 unitary — established directly. Separately, the **multiplicative composition norm**
-`|x|²|y|² = |xy|²` (dims 1, 2, 4, 8, the octonion eight-square) is what makes fusion
-norm-preserving (`AtlasComposition`, `some-true`). Braiding unitarity rides the Euclidean form
+`|x|²|y|² = |xy|²` (dims 1, 2, 4, 8, the octonion eight-square) is what makes the Atlas composition
+norm-multiplicative (`AtlasComposition`, `some-true`). Braiding unitarity rides the Euclidean form
 with no further assumption.
 
 ## TQC primitive — Atlas source (the dictionary)
@@ -51,7 +51,7 @@ with no further assumption.
 | Objects (anyon labels) | byte ↔ (scope `q=2^{O−2T}=4`, modality `T=3`, context `O=8`); `96` classes, stride `T·O=24` | `AtlasClasses` §2 `classIndex`, `class_count_stride`, `classIndex_range` | some-true |
 | Label / state-space index | the `12288 = 48×256 = 96×128` belt; `A_∞` inverse-limit address | `AtlasClasses` `belt_extent`; `AtlasAddressing` `atlas_parametric_generation` | some-true |
 | Inner product (unitarity) | Euclidean definite companion `⟨x,x⟩=Σxᵢ²` on the 24-dim `V_T ⊗ V_O` | `AtlasSpectrum` `WeilPSD_rankOne`; `AtlasCharacteristics` §5 | some-true |
-| Fusion `⊗` (commutative) | `compose_g2_product` → CS-G2 commutative binary product: orders the operand digests lex-min-first, concatenates `lo‖hi`, grounds through the σ-axis prism to a composed κ (commutativity structural); norm-multiplicative via the octonion 8-square | uor-addr `composition/g2`, `canonicalize_g2` (ADR-061/059); `AtlasComposition` `eight_square` | some-true |
+| Atlas composition `g2` | `compose_g2_product` → CS-G2 commutative binary product: orders the operand digests lex-min-first, concatenates `lo‖hi`, grounds through the σ-axis prism to a composed κ (commutativity structural); norm-multiplicative via the octonion 8-square | uor-addr `composition/g2`, `canonicalize_g2` (ADR-061/059); `AtlasComposition` `eight_square` | some-true |
 | Dual / conjugation | `compose_f4` → CS-F4 ±mirror (2-element equivalence) = the Atlas mirror `μ` (order 2) | uor-addr `composition/f4`; `AtlasClasses` §3 `μ` | some-true |
 | Categorical structure | `e6` (2-class 8:1 grading), `e7` (24-element S₄ orbit = the `T·O` orbit), `e8` (identity/embedding into E8) | uor-addr `composition/{e6,e7,e8}` (CS-E6/E7/E8) | some-true |
 | Reflection generators | `σ` (order `q=4`), `τ` (order `O=8`), `μ` (order 2) — coordinate (class) permutations, orthogonal on `Σxᵢ²` | `AtlasClasses` §3 `sigma_order_four`, `rot` | some-true |
@@ -99,7 +99,7 @@ and validated against them:
 - objects / classes (`96`), addressing / belt (`12288`) — the Atlas's §2 addressed ground;
 - the reflection generators `σ`/`τ`/`μ` — the Atlas's §3 class transforms (orders `4/8/2`);
 - the inner product `Σxᵢ²` — the Atlas's §9 definite Hurwitz norm (`WeilPSD_rankOne`);
-- fusion `g2` — the Atlas's **composition norm** `|x|²·|y|² = |xy|²`, the 2/4/8-square identity
+- Atlas composition `g2` — the Atlas's **composition norm** `|x|²·|y|² = |xy|²`, the 2/4/8-square identity
   at `C`/`H`/`O` (`AtlasComposition`); dual `f4`, and `e6`/`e7`/`e8` — the categorical
   composition on the Atlas image inside E₈;
 - the spectrum `{10,7,2,−1}`, the E₈ seed, the modular identities `E₄³=E₆²+1728Δ`, the
@@ -151,11 +151,11 @@ as κ-addressed state in the holospaces store; build the complex amplitude encod
 (ℂ-coefficients over the labels) as a content-addressed map.
 Exit: a state's κ is stable and re-derives (`CC-1` idiom).
 
-**S1 (unitary generators + fusion).** Implement `σ/τ/μ`; verify they preserve `Σxᵢ²`
-(orthogonal). Wire fusion to `compose_g2_product` and conjugation to `compose_f4`, calling the
+**S1 (unitary generators + Atlas composition).** Implement `σ/τ/μ`; verify they preserve `Σxᵢ²`
+(orthogonal). Wire the Atlas composition operation to `compose_g2_product` and conjugation to `compose_f4`, calling the
 realized operations rather than re-implementing them.
 Exit: gate determinism witnessed (`CC-2` idiom); `Σxᵢ²` invariant under each generator;
-fusion/dual reduce to the uor-addr operations.
+Atlas composition/dual reduce to the uor-addr operations.
 
 **S2 (the MTC builds).** Construct the braiding R-matrix and the modular S/T matrices, and
 validate them against the MTC axioms (hexagon / Yang–Baxter; SL(2,ℤ) / Verlinde) — see Scope.
