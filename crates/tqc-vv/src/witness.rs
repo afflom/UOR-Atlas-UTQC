@@ -273,11 +273,11 @@ pub fn modular_identities(p: &UseCaseParams, f1: &F1Constants) -> Witness {
     )
 }
 
-/// VV — fusion reduces to the realized `compose_g2_product` and is commutative on every
+/// VV — the Atlas composition reduces to the realized `compose_g2_product` and is commutative on every
 /// σ-axis; the composition norm is multiplicative at the use-case's context level.
 ///
 /// # Errors
-/// On a non-commutative fusion, an axis/composition failure, or a non-multiplicative norm.
+/// On a non-commutative composition, an axis/composition failure, or a non-multiplicative norm.
 pub fn fusion_g2(p: &UseCaseParams) -> Witness {
     let n = p.class_count().min(6);
     for axis in COMPOSITION_AXES {
@@ -390,7 +390,7 @@ pub fn ground_space_protection(p: &UseCaseParams) -> Witness {
     Ok(())
 }
 
-/// VV (build) — complex amplitude encoding: a fusion-space vector encodes to canonical bytes,
+/// VV (build) — complex amplitude encoding: an amplitude-space vector encodes to canonical bytes,
 /// round-trips through the content-addressed store (CC-1), and its Euclidean composition norm
 /// `Σ|cᵢ|²` equals the inner product on the encoded form.
 ///
@@ -462,7 +462,7 @@ pub fn braiding_r_matrix(p: &UseCaseParams) -> Witness {
 /// VV (build) — the holospace lift: a braid → fuse → read cycle running as one holospace on
 /// the content-addressing substrate.
 ///
-/// Boot: a fusion-space state is encoded to a κ and re-derives (CC-1). Braid: a generator word
+/// Boot: an amplitude-space state is encoded to a κ and re-derives (CC-1). Braid: a generator word
 /// applied to the state re-addresses deterministically (CC-2). Isotopy collapse: two distinct
 /// words that compose to the same operator (e.g. `σ^order` vs the identity) yield the same
 /// state and resolve to the same κ — the content-addressed collapse the advantage probe
@@ -471,7 +471,7 @@ pub fn braiding_r_matrix(p: &UseCaseParams) -> Witness {
 ///
 /// The cycle executes generator gates through the native Hologram execution path in `tqc-substrate`:
 /// a permutation gate is compiled to a Hologram archive and run through `hologram_exec::InferenceSession`.
-/// Persisted/addressable `.holo` artifacts and backend hardening remain follow-up work.
+/// Persisted `.holo` artifacts are written and addressable.
 ///
 /// # Errors
 /// On a failed re-derivation, non-deterministic gate, broken collapse, or lossy round-trip.
@@ -559,7 +559,7 @@ pub fn holospace_cycle(p: &UseCaseParams) -> Witness {
     let k_id = decode_binary_to_kappa(&bin0);
     check(k_pow == k_id, "isotopic words must collapse to one κ")?;
 
-    // Read: the fusion outcome resolves to a κ, deterministically.
+    // Read: the composition outcome resolves to a κ, deterministically.
     let read = fuse(
         CompositionAxis::Sha256,
         &anyon_bytes(p, 0),
@@ -571,7 +571,7 @@ pub fn holospace_cycle(p: &UseCaseParams) -> Witness {
             &anyon_bytes(p, 0),
             &anyon_bytes(p, 1),
         )?,
-        "fusion readout not deterministic",
+        "composition readout not deterministic",
     )
 }
 

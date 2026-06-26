@@ -20,7 +20,7 @@ outright. Generators are coordinate permutations, hence orthogonal w.r.t. this f
 unitary. This is established directly, with no further assumption.
 
 The multiplicative composition norm `|x|²|y|² = |xy|²` (the octonion eight-square) is what makes
-fusion norm-preserving; it is `some-true`.
+the Atlas composition norm-multiplicative; it is `some-true`.
 
 ## Forbidden assertions
 

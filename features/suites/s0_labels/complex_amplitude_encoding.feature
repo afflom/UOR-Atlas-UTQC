@@ -1,7 +1,7 @@
 @row:complex-amplitude-encoding @stage:S0 @status:build @oracle:holospaces-cc
 Feature: Complex amplitude encoding
   The substrate stores bytes, not amplitudes; this is the defined content-addressed encoding.
-  A fusion-space vector { label -> complex amplitude } encodes to canonical bytes, round-trips
+  An amplitude-space vector { label -> complex amplitude } encodes to canonical bytes, round-trips
   through the content-addressed store (CC-1), and its Euclidean composition norm sum|c_i|^2
   equals the inner product on the encoded form. (status: build)
 

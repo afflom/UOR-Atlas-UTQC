@@ -117,7 +117,7 @@ async fn t_anchor_pd(w: &mut TqcWorld) {
     witness::definite_anchor(&w.params()).unwrap();
 }
 
-#[then("fusion reduces to the realized g2 product on every sigma-axis")]
+#[then("the composition reduces to the realized g2 product on every sigma-axis")]
 async fn t_fusion(w: &mut TqcWorld) {
     witness::fusion_g2(&w.params()).unwrap();
 }

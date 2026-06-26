@@ -69,7 +69,7 @@ with no further assumption.
 - **State** is content, but the amplitude layer is a build. The substrate provides the label
   index (a class κ) and content-addressed storage in the uniform `A_∞` store
   (`MemKappaStore`→OPFS→peer, one σ-axis keyspace, no RAM/OPFS boundary since the address is
-  the content hash). A fusion-space vector — ℂ-coefficients over the labels — is a defined
+  the content hash). An amplitude-space vector — ℂ-coefficients over the labels — is a defined
   encoding on top of that storage (the amplitude-encoding build); the substrate stores
   bytes, not amplitudes.
 - **Gates** are `.holo` compute artifacts run by the native `.holo` Engine
@@ -78,7 +78,7 @@ with no further assumption.
   (`cc2_holo_engine`). The reflection generators `σ/τ/μ` are realized directly (coordinate
   permutations); the braiding R-matrix and the modular S/T matrices are the builds named in
   the dictionary.
-- **Measurement** (fusion outcome / readout) is resolving the κ of the fused state. No-loss
+- **Measurement** (composition outcome / readout) is resolving the κ of the fused state. No-loss
   and the verify boundary are `CC-29` / `CC-30` (`restore(snapshot(m))` faithful inverse,
   byte-identical resume, κ-addressed migration).
 - **Topological invariance** is the κ position-independence: the same content has the same
@@ -138,8 +138,7 @@ composition / addressing structure; it never touches that crux.
     over the label index (the substrate stores bytes).
   See Scope for the representative-MTC framing of the first two.
 - **open** (genuine unknowns, measured and reported, never asserted true):
-  - **Universality** — whether the generators + braiding act densely in `U` of the fusion
-    space (Freedman–Larsen–Wang). Measured (the generated braiding-phase order); reported.
+  - **Universality** — whether the generators + braiding act densely in `U` of the amplitude space (Freedman–Larsen–Wang). Measured (the generated braiding-phase order); reported.
   - **Advantage** — measured as topological degeneracy (braid paths per distinct result κ).
     Reported without asserting a speedup class. `content_reuse` / `cache_hits` are downstream
     consequences of κ collapse.
@@ -161,7 +160,7 @@ Atlas composition/dual reduce to the uor-addr operations.
 validate them against the MTC axioms (hexagon / Yang–Baxter; SL(2,ℤ) / Verlinde) — see Scope.
 Exit: the braiding satisfies hexagon and Yang–Baxter; S/T satisfy the SL(2,ℤ) relations.
 
-**S3 (measurement + protection).** Fusion readout = κ-resolution; demonstrate
+**S3 (measurement + protection).** Composition readout = κ-resolution; demonstrate
 no-loss/round-trip (`CC-29`/`CC-30` idiom) as the topological-protection witness.
 Exit: content-addressing round-trips with no loss.
 

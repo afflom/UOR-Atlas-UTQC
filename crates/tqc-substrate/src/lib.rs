@@ -2,7 +2,7 @@
 //! uor-addr composition operations.
 //!
 //! It exposes the holospaces content-addressing surface (κ-labels) and the realized uor-addr
-//! categorical operations — fusion (`g2`), dual (`f4`), and the `e6`/`e7`/`e8` structure — on
+//! composition (`g2`), dual (`f4`), and the `e6`/`e7`/`e8` structure — on
 //! all five σ-axes. Keeping every substrate symbol behind this one crate means a substrate API
 //! or revision change has a blast radius of exactly one crate; the math crates stay
 //! substrate-free and offline-testable.
@@ -111,7 +111,7 @@ pub fn label(axis: CompositionAxis, bytes: &[u8]) -> Result<String, String> {
     })
 }
 
-/// Fusion: the CS-G2 commutative product of two labels, returned as a κ-string.
+/// Composition: the CS-G2 commutative product of two labels, returned as a κ-string.
 ///
 /// # Errors
 /// Returns the formatted addressing/composition error.
@@ -249,7 +249,7 @@ mod tests {
     }
 
     #[test]
-    fn fusion_is_commutative_on_every_axis() {
+    fn composition_is_commutative_on_every_axis() {
         for axis in COMPOSITION_AXES {
             let a = b"anyon-a";
             let b = b"anyon-b";
