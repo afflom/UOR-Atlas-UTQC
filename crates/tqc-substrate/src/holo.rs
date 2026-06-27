@@ -108,9 +108,11 @@ pub fn execute_holo_gate(
 
     // Save artifact to disk for persistence/addressability
     let artifacts_dir = std::path::Path::new("target/holo_artifacts");
-    let _ = std::fs::create_dir_all(artifacts_dir);
+    std::fs::create_dir_all(artifacts_dir)
+        .map_err(|e| format!("failed to create holo_artifacts dir: {}", e))?;
     let filename = artifacts_dir.join(format!("{}_{}.holo", gate_name, kappa));
-    let _ = std::fs::write(&filename, &archive_bytes);
+    std::fs::write(&filename, &archive_bytes)
+        .map_err(|e| format!("failed to write holo artifact: {}", e))?;
 
     Ok(HoloExecution {
         artifact: HoloArtifact {

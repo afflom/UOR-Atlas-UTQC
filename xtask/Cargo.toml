@@ -8,6 +8,7 @@ license.workspace = true
 repository.workspace = true
 authors.workspace = true
 publish = false
+default-run = "xtask"
 
 [dependencies]
 tqc-model.workspace = true
@@ -19,6 +20,8 @@ hex = { workspace = true }
 anyhow = { workspace = true }
 tqc-mtc.workspace = true
 tqc-substrate.workspace = true
+tqc-compiler.workspace = true
+tqc-algorithms.workspace = true
 
 [lints]
 workspace = true

@@ -1,3 +1,6 @@
+#![allow(clippy::unwrap_used)]
+#![allow(missing_docs)]
+
 use std::time::Instant;
 use tqc_atlas::canonical;
 use tqc_core::amplitude::{self, Amplitude};

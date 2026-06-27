@@ -13,7 +13,7 @@ members = [
     "crates/tqc-substrate",
     "crates/tqc-vv",
     "crates/tqc-conformance",
-    "xtask",
+    "xtask", "crates/tqc-compiler", "crates/tqc-algorithms",
 ]
 
 [workspace.package]
@@ -42,6 +42,8 @@ tqc-atlas = { path = "crates/tqc-atlas", version = "0.1.0" }
 tqc-mtc = { path = "crates/tqc-mtc", version = "0.1.0" }
 tqc-substrate = { path = "crates/tqc-substrate", version = "0.1.0" }
 tqc-vv = { path = "crates/tqc-vv", version = "0.1.0" }
+tqc-compiler = { path = "crates/tqc-compiler", version = "0.1.0" }
+tqc-algorithms = { path = "crates/tqc-algorithms", version = "0.1.0" }
 
 # Deny-heavy posture applied to every member crate. No half-measures.
 [workspace.lints.rust]

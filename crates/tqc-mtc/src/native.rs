@@ -182,7 +182,10 @@ impl ModularData for AtlasNative {
             && (m1 + m_n) % 3 == m_l
             && c1 ^ c_n == c_l
         {
-            C::new(1.0, 0.0)
+            // Z_2^3 3-cocycle associator: F(c1, c2, c3) = (-1)^{\sum (c1_i * c2_i * c3_i)}
+            let dot3 = (c1 & c2 & c3).count_ones();
+            let phase = if dot3 % 2 == 1 { -1.0 } else { 1.0 };
+            C::new(phase, 0.0)
         } else {
             C::new(0.0, 0.0)
         }
@@ -197,14 +200,21 @@ impl ModularData for AtlasNative {
         let c3 = k % 8;
 
         if (m1 + m2) % 3 == m3 && c1 ^ c2 == c3 {
-            // Bicharacter braiding
+            // Z_3 R-matrix phase: omega^{m1 * m2}
             let theta = 2.0 * core::f64::consts::PI * (m1 * m2) as f64 / 3.0;
             let phase3 = C::phase(theta);
 
+            // Z_2^3 R-matrix phase: i^{c1 . c2}
             let dot = (c1 & c2).count_ones();
-            let phase2 = if dot % 2 == 1 { -1.0 } else { 1.0 };
+            let phase2 = match dot % 4 {
+                0 => C::new(1.0, 0.0),
+                1 => C::new(0.0, 1.0),
+                2 => C::new(-1.0, 0.0),
+                3 => C::new(0.0, -1.0),
+                _ => unreachable!(),
+            };
 
-            phase3.scale(phase2)
+            phase3.times(phase2)
         } else {
             C::new(0.0, 0.0)
         }

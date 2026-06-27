@@ -137,6 +137,24 @@ pub fn verify_mtc_axioms(m: &dyn ModularData, tol: f64) -> Result<(), String> {
         }
     }
 
+    // Balancing Equation (Ribbon twist compatibility)
+    for i in 0..dim {
+        for j in 0..dim {
+            for k in 0..dim {
+                if m.n_ijk(i, j, k) > tol {
+                    let r1 = m.r_symbol(i, j, k);
+                    let r2 = m.r_symbol(j, i, k);
+                    let lhs = r1.times(r2);
+
+                    let rhs = t[k].times(t[i].conj()).times(t[j].conj());
+                    if !lhs.close(rhs, tol) {
+                        return Err(format!("Balancing equation fails at N_{{{i},{j}}}^{k}"));
+                    }
+                }
+            }
+        }
+    }
+
     // Pentagon equation
     for i1 in 0..dim {
         for i2 in 0..dim {
