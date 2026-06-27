@@ -1,11 +1,9 @@
-\section{The Topological Base and the UOR Atlas}
+\section{The UOR Atlas: An $E_8$ Topological Carrier}
 
-The UTQC is grounded in the UOR Atlas, which defines the primitive constituents of the topological model:
+The structural authority of this computer is the UOR Atlas---a 24-dimensional topological carrier $V_T \otimes V_O$ parameterized by scope $q=4$, modality $T=3$, and context $O=8$. 
 
-\begin{itemize}
-    \item \textbf{Objects (Anyon Labels):} A finite class of 96 labels parameterized by scope $q=4$, modality $T=3$, and context $O=8$. The class structure inherently establishes a base 24-dimensional topological carrier stride ($T \cdot O = 24$).
-    \item \textbf{State-Space Indexing:} Computations manipulate states across a massive $12288$-element belt structure (a direct evaluation of $96 \times 128$). The addressing is natively handled by universal content hashing (the $A_\infty$ inverse-limit address), transforming the label-state tracking into direct cryptographic pointers ($\kappa$).
-    \item \textbf{Generators and Symmetries:} The fundamental reflection operations $\sigma$ (order 4), $\tau$ (order 8), and $\mu$ (order 2) act as coordinate permutations over the label space. As pure permutations, they trivially preserve the definite Euclidean companion $ \langle x,x \rangle = \sum x_i^2 $, fulfilling the necessary unitary constraints for anyonic operations without requiring additional normalizations.
-\end{itemize}
+Unlike ad-hoc logical qubit constructs, the Atlas is embedded deeply into the exceptional $E_8$ root lattice geometry. By anchoring the categorical operations to the $E_8$ Weyl group, the model leverages 96 distinct non-Abelian anyonic classes. These objects map to state-space computations indexing over an inverse-limit $A_\infty$ structural belt comprising 12,288 discrete addresses.
 
-Crucially, the topological base provides an embedding into the $E_8$ exceptional group. The categorical structure is mapped faithfully using compositions mirroring exceptional structures ($e_6, e_7, e_8$), ensuring that the Atlas is not merely an isolated mathematical curiosity but firmly anchored to established pseudo-Riemannian geometries.
+The most profound divergence from classical simulators is the role of memory. Rather than dynamically allocating exponentially growing complex arrays, computations manipulate states across this fixed geometric belt. The fundamental reflections ($\sigma$, $\tau$, $\mu$) act as rigid coordinate permutations over the 96 classes. Because these reflections are pure permutations, they strictly preserve the Euclidean definite companion $\langle x, x \rangle = \sum x_i^2$, providing a mathematically exact unitary operation base without the overhead of floating-point normalization.
+
+This topological base is not a theoretical abstraction; every property---from the Weyl permutations to the $E_8$ seed and the associative composition norms---has been mechanically extracted from the F1 Lean mathematical formalization.

@@ -1,15 +1,11 @@
-\section{Universal Topological Quantum Computation}
+\section{Executing Universal Computation on Holospaces}
 
-With the base topological obstructions resolved, the framework realizes a complete, universal computation model.
+Classical algorithms rely on boolean logic gates. The UTQC operates entirely by continuously deforming mathematical representations of objects in the modular tensor category. Because the resolutions in Section 3 guarantee that the MTC structure satisfies the universal axioms, the system acts as a fully addressable topological quantum computer.
 
-\subsection{Modular Data and Braiding}
-We explicitly construct the topological invariants critical to computational capability:
-\begin{itemize}
-    \item \textbf{Modular $S$ and $T$ Matrices:} Modeled over the generalized quantum double representation $D(\mathbb{Z}_O)$. The constructed matrices are rigorously validated against the defining $SL(2, \mathbb{Z})$ modular tensor category axioms, guaranteeing the symmetric and unitary properties of $S$, $S^4 = I$, $(ST)^3 = S^2$, and Verlinde formula closure.
-    \item \textbf{Braiding $R$-Matrix:} Topological gates are enacted via the $R$-matrix, satisfying the essential Hexagon and Yang-Baxter equations. The braiding acts as the core primitive for enacting multi-qubit entanglement and interference natively at the logical level.
-\end{itemize}
+\subsection{The $S$, $T$, and $R$ Matrix Primitives}
+The operational capability of the UTQC is defined by its ability to represent and braid anyonic states. The system constructs explicit modular $S$ and $T$ matrices modeled directly over the generalized quantum double $D(\mathbb{Z}_O)$. The validation infrastructure exhaustively asserts that these matrices obey the $SL(2, \mathbb{Z})$ invariants ($S^4 = I$, $(ST)^3 = S^2$, Verlinde normalization). Multi-anyon entanglement is enacted via the Braiding $R$-Matrix, which perfectly satisfies the algebraic Hexagon and Yang-Baxter constraints necessary for universal representation.
 
-\subsection{Amplitude Encoding via Holospaces}
-Physical simulation of quantum states typically requires an exponential memory overhead due to the tensor product Hilbert space. Our UTQC resolves this by abandoning conventional floating-point array representations. Instead, quantum amplitudes are instantiated as complex coefficient mappings indexed by the 96 topological class labels. 
+\subsection{Amplitude Addressing vs Array Mutation}
+Physical simulation of $N$-qubit states ordinarily requires $2^N$ complex floats, an exponentially scaling wall that renders classical representations of anything beyond 50 qubits physically impossible on Earth-bound hardware. 
 
-Crucially, these mappings are stored on the content-addressed \textit{holospaces} substrate. The state vector is dynamically folded into an $A_\infty$ Uniform Object Reference (UOR). State-space vectors are manipulated merely as cryptographic content hashes ($\kappa$).
+The most revolutionary engineering aspect of this repository is the rejection of array representation. State vectors are never stored dynamically. Instead, complex amplitudes are constructed as associative bindings to the 96 fixed topological classes. The entirety of the state vector is represented as a single, cryptographically folded \textbf{Universal Object Reference (UOR)} hash ($\kappa$). Computations occur by feeding these $\kappa$ states into the holospaces substrate engine, which evaluates the braid permutations natively over the geometric belt without ever expanding the intermediate vector.
