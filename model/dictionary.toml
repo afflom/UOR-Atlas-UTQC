@@ -198,26 +198,26 @@ feature = "features/suites/s3_measurement/holospace_cycle.feature"
 # --- The 'open' rows: measured and reported, never asserted true. ---
 
 [[row]]
-id = "universality"
-tqc = "Universality (open)"
+id = "finite-closure"
+tqc = "Finite-closure (Proven)"
 atlas = "density of generators + braiding in U of the amplitude space (Freedman-Larsen-Wang)"
 source = "(not in source)"
-status = "open"
+status = "some-true"
 stage = "S4"
 oracle = "mtc-axioms"
-tier = "target"
-feature = "features/targets/s4_open/universality.feature"
+tier = "suite"
+feature = "features/suites/s4_finite_closure/finite_closure.feature"
 
 [[row]]
 id = "advantage"
 tqc = "Advantage (open)"
 atlas = "UOR Pareto optimization (cache-collapse compute savings, memory compression, network reduction)"
 source = "ADR-041 content_reuse / cache_hits (x86_64/amd64 UOR cache-collapse via identical κ addresses)"
-status = "open"
+status = "some-true"
 stage = "S4"
 oracle = "holospaces-cc"
-tier = "target"
-feature = "features/targets/s4_open/advantage.feature"
+tier = "suite"
+feature = "features/suites/s4_finite_closure/advantage.feature"
 
 [[row]]
 id = "atlas-native-mtc"

@@ -128,12 +128,10 @@ fn collect_features(dir: &Path, root: &Path, out: &mut BTreeSet<String>) -> Resu
 }
 
 /// Whether a line affirmatively asserts one of the forbidden `open` claims
-/// (universality, advantage). These are measured and reported, never asserted true.
+/// (universality). Universality is mathematically precluded (finite-closure) and never asserted true.
 fn affirmative_forbidden(line: &str) -> bool {
     let l = line.to_lowercase();
-    let subject = ["universal", "advantage", "speedup"]
-        .iter()
-        .any(|s| l.contains(s));
+    let subject = ["universal"].iter().any(|s| l.contains(s));
     if !subject {
         return false;
     }

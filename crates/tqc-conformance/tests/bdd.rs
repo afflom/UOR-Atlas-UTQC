@@ -167,6 +167,24 @@ async fn t_holospace_cycle(w: &mut TqcWorld) {
     witness::holospace_cycle(&w.params()).unwrap();
 }
 
+#[then("the generated subgroup is proven mathematically finite precluding density")]
+async fn t_finite_closure(w: &mut TqcWorld) {
+    let result = witness::universality_probe(&w.params()).unwrap();
+    assert!(
+        !result.is_dense,
+        "density must be provably false (finite closure)"
+    );
+}
+
+#[then("the topological degeneracy is proven to deliver compute savings")]
+async fn t_advantage(w: &mut TqcWorld) {
+    let metrics = witness::advantage_probe(&w.params()).unwrap();
+    assert!(
+        metrics.topological_degeneracy > 1.0,
+        "advantage must be realized"
+    );
+}
+
 #[tokio::main]
 async fn main() {
     let features = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../features/suites");

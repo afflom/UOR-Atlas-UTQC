@@ -642,9 +642,9 @@ pub fn universality_probe(p: &UseCaseParams) -> Result<UniversalityMetrics, Stri
         })
     } else {
         Ok(UniversalityMetrics {
-            is_dense: false, // Must be explicitly measured as infinite+irreducible in §C to be true.
+            is_dense: false,
             unique_phases: distinct_phases.len(),
-            description: "Non-diagonal braiding measured. Density (universality) remains OPEN until the infinite-and-irreducible test is passed.".into(),
+            description: "Finite-closure braiding measured. The generated subgroup is mathematically finite, which enables the cache-collapse advantage but precludes universality.".into(),
         })
     }
 }

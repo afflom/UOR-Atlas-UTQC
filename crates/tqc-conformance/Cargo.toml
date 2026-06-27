@@ -27,7 +27,3 @@ workspace = true
 name = "bdd"
 harness = false
 
-# The open probes (universality, advantage): measurements over features/targets/s4_open/.
-[[test]]
-name = "probes"
-harness = false
