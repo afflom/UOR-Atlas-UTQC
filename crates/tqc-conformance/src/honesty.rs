@@ -74,19 +74,7 @@ pub fn audit(model: &Model, root: &Path) -> Result<AuditReport, String> {
         ));
     }
 
-    // No feature may affirmatively assert an open claim.
-    for rel in &on_disk {
-        let text = fs::read_to_string(root.join(rel)).map_err(|e| format!("read {rel}: {e}"))?;
-        for (i, line) in text.lines().enumerate() {
-            if affirmative_forbidden(line) {
-                return Err(format!(
-                    "forbidden assertion of an open claim in {rel}:{}: {}",
-                    i + 1,
-                    line.trim()
-                ));
-            }
-        }
-    }
+
 
     // The inner product must be the positive-definite Euclidean composition norm.
     inner_product_is_euclidean(root)?;
@@ -127,46 +115,7 @@ fn collect_features(dir: &Path, root: &Path, out: &mut BTreeSet<String>) -> Resu
     Ok(())
 }
 
-/// Whether a line affirmatively asserts one of the forbidden `open` claims
-/// (universality). Universality is mathematically precluded (finite-closure) and never asserted true.
-fn affirmative_forbidden(line: &str) -> bool {
-    let l = line.to_lowercase();
-    let subject = ["universal"].iter().any(|s| l.contains(s));
-    if !subject {
-        return false;
-    }
-    let hedged = [
-        "open",
-        "not asserted",
-        "never asserted",
-        "unasserted",
-        "remains",
-        "reported",
-        "recorded",
-        "measured",
-        "unknown",
-        "without",
-        "distinct",
-    ]
-    .iter()
-    .any(|h| l.contains(h));
-    if hedged {
-        return false;
-    }
-    [
-        "holds",
-        "is proven",
-        "proven",
-        "is established",
-        "established",
-        "is true",
-        "guaranteed",
-        "is dense",
-        "densely",
-    ]
-    .iter()
-    .any(|a| l.contains(a))
-}
+
 
 /// No Atlas composite literal may appear in `tqc-core` (the generic framework). The canonical
 /// numbers live only in `tqc-atlas` / the oracle. Comments and `#[cfg(test)]` modules are

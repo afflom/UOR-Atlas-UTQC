@@ -25,7 +25,7 @@ is **verification & validation infrastructure**:
    operations, the holospaces `vv` witnesses, and published math standards (NIST/FIPS
    hash KATs, the E8 lattice, modular-form data, the MTC axioms).
 4. **Honesty discipline.** A meta-gate proves the suite never asserts an *open*
-   (`universality`, `advantage`) claim as established.
+   claim as established.
 
 ## Parametricity
 

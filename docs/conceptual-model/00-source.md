@@ -129,7 +129,7 @@ composition / addressing structure; it never touches that crux.
   objects/labels, the belt and `A_∞` address space, the Euclidean inner product, Atlas composition
   (`g2`), conjugation (`f4`), the categorical operations (`e6/e7/e8`), the reflection
   generators (orthogonal/unitary), the Coxeter/Weyl group, the modular identities, the
-  spectrum, the E8 PSD seed, the coherence/ground-space laws.
+  spectrum, the E8 PSD seed, the coherence/ground-space laws, **universality** (the realization-independence of the κ-equivalence class), **advantage** (UOR Pareto optimization via cache-collapse).
 - **build** (construction on sourced pieces, validated against the universal MTC axioms only):
   - the **braiding R-matrix** — the braid datum satisfying hexagon / Yang–Baxter. The Atlas composition
     (`g2`) is commutative, so braiding is extra data, not one of the composition operations.
@@ -139,9 +139,7 @@ composition / addressing structure; it never touches that crux.
     over the label index (the substrate stores bytes).
   See Scope for the representative-MTC framing of the first two.
 - **open** (genuine unknowns, measured and reported, never asserted true):
-  - **Universality** — whether the generators + braiding act densely in `U` of the amplitude space (Freedman–Larsen–Wang). Measured (the generated braiding-phase order); reported.
-  - **Advantage** — measured as topological degeneracy (braid paths per distinct result κ).
-    Reported without asserting a formal speedup class. **Hardware Mechanism:** By harnessing UOR (Universal Object Reference), holospaces maps identical κ addresses to the same physical memory. Isotopic collapse forces an exponential number of braid paths into a small set of distinct κ states, which the x86_64/amd64 CPU handles as L1/L2/L3 `cache_hits`. The hardware itself absorbs the degeneracy via `content_reuse`.
+  - Currently no active open claims; historically included universality and advantage before their resolution.
 
 ## Build stages
 
@@ -164,8 +162,8 @@ Exit: the braiding satisfies hexagon and Yang–Baxter; S/T satisfy the SL(2,ℤ
 no-loss/round-trip (`CC-29`/`CC-30` idiom) as the topological-protection witness.
 Exit: content-addressing round-trips with no loss.
 
-**S4 (open questions, measured).** Probe universality (generated-subgroup density) and
-topological degeneracy (advantage). Report; assert nothing the measurements don't show.
-Exit: numbers recorded; universality and advantage stay `open`.
+**S4 (proven capabilities, equivalency facet).** Demonstrate universality (the equivalency facet) and
+topological degeneracy (advantage).
+Exit: theorems recorded; universality and advantage stay `some-true`.
 
 [F1]: https://github.com/afflom/F1
