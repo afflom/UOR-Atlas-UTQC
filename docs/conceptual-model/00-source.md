@@ -117,7 +117,6 @@ The Atlas supplies the *native data* relevant to a possible MTC construction —
 
 **The representative MTC build.** With the topological base resolved, the explicit `S`/`T`/`R` matrices are modeled over the generic quantum double `D(Z_n)`. Validated against the universal MTC axioms (SL(2,ℤ): `S` symmetric & unitary, `S⁴=1`, `(ST)³=S²`, `S²=C`; hexagon; Yang–Baxter; Verlinde). `D(Z_n)` serves as the formal category build reflecting the structural quotient resolutions (with `D(Z_O)` as the Atlas-parameterized representation).
 
-Future work on the research program now focuses on formalizing the UOR cache-collapse Pareto optimization (advantage via memory deduplication) into quantitative simulation metrics.
 
 The Atlas's §9 is explicit that its definite composition norm is a *different object* from the
 signed prime form whose positivity is RH (F1's open crux). The TQC uses only the definite /

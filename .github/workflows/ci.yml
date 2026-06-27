@@ -107,3 +107,15 @@ jobs:
       - uses: taiki-e/install-action@cargo-deny
       - name: cargo-deny
         run: cargo deny check
+
+  # Compile the whitepaper using LaTeX.
+  paper:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile LaTeX
+        uses: xu-cheng/latex-action@v3
+        with:
+          root_file: docs/paper/main.tex
+          working_directory: docs/paper/
+
