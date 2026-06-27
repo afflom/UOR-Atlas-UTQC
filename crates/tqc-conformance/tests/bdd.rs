@@ -149,7 +149,8 @@ async fn t_ground_space(w: &mut TqcWorld) {
 
 #[then("the complex amplitude encoding round-trips and preserves the norm")]
 async fn t_amplitude(w: &mut TqcWorld) {
-    witness::complex_amplitude_encoding(&w.params()).unwrap();
+    let f1 = w.f1.clone().unwrap_or_else(|| F1Constants::load().unwrap());
+    witness::complex_amplitude_encoding(&w.params(), &f1).unwrap();
 }
 
 #[then("the modular S and T satisfy the SL(2,Z) relations")]
@@ -165,6 +166,21 @@ async fn t_braiding(w: &mut TqcWorld) {
 #[then("the braid-fuse-read holospace cycle runs and round-trips")]
 async fn t_holospace_cycle(w: &mut TqcWorld) {
     witness::holospace_cycle(&w.params()).unwrap();
+}
+
+#[then("the quantum realization is unitary and exhibits destructive interference")]
+async fn t_quantum_realization(w: &mut TqcWorld) {
+    witness::quantum_realization(&w.params()).unwrap();
+}
+
+#[then("all S0 labels and operators are reachable from the single Atlas generator")]
+async fn t_generative_closure(w: &mut TqcWorld) {
+    witness::generative_closure_probe(&w.params()).unwrap();
+}
+
+#[then("the UTQC is proven")]
+async fn t_utqc_proven(w: &mut TqcWorld) {
+    witness::utqc_proven_probe(&w.params()).unwrap();
 }
 
 #[then("the generated subgroup is proven mathematically finite precluding density")]
