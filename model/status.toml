@@ -19,6 +19,6 @@ gating = true
 
 [[level]]
 id = "open"
-summary = "A genuine unknown (universality, advantage). Measured and reported, never asserted true."
+summary = "A genuine unknown. Measured and reported, never asserted true."
 may_assert = "measurement-only"
 gating = false
