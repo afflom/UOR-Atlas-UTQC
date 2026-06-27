@@ -8,7 +8,7 @@ The structural consequence is \textbf{UOR Cache-Collapse}. While evaluating fini
 
 Our empirical bounds (demonstrated natively in \texttt{1000\_qubit\_benchmark.rs} and \texttt{scaling\_benchmark.rs}) confirm this dynamic conclusively:
 \begin{enumerate}
-    \item \textbf{Exact $O(1)$ Memory Compression:} A 1,000-virtual-qubit classical simulation demands roughly $10^{290}$ terabytes of RAM---a quantity exceeding the atomic matter of the observable universe. In stark contrast, the UTQC models the equivalent topological entanglement with an absolute $O(1)$ memory footprint, structurally invariant and fixed strictly to the $\sim$192-byte topological carrier dimension.
+    \item \textbf{Exact $O(1)$ Memory Compression:} A 1,000-virtual-qubit classical simulation demands roughly $10^{290}$ terabytes of RAM---a quantity exceeding the atomic matter of the observable universe. In stark contrast, the UTQC models the equivalent topological entanglement with an absolute $O(1)$ memory footprint, structurally invariant and strictly bounded to a sub-kilobyte capacity dictated entirely by the topological carrier classes, not the qubit depth.
     \item \textbf{Algorithmic Compute Elision (Speedup):} By merging equivalent topological branches into single cache references, the framework enacts a deterministic algorithmic short-circuit. Evaluation times scale solely as a function of distinct topological classes rather than operation depth, completely sidestepping the exponential complexity of un-collapsed path-integral summations.
 \end{enumerate}
 
