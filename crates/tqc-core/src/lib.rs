@@ -1,4 +1,4 @@
-//! The parametric MTC framework — the DRY core of the TQC realization.
+//! The parametric MTC framework — the DRY core of the UTQC realization.
 //!
 //! Everything here is generic over a [`params::UseCaseParams`] `{ scope, modality, context }`.
 //! The UOR Atlas `(q=4, T=3, O=8)` is *one instance*; no Atlas literal appears in this crate.

@@ -10,12 +10,12 @@ meta-gate enforces it mechanically.
 | `build` | A precisely-scoped construction on sourced pieces, validated against universal axioms. | That the construction satisfies the **MTC axioms** (hexagon, Yang–Baxter, SL(2,ℤ), Verlinde, …) — never that it is *the* unique object. | gating `suite` |
 | `open` | A genuine unknown. | Only *measurements*. The claim itself is reported, never asserted true. | non-gating `target` |
 
-The TQC inner product is the positive-definite Euclidean composition norm `Σxᵢ²` — a manifest
+The UTQC inner product is the positive-definite Euclidean composition norm `Σxᵢ²` — a manifest
 sum of squares — so "generators are unitary" is genuine orthogonality, established directly.
 
 ## The inner product
 
-The TQC inner product is the **Euclidean composition norm** `⟨x,x⟩ = Σxᵢ²` — positive-definite
+The UTQC inner product is the **Euclidean composition norm** `⟨x,x⟩ = Σxᵢ²` — positive-definite
 outright. Generators are coordinate permutations, hence orthogonal w.r.t. this form, hence
 unitary. This is established directly, with no further assumption.
 

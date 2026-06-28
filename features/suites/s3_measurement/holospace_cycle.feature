@@ -1,6 +1,6 @@
 @row:holospace-cycle @stage:S3 @status:some-true @oracle:holospaces-cc
 Feature: Braid -> fuse -> read holospace cycle
-  The TQC runs as one holospace on the content-addressing substrate: an amplitude-space state is
+  The UTQC runs as one holospace on the content-addressing substrate: an amplitude-space state is
   encoded to a kappa (CC-1), a generator braid word re-addresses deterministically (CC-2),
   isotopic words (same operator) collapse to the same kappa, the composition outcome reads out, and
   the state round-trips with no loss (CC-29/30). The holospace cycle executes generator gates through the native Hologram execution path in `tqc-substrate`: a permutation gate is compiled to a Hologram archive and run through `hologram_exec::InferenceSession`. Persisted `.holo` artifacts are written and addressable.

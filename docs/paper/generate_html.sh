@@ -141,6 +141,7 @@ cat << 'EOF' > public/index.html
 
         <div class="actions">
             <a href="UOR_Atlas_Whitepaper.pdf" class="download-btn">Download PDF Whitepaper</a>
+            <a href="https://github.com/afflom/UOR-Atlas-UTQC" class="download-btn" style="background-color: #24292e; margin-left: 10px;">View GitHub Repository</a>
         </div>
 
         <iframe src="UOR_Atlas_Whitepaper.pdf" class="pdf-viewer" title="UOR Atlas Whitepaper PDF"></iframe>

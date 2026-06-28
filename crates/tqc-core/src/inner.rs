@@ -1,4 +1,4 @@
-//! The TQC inner product: the positive-definite Euclidean composition norm `⟨x,x⟩ = Σxᵢ²`.
+//! The UTQC inner product: the positive-definite Euclidean composition norm `⟨x,x⟩ = Σxᵢ²`.
 //!
 //! Realizes the `inner-product` dictionary row. The form is positive-definite outright — a
 //! manifest sum of squares. "Generators are unitary" means exactly "permutations preserve

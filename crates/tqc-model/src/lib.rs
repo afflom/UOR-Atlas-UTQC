@@ -1,4 +1,4 @@
-//! The TQC conceptual model, as typed and self-validating data.
+//! The UTQC conceptual model, as typed and self-validating data.
 //!
 //! The model is authored once in `model/*.toml` (see [`docs/conceptual-model`]) and embedded
 //! here at compile time. [`Model::load`] parses it and enforces the structural invariants the
@@ -8,7 +8,7 @@
 //!
 //! This crate contains **no mathematics and no substrate** — only the model.
 //!
-//! [`docs/conceptual-model`]: https://github.com/afflom/TQC/tree/main/docs/conceptual-model
+//! [`docs/conceptual-model`]: https://github.com/afflom/UOR-Atlas-UTQC/tree/main/docs/conceptual-model
 
 #![forbid(unsafe_code)]
 
@@ -94,7 +94,7 @@ pub struct UseCase {
 pub struct Row {
     /// Kebab-case row identifier; matches a feature tag `@row:<id>`.
     pub id: String,
-    /// The TQC primitive.
+    /// The UTQC primitive.
     pub tqc: String,
     /// The Atlas / uor-addr realization summary.
     pub atlas: String,
@@ -281,7 +281,7 @@ mod tests {
         let m = Model::load().unwrap();
         assert!(
             m.status("none").is_none(),
-            "the RH crux level must not exist in the TQC"
+            "the RH crux level must not exist in the UTQC"
         );
         for level in ["some-true", "build", "open"] {
             assert!(m.status(level).is_some(), "missing status level `{level}`");

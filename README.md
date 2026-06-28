@@ -1,10 +1,8 @@
-# TQC
+# UOR-Atlas-UTQC
 
-A **parametric, BDD-driven, V&V-gated** realization of the Holospaces Universal Topological
-Quantum Computer (UTQC) — the topological-quantum (anyonic / modular-tensor-category)
-structure carried by the UOR Atlas, run on the [holospaces] substrate.
+A **parametric, BDD-driven, V&V-gated** realization of The UOR Atlas UTQC. This repository is the formalization, implementation, and analysis of The UOR Atlas UTQC, which is the basis of the entire UOR ecosystem of tooling including Hologram Holospaces.
 
-> TQC here means the **structural / simulation** sense — a modular-tensor-category (MTC)
+> The UOR Atlas UTQC here means the **structural / simulation** sense — a modular-tensor-category (MTC)
 > realized on a content-addressed substrate. It is **not** a physical anyonic device and
 > makes **no** claim of quantum speedup. Every claim is tracked against an authoritative
 > source and never asserted beyond what that source shows.

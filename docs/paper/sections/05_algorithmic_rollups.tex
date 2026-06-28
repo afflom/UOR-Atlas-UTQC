@@ -1,25 +1,47 @@
-\section{Complex Algorithmic Rollups}
+\section{Complex Algorithmic Rollups and Complexity Boundaries}
 
-Having established a coherent, universal gate set over the Solovay-Kitaev dense topological manifold, the UOR Atlas is equipped to compile and execute complex algorithmic rollups. These rollups synthesize classical quantum algorithms natively into braided combinations, mapping the exponential dimensions of Hilbert space into bounded combinatorial sequences. 
+Having established a coherent, universal gate set over the Solovay-Kitaev dense topological manifold, the UOR Atlas is equipped to compile complex algorithmic rollups. These rollups synthesize classical quantum algorithms natively into braided combinations, mapping the operational sequences of quantum circuits into bounded combinatorial words. 
 
-The integration of these algorithms proves that the UOR Atlas is not merely a theoretical framework, but a fully realized execution environment capable of natively executing advanced quantum circuits.
+The integration of these algorithms demonstrates the UOR Atlas's capability as a formal algebraic compiler, proving that the abstract framework successfully generates valid topological configurations for advanced quantum circuits.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+    node distance=1.5cm,
+    block/.style={rectangle, draw, fill=blue!10, text width=3cm, text centered, rounded corners, minimum height=1.2cm},
+    arrow/.style={thick,->,>=stealth}
+]
+    \node[block] (algo) {Quantum Algorithm (e.g., QPE, Shor's)};
+    \node[block, right=2cm of algo] (compiler) {UOR Atlas Topological Compiler};
+    \node[block, right=2cm of compiler, fill=green!10] (braid) {Combinatorial Braid Word ($\sigma, \tau, \mu$)};
+    \node[block, below=1cm of braid, fill=red!10] (eval) {Tensor Contraction ($\#P$-hard extraction)};
+
+    \draw[arrow] (algo) -- (compiler) node[midway, above] {Decomposition};
+    \draw[arrow] (compiler) -- (braid) node[midway, above] {Synthesis};
+    \draw[arrow, dashed] (braid) -- (eval) node[midway, right] {Measurement};
+\end{tikzpicture}
+\caption{Algorithmic compilation pipeline. The classical quantum algorithm is decomposed and synthesized into a robust combinatorial braid word representing the invariant topological state. The final amplitude evaluation remains computationally bounded by classical limits.}
+\label{fig:compilation}
+\end{figure}
 
 \subsection{Amplitude Amplification and Grover's Search}
 Grover's Algorithm provides a quadratic speedup for unstructured search problems. The core of amplitude amplification relies on an oracle reflection followed by a global diffusion operator, constructed using cascaded Hadamard transforms and controlled-phase rotations.
 
-In the topological execution manifold, these operations are directly mapped into discrete topological braid generators ($\sigma, \tau, \mu$). Due to the density of the mathematically proven Solovay-Kitaev synthesizer over the Atlas generators, the algorithm is dynamically rolled up into a finite, deterministically bounded sequence of braids. The execution traces remain completely bounded, exhibiting the expected amplitude amplification directly over the pseudo-unitary metric. 
+In the topological execution manifold, these operations are directly mapped into discrete topological braid generators ($\sigma, \tau, \mu$). Due to the density of the mathematically proven Solovay-Kitaev synthesizer over the Atlas generators, the algorithm is dynamically compiled into a finite, deterministically bounded sequence of braids. 
 
 \subsection{Quantum Fourier Transform (QFT)}
 The Quantum Fourier Transform (QFT) is the bedrock of complex quantum algorithms, including phase estimation and hidden subgroup problems. QFT relies critically on precise fractional phase rotations, specifically controlled-$R_z$ gates with exponentially decreasing phase angles ($2\pi/2^k$).
 
-Within the TQC compiler, the QFT circuit is decomposed into fundamental generators. The proven universality of the UOR Atlas guarantees that the underlying $SU(2)$ representation is mathematically dense. This allows the compiler to approximate the highly fractional continuous phase rotations to any arbitrary $\epsilon$-precision using short, bounded sequences of topological fusion and braiding steps.
+Within the UTQC compiler, the QFT circuit is decomposed into fundamental generators. The proven universality of the UOR Atlas guarantees that the underlying $SU(2)$ representation is mathematically dense. This allows the compiler to approximate the highly fractional continuous phase rotations to any arbitrary $\epsilon$-precision using short, bounded sequences of topological fusion and braiding steps, generating a fully invariant braid word representing the QFT operation.
 
 \subsection{Quantum Phase Estimation (QPE)}
 Quantum Phase Estimation (QPE) builds directly upon the QFT logic to evaluate the eigenvalues of arbitrary unitary operators. The algorithm leverages a massive cascade of controlled operations across a generalized counting register, culminating in an inverse Quantum Fourier Transform.
 
-By natively mapping QPE to the Atlas, the UOR framework demonstrates its capability to handle exponentially scaling unitaries. The topological execution fundamentally circumvents exponential vector expansion by leveraging the discrete S4 permutation logic of the Atlas generators, evaluating the eigenvalue phases via topological trace equivalents.
+By natively mapping QPE to the Atlas, the UOR framework demonstrates its capability to compile exponentially scaling unitary combinations into unified topological representations. The topological compilation fundamentally circumvents exponential vector expansion during the synthesis phase by leveraging the discrete $S4$ permutation logic of the Atlas generators to track invariants rather than explicitly tracking the full $O(2^N)$ state vector.
 
-\subsection{Shor's Algorithm and Period Finding}
+\subsection{Shor's Algorithm and strict complexity bounds}
 The culmination of the complex algorithmic stack is Shor's Algorithm. The core of Shor's integer factorization lies in its period-finding subroutine, which utilizes QPE coupled with a modular exponentiation unitary.
 
-By structurally composing the QPE rollups and feeding them a dynamically generated exponential phase unitary mapping to the modular multiplication rules, Shor's period finding compiles entirely down to a topological braid word. The formal algebraic constraints rigorously verify that this compilation executes cleanly, scales polynomially relative to the input bounds, and successfully measures the target periods within the topological framework. 
+By structurally composing the QPE rollups and feeding them a dynamically generated exponential phase unitary mapping to the modular multiplication rules, Shor's period finding compiles entirely down to a rigorous topological braid word. The formal algebraic constraints rigorously verify that this compilation executes cleanly and scales polynomially relative to the input bounds. 
+
+Crucially, while the \textit{compilation} and representation of these algorithms scale polynomially as combinatorial braids, the \textit{evaluation} of the final quantum state (measurement amplitude extraction) requires projecting the resulting braid word onto the genesis state. This tensor contraction is inherently $\#P$-hard~\cite{bernstein1997}. The framework explicitly does not violate $P \subset BQP$ boundaries; it cannot simulate Shor's algorithm in polynomial time on classical hardware. Instead, it provides a strictly validated, algebraically precise topological compilation layer, guaranteeing that the structural logic of these algorithms is perfectly preserved in the invariant manifold prior to execution or projection.

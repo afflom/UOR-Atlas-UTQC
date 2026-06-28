@@ -14,3 +14,21 @@ The evaluation environment enforces these constraints through a continuous param
 \end{enumerate}
 
 This verification regimen guarantees that the academic claims presented in this document are not merely theoretical speculation, but represent a fully verified, algebraically constrained topological framework.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+    node distance=2cm,
+    box/.style={rectangle, draw, fill=gray!10, text width=3.5cm, text centered, rounded corners, minimum height=1.5cm},
+    arrow/.style={thick,->,>=stealth}
+]
+    \node[box] (schema) {Formal Schema\\(\textit{e.g., $S4$ Axioms, Mac Lane Coherence})};
+    \node[box, right=of schema] (engine) {Topological Verification Engine};
+    \node[box, right=of engine] (ci) {Automated CI Pipeline (Truth Oracle)};
+
+    \draw[arrow] (schema) -- (engine) node[midway, above] {Axioms};
+    \draw[arrow] (engine) -- (ci) node[midway, above] {Proofs};
+\end{tikzpicture}
+\caption{The computer-assisted verification architecture. Mathematical axioms are translated into a formal schema, executed as programmatic tests via the topological engine, and rigorously verified against external ground truths by an automated CI pipeline.}
+\label{fig:verification}
+\end{figure}

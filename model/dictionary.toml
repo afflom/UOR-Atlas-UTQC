@@ -1,10 +1,10 @@
-# The TQC <-> Atlas dictionary, transcribed row-by-row from
+# The UTQC <-> Atlas dictionary, transcribed row-by-row from
 # docs/conceptual-model/00-source.md. This is the single source of truth that the BDD
 # features and V&V witnesses are checked against by the honesty meta-gate.
 #
 # Fields:
 #   id      kebab-case row identifier (matches a feature tag @row:<id>)
-#   tqc     the TQC primitive
+#   tqc     the UTQC primitive
 #   atlas   the Atlas / uor-addr realization (summary)
 #   source  the F1 / uor-addr / holospaces anchor
 #   status  some-true | build | open   (see model/status.toml)

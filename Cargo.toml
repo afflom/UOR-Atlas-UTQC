@@ -1,4 +1,4 @@
-# TQC — a parametric, BDD-driven, V&V-gated realization of the Holospaces TQC.
+# UOR-Atlas-UTQC — a parametric, BDD-driven, V&V-gated realization of The UOR Atlas UTQC.
 #
 # This is a VIRTUAL workspace (no root package). Every member is a focused crate
 # whose responsibility maps onto the conceptual model in `docs/conceptual-model/`.
@@ -21,8 +21,8 @@ version = "0.1.0"
 edition = "2021"
 rust-version = "1.83"
 license = "MIT"
-repository = "https://github.com/afflom/TQC"
-description = "A parametric, BDD-driven, V&V-gated realization of the Holospaces Universal Topological Quantum Computer (UTQC) — the topological structure carried by the UOR Atlas."
+repository = "https://github.com/afflom/UOR-Atlas-UTQC"
+description = "A parametric, BDD-driven, V&V-gated realization of The UOR Atlas UTQC — the basis of the entire UOR ecosystem of tooling including Hologram Holospaces."
 authors = ["Alex Flom <alex@uor.foundation>"]
 
 # DRY: one place to pin every shared dependency.

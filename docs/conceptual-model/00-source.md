@@ -1,6 +1,6 @@
-# Holospaces TQC — Implementation Definition
+# The UOR Atlas UTQC — Implementation Definition
 
-> **This file is the conceptual authority.** It defines the TQC this repository realizes.
+> **This file is the conceptual authority.** It defines the UTQC this repository realizes.
 > Every other artifact — the typed model in `model/`, the BDD features, the V&V witnesses —
 > derives from and must stay consistent with this document.
 
@@ -34,10 +34,10 @@ forms that the construction keeps separate:
   `{10,7,2,−1}`, mults `{1,2,7,14}`). This is the superselection spectrum, not an inner
   product.
 - the **definite Euclidean companion** `⟨x,x⟩ = Σxᵢ²` — positive-definite, a manifest sum of
-  squares (`AtlasSpectrum` `WeilPSD_rankOne`; `AtlasCharacteristics` §5). This is the TQC
+  squares (`AtlasSpectrum` `WeilPSD_rankOne`; `AtlasCharacteristics` §5). This is the UTQC
   inner product.
 
-The TQC inner product is the Euclidean companion `Σxᵢ²`. The reflection generators `σ/τ/μ`
+The UTQC inner product is the Euclidean companion `Σxᵢ²`. The reflection generators `σ/τ/μ`
 are coordinate permutations of the label space (below), hence orthogonal w.r.t. `Σxᵢ²`, hence
 unitary — established directly. Separately, the **multiplicative composition norm**
 `|x|²|y|² = |xy|²` (dims 1, 2, 4, 8, the octonion eight-square) is what makes the Atlas composition
@@ -119,7 +119,7 @@ The Atlas supplies the *native data* relevant to a possible MTC construction —
 
 
 The Atlas's §9 is explicit that its definite composition norm is a *different object* from the
-signed prime form whose positivity is RH (F1's open crux). The TQC uses only the definite /
+signed prime form whose positivity is RH (F1's open crux). The UTQC uses only the definite /
 composition / addressing structure; it never touches that crux.
 
 ## Status ledger

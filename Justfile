@@ -1,4 +1,4 @@
-# TQC task runner. Mirrors the holospaces substrate's Justfile conventions and adds
+# UOR-Atlas-UTQC task runner. Mirrors the holospaces substrate's Justfile conventions and adds
 # the docs-as-code / BDD / V&V targets. `just` with no args lists everything.
 
 default:
