@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build_and_release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Pandoc and TeXLive
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y texlive-latex-base texlive-fonts-recommended texlive-fonts-extra texlive-latex-extra latexmk pandoc
+          
+      - name: Compile PDF
+        working-directory: docs/paper
+        run: latexmk -pdf -Werror -interaction=nonstopmode main.tex
+        
+      - name: Rename PDF
+        run: cp docs/paper/main.pdf docs/paper/UOR_Atlas_Whitepaper.pdf
+
+      - name: Upload PDF to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: docs/paper/UOR_Atlas_Whitepaper.pdf
+          name: Release ${{ github.ref_name }}
+          generate_release_notes: true
+          
+      - name: Compile HTML
+        working-directory: docs/paper
+        run: |
+          mkdir public
+          cp -r assets public/ || true
+          pandoc main.tex -s --mathjax -o public/index.html
+          
+      - name: Inject Download Link
+        working-directory: docs/paper
+        run: |
+          VERSION=${GITHUB_REF_NAME}
+          DOWNLOAD_LINK="<div style=\"text-align: center; margin: 20px; font-family: sans-serif;\"><a href=\"https://github.com/${GITHUB_REPOSITORY}/releases/download/${VERSION}/UOR_Atlas_Whitepaper.pdf\" style=\"padding: 10px 20px; background-color: #1A365D; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;\">Download PDF Whitepaper</a></div>"
+          sed -i "s|<body.*>|&\n${DOWNLOAD_LINK}|" public/index.html
+          
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/paper/public
+          
+  deploy_pages:
+    needs: build_and_release
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
