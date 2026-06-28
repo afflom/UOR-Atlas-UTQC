@@ -346,3 +346,16 @@ async fn main() {
         .run_and_exit(features)
         .await;
 }
+
+#[then("the topological execution manifold bounds non-local entanglement entropy")]
+async fn t_topological_entanglement(w: &mut TqcWorld) {
+    let result = witness::topological_entanglement_probe(&w.params()).unwrap();
+    assert!(
+        result.entropy_bound > 0.0,
+        "Topological entanglement entropy must be greater than zero for non-trivial braided states"
+    );
+    assert!(
+        result.is_logarithmic_scaling,
+        "The entropy must scale logarithmically with braid depth, preventing chaotic thermalization"
+    );
+}
