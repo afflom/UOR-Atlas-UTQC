@@ -55,6 +55,11 @@ substrate:
 deny:
     cargo deny check
 
+# Build the academic whitepaper strictly with warnings-as-errors and run chktex linting
+paper:
+    cd docs/paper && latexmk -pdf -Werror -interaction=nonstopmode main.tex
+    cd docs/paper && chktex main.tex -q -n 22 -n 30 -n 46
+
 # The full local gate (what CI runs).
-vv: fmt lint test doc bdd honesty oracles
+vv: fmt lint test doc bdd honesty oracles paper
     @echo "V&V: all gates green."
