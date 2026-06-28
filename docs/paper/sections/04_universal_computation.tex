@@ -21,27 +21,31 @@ Multi-anyon entanglement is algebraically enacted via the Braiding $R$-Matrix, w
 
 \begin{figure}[ht]
     \centering
-    \begin{tikzpicture}[scale=0.8, thick]
+    \begin{tikzpicture}[scale=1.2, line width=1.5pt]
+        \colorlet{c1}{uorAccent}
+        \colorlet{c2}{uorDark}
+        \colorlet{c3}{gray}
+
         % Left side: (R \otimes I)(I \otimes R)(R \otimes I)
-        \draw (0,0) -- (2,2) -- (2,3);
-        \draw[white, line width=4pt] (1,0) -- (0,1);
-        \draw (1,0) -- (0,1) -- (0,2) -- (1,3);
-        \draw[white, line width=4pt] (2,0) -- (2,1) -- (0,3);
-        \draw (2,0) -- (2,1) -- (0,3);
-        \draw[white, line width=4pt] (1,1) -- (2,2);
-        \draw (1,1) -- (2,2);
+        \draw[c3] (2,0) to[out=90,in=270] (2,1) to[out=90,in=270] (1,2) to[out=90,in=270] (0,3);
         
-        \node at (3,1.5) {$=$};
+        \draw[white, line width=5pt] (1,0) to[out=90,in=270] (0,1) to[out=90,in=270] (0,2) to[out=90,in=270] (1,3);
+        \draw[c2] (1,0) to[out=90,in=270] (0,1) to[out=90,in=270] (0,2) to[out=90,in=270] (1,3);
+        
+        \draw[white, line width=5pt] (0,0) to[out=90,in=270] (1,1) to[out=90,in=270] (2,2) to[out=90,in=270] (2,3);
+        \draw[c1] (0,0) to[out=90,in=270] (1,1) to[out=90,in=270] (2,2) to[out=90,in=270] (2,3);
+        
+        \node at (3,1.5) {\Large $=$};
         
         % Right side: (I \otimes R)(R \otimes I)(I \otimes R)
         \begin{scope}[shift={(4,0)}]
-        \draw (2,0) -- (0,2) -- (0,3);
-        \draw[white, line width=4pt] (1,0) -- (2,1);
-        \draw (1,0) -- (2,1) -- (2,2) -- (1,3);
-        \draw[white, line width=4pt] (0,0) -- (0,1) -- (2,3);
-        \draw (0,0) -- (0,1) -- (2,3);
-        \draw[white, line width=4pt] (1,1) -- (0,2);
-        \draw (1,1) -- (0,2);
+        \draw[c1] (0,0) to[out=90,in=270] (0,1) to[out=90,in=270] (1,2) to[out=90,in=270] (2,3);
+        
+        \draw[white, line width=5pt] (1,0) to[out=90,in=270] (2,1) to[out=90,in=270] (2,2) to[out=90,in=270] (1,3);
+        \draw[c2] (1,0) to[out=90,in=270] (2,1) to[out=90,in=270] (2,2) to[out=90,in=270] (1,3);
+        
+        \draw[white, line width=5pt] (2,0) to[out=90,in=270] (1,1) to[out=90,in=270] (0,2) to[out=90,in=270] (0,3);
+        \draw[c3] (2,0) to[out=90,in=270] (1,1) to[out=90,in=270] (0,2) to[out=90,in=270] (0,3);
         \end{scope}
     \end{tikzpicture}
     \caption{The Yang-Baxter Equation representing topological equivalence of braid generators.}

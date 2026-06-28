@@ -12,18 +12,28 @@ Because the eigenspaces of these generators involve phases that are incommensura
 
 \begin{figure}[ht]
     \centering
-    \begin{tikzpicture}[>=stealth, auto, node distance=2cm, thick]
-        % Nodes
-        \node[draw, rectangle, rounded corners, fill=blue!10, text width=2.5cm, align=center] (genesis) {Genesis State\\$|\psi_0\rangle$ (Compact)};
-        \node[draw, rectangle, fill=red!10, text width=3cm, align=center, right of=genesis, node distance=4cm] (hilbert) {Classical Matrix\\Expansion $O(2^N)$};
-        \node[draw, rectangle, rounded corners, fill=green!10, text width=3.5cm, align=center, below of=genesis, node distance=2.5cm, xshift=2cm] (topological) {Combinatorial Braid\\Evolution $O(M)$};
-        \node[draw, rectangle, rounded corners, fill=blue!10, text width=2.5cm, align=center, right of=topological, node distance=4cm, yshift=2.5cm] (final) {Final State\\$|\psi_M\rangle$};
+    \begin{tikzpicture}[
+        >=stealth, 
+        thick,
+        state/.style={draw, rectangle, rounded corners=3pt, fill=uorAccent!10, text width=3cm, align=center, minimum height=1.2cm, font=\small},
+        bottleneck/.style={draw, rectangle, fill=red!10, text width=3.2cm, align=center, minimum height=1.2cm, font=\small},
+        process/.style={draw, rectangle, rounded corners=3pt, fill=uorAccent!20, text width=3.5cm, align=center, minimum height=1.2cm, font=\small},
+        edgeLabel/.style={font=\scriptsize, align=center}
+    ]
+        % Nodes using positioning
+        \node[state] (genesis) {Genesis State\\$|\psi_0\rangle$ (Compact)};
+        \node[bottleneck, right=2.5cm of genesis] (hilbert) {Classical Matrix\\Expansion $O(2^N)$};
+        \node[state, right=2.5cm of hilbert] (final) {Final State\\$|\psi_M\rangle$};
         
-        % Edges
-        \draw[->, dashed, red] (genesis) -- node[above] {Intractable} (hilbert);
-        \draw[->, dashed, red] (hilbert) -- node[above] {Memory Bound} (final);
-        \draw[->, bend right=30, green!60!black] (genesis) to node[below left] {Topological mapping $\kappa$} (topological);
-        \draw[->, bend right=30, green!60!black] (topological) to node[below right] {Invariant readout} (final);
+        \node[process, below=2cm of hilbert] (topological) {Combinatorial Braid\\Evolution $O(M)$};
+        
+        % Classical path
+        \draw[->, dashed, red!80!black] (genesis) -- node[above, edgeLabel, text=red!80!black] {Intractable} (hilbert);
+        \draw[->, dashed, red!80!black] (hilbert) -- node[above, edgeLabel, text=red!80!black] {Memory Bound} (final);
+        
+        % Topological path
+        \draw[->, uorAccent] (genesis) |- node[above right, edgeLabel, pos=0.8] {Topological\\mapping $\kappa$} (topological);
+        \draw[->, uorAccent] (topological) -| node[above left, edgeLabel, pos=0.2] {Invariant\\readout} (final);
         
     \end{tikzpicture}
     \caption{Subversion of the exponential Hilbert space bottleneck. The topological execution path strictly evaluates combinatorics over the invariant manifold, circumventing the intractable $O(2^N)$ classical matrix requirement.}
