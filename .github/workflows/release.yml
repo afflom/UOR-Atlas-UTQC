@@ -40,7 +40,7 @@ jobs:
         run: |
           mkdir public
           cp -r assets public/ || true
-          pandoc main.tex -s --mathjax -o public/index.html
+          pandoc main.tex -s --mathjax="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" -o public/index.html
           sed -i '/polyfill\.io/d' public/index.html
           
       - name: Inject Download Link
