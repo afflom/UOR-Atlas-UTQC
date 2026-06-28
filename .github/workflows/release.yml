@@ -41,6 +41,7 @@ jobs:
           mkdir public
           cp -r assets public/ || true
           pandoc main.tex -s --mathjax -o public/index.html
+          sed -i '/polyfill\.io/d' public/index.html
           
       - name: Inject Download Link
         working-directory: docs/paper
