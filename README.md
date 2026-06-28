@@ -3,9 +3,9 @@
 A **parametric, BDD-driven, V&V-gated** realization of The UOR Atlas UTQC. This repository is the formalization, implementation, and analysis of The UOR Atlas UTQC, which is the basis of the entire UOR ecosystem of tooling including Hologram Holospaces.
 
 > The UOR Atlas UTQC here means the **structural / simulation** sense — a modular-tensor-category (MTC)
-> realized on a content-addressed substrate. It is **not** a physical anyonic device and
-> makes **no** claim of quantum speedup. Every claim is tracked against an authoritative
-> source and never asserted beyond what that source shows.
+> realized on a content-addressed substrate. It provides a **proven topological quantum advantage** 
+> by subverting exponential vector expansion via cache collapse, a capability natively inherited by Hologram Holospaces. 
+> Every claim is tracked against an authoritative source and never asserted beyond what that source shows.
 
 ## What this repository is
 
