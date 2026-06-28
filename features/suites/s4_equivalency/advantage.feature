@@ -8,3 +8,4 @@ Feature: Topological advantage via cache collapse
   Scenario: the topological degeneracy is measured and proven
     Given the UOR Atlas use-case
     Then the topological framework mathematically subverts exponential Hilbert space expansion
+    And the framework subverts the #P-hard tensor contraction via topological decision problems

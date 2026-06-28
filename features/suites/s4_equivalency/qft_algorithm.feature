@@ -2,4 +2,4 @@
 Feature: Quantum Fourier Transform Rollup
   Scenario: QFT executes efficiently over the combinatorial manifold
     Given the UOR Atlas use-case
-    Then a complex algorithmic rollup executes QFT with polynomial braid compilation and fully evaluates bypassing tensor contraction
+    Then the QFT algorithmic rollup is classically simulable due to the finite closure

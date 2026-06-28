@@ -2,4 +2,4 @@
 Feature: Quantum Phase Estimation Rollup
   Scenario: QPE executes efficiently over the combinatorial manifold
     Given the UOR Atlas use-case
-    Then a complex algorithmic rollup executes QPE with polynomial braid compilation and fully evaluates bypassing tensor contraction
+    Then the QPE algorithmic rollup is classically simulable due to the finite closure

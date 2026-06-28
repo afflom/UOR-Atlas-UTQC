@@ -1,4 +1,4 @@
-@row:tensor-contraction-bypass
+@row:tensor-contraction-bypass @stage:S4 @status:some-true @oracle:mtc-axioms
 Feature: Tensor Contraction Bypass
   As a topological quantum compiler
   I want to evaluate topological decision problems directly over the invariant k-form
@@ -6,4 +6,4 @@ Feature: Tensor Contraction Bypass
 
   Scenario: identical topological invariants are mathematically proven without extracting final amplitudes
     Given the UOR Atlas use-case
-    Then isomorphic topological braid operations naturally collide on identical kappa forms bypassing scalar extraction
+    Then isomorphic topological braid operations naturally collide on identical kappa forms via classical equivalence

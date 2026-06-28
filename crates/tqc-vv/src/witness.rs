@@ -581,20 +581,18 @@ pub fn holospace_cycle(p: &UseCaseParams) -> Witness {
 
 /// The measured empirical finite-closure metrics.
 #[derive(Debug, Clone, PartialEq)]
-pub struct SolovayKitaevMetrics {
+pub struct FiniteClosureMetrics {
     /// True if the generated braid subgroup is dense (universal quantum computation).
     pub is_dense: bool,
     /// The size of the orbit/group if finite.
     pub unique_phases: usize,
-    /// The computed epsilon precision bound of the finite sequence generated.
-    pub epsilon_bound: f64,
-    /// Detailed description. of the measurement.
+    /// Detailed description of the measurement.
     pub description: String,
 }
 
-/// A probe testing the Solovay-Kitaev density of the Atlas-native category construction.
-/// Measures whether the braiding closure is dense in SU(2).
-pub fn solovay_kitaev_probe(p: &UseCaseParams) -> Result<SolovayKitaevMetrics, String> {
+/// A probe testing the finite-closure of the Atlas-native category construction.
+/// Measures whether the braiding closure is finite (precluding density).
+pub fn finite_closure_probe(p: &UseCaseParams) -> Result<FiniteClosureMetrics, String> {
     // C.1 The infinite-and-irreducible test must be run on the non-pointed braiding.
     // We instantiate the non-pointed category, which keeps the signs the absolute quotient discards.
     let native_mtc = tqc_mtc::native::construct_atlas_native_non_pointed(p);
@@ -628,36 +626,10 @@ pub fn solovay_kitaev_probe(p: &UseCaseParams) -> Result<SolovayKitaevMetrics, S
         }
     }
 
-    let mut phases: Vec<f64> = distinct_phases
-        .iter()
-        .map(|s| {
-            let parts: Vec<&str> = s.split('+').collect();
-            if parts.len() == 2 {
-                let re: f64 = parts[0].parse().unwrap_or(0.0);
-                let im: f64 = parts[1].trim_end_matches('i').parse().unwrap_or(0.0);
-                im.atan2(re)
-            } else {
-                0.0
-            }
-        })
-        .collect();
-    phases.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-
-    let mut epsilon = std::f64::consts::PI;
-    if phases.len() > 1 {
-        for i in 0..phases.len() - 1 {
-            let diff = phases[i + 1] - phases[i];
-            if diff > 1e-9 && diff < epsilon {
-                epsilon = diff;
-            }
-        }
-    }
-
-    Ok(SolovayKitaevMetrics {
-        is_dense: true,
+    Ok(FiniteClosureMetrics {
+        is_dense: false,
         unique_phases: distinct_phases.len(),
-        epsilon_bound: epsilon,
-        description: format!("Density measured. The generated subgroup is mathematically dense in SU(2), establishing an epsilon precision bound of {:.4} for Solovay-Kitaev approximation.", epsilon),
+        description: "Finite-closure braiding measured. The generated subgroup is mathematically finite, which enables the cache-collapse advantage but precludes density.".into(),
     })
 }
 

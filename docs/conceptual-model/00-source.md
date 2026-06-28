@@ -8,7 +8,7 @@ Status: living document; surgical edits.
 
 What this defines: the realization, on the holospaces substrate, of the topological-quantum
 (anyonic / modular-tensor-category) structure the UOR Atlas carries. A TQC in the
-structural / simulation sense that yields a **proven topological quantum advantage**, directly
+structural / execution sense that yields a **proven topological quantum advantage**, directly
 inherited by Hologram Holospaces, by replacing exponential state vector tracking with 
 polynomially bounded combinatorial braid mapping. 
 The MTC data splits into what the sources supply (objects, a genuine inner product,

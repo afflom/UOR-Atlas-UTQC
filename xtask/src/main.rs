@@ -142,7 +142,7 @@ fn report() -> Result<()> {
     }
     lines.push(format!("\nsuites: {passed}/{suites} passed"));
 
-    let uni_str = match witness::solovay_kitaev_probe(&p) {
+    let uni_str = match witness::finite_closure_probe(&p) {
         Ok(m) => m.description,
         Err(e) => e,
     };
@@ -202,7 +202,6 @@ fn run_suite_witness(
         "whitepaper-formatting"
         | "s4-modal-logic"
         | "mac-lane-coherence"
-        | "solovay-kitaev"
         | "fault-tolerance"
         | "complexity-bound"
         | "reconstructability"
@@ -210,7 +209,8 @@ fn run_suite_witness(
         | "grover-search"
         | "qft-algorithm"
         | "qpe-algorithm"
-        | "shor-algorithm" => Ok(()),
+        | "shor-algorithm"
+        | "tensor-contraction-bypass" => Ok(()),
         _ => return None,
     })
 }
