@@ -55,6 +55,15 @@ cat << 'EOF' > public/index.html
             color: #777;
         }
 
+        .affiliation a {
+            color: var(--link-color);
+            text-decoration: none;
+        }
+
+        .affiliation a:hover {
+            text-decoration: underline;
+        }
+
         .abstract {
             background-color: #f6f8fa;
             border: 1px solid var(--border-color);
@@ -93,6 +102,26 @@ cat << 'EOF' > public/index.html
             height: 800px;
             border: 1px solid var(--border-color);
         }
+        
+        footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+        }
+        
+        footer img {
+            width: 50px;
+            height: auto;
+            margin-bottom: 10px;
+        }
+        
+        footer p {
+            margin: 0;
+            color: #777;
+            font-size: 0.9em;
+            font-family: Arial, sans-serif;
+        }
     </style>
 </head>
 <body>
@@ -100,7 +129,7 @@ cat << 'EOF' > public/index.html
         <header>
             <h1>The UOR Atlas as a Universal Topological Quantum Computer: A Formal Categorical Realization on Holospaces</h1>
             <div class="authors">The UOR Foundation</div>
-            <div class="affiliation">uor.foundation</div>
+            <div class="affiliation"><a href="https://uor.foundation">https://uor.foundation</a></div>
         </header>
 
         <div class="abstract">
@@ -115,6 +144,13 @@ cat << 'EOF' > public/index.html
         </div>
 
         <iframe src="UOR_Atlas_Whitepaper.pdf" class="pdf-viewer" title="UOR Atlas Whitepaper PDF"></iframe>
+        
+        <footer>
+            <a href="https://uor.foundation">
+                <img src="https://uor.foundation/assets/uor-icon-new-CQuNVmtH.png" alt="The UOR Foundation Logo">
+            </a>
+            <p>&copy; 2026 The UOR Foundation</p>
+        </footer>
     </div>
 </body>
 </html>
