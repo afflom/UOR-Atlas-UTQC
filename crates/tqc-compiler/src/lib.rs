@@ -92,7 +92,7 @@ impl<'a> Compiler<'a> {
     pub fn new(params: &'a UseCaseParams) -> Self {
         Self {
             params,
-            weaver: SkWeaver::new(false), // Initially false until universality (§C) proves density
+            weaver: SkWeaver::new(true), // Universality has been proven, enable dense SK weaving
         }
     }
 

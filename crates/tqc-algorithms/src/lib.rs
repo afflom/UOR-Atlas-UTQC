@@ -4,6 +4,9 @@
 //! Synthesizes parameterized classical quantum ansatz circuits into Atlas-native
 //! Braid Words, executes them on the Holospaces emulator, and minimizes the energy.
 
+pub mod grover;
+pub mod qft;
+
 use tqc_compiler::{BraidGen, Compiler, LogicGate};
 use tqc_core::generators::{Generators, Permutation};
 use tqc_core::UseCaseParams;

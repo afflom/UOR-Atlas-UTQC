@@ -338,6 +338,51 @@ async fn t_atlas_native_mtc_obstruction(w: &mut TqcWorld) {
     assert!(res.is_ok(), "The native MTC construction should now mathematically resolve all prior topological obstructions");
 }
 
+#[then("a complex algorithmic rollup executes Grover search with polynomial braid compilation")]
+async fn t_grover_search(w: &mut TqcWorld) {
+    let p = w.params();
+    let solver = tqc_algorithms::grover::GroverSolver::new(3);
+    // Find the state '5' (101 in binary)
+    let circuit = solver.build_circuit(5);
+    let compiler = tqc_compiler::Compiler::new(&p);
+
+    // The algorithmic rollup must successfully compile down to a topological braid word
+    let word = compiler
+        .compile(&circuit)
+        .expect("Grover circuit must compile");
+
+    assert!(
+        !word.sequence.is_empty(),
+        "The compiled topological braid word must not be empty"
+    );
+    assert!(
+        word.sequence.len() < 1000,
+        "The compilation must remain bounded and not explode exponentially"
+    );
+}
+
+#[then("a complex algorithmic rollup executes QFT with polynomial braid compilation")]
+async fn t_qft_algorithm(w: &mut TqcWorld) {
+    let p = w.params();
+    let solver = tqc_algorithms::qft::QftSolver::new(4);
+    let circuit = solver.build_circuit();
+    let compiler = tqc_compiler::Compiler::new(&p);
+
+    // The algorithmic rollup must successfully compile down to a topological braid word
+    let word = compiler
+        .compile(&circuit)
+        .expect("QFT circuit must compile");
+
+    assert!(
+        !word.sequence.is_empty(),
+        "The compiled topological braid word must not be empty"
+    );
+    assert!(
+        word.sequence.len() < 2000,
+        "The QFT compilation must remain bounded"
+    );
+}
+
 #[tokio::main]
 async fn main() {
     let features = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../features/suites");
