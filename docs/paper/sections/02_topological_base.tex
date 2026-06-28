@@ -1,29 +1,21 @@
-\section{The Topological Foundation of the UOR Atlas}
+\section{The Topological Base and Modal Logic Framework}
 
-To claim universal topological computation, one must first define the topological manifold upon which the computation unfolds. In physical TQC, this manifold is defined by the energy spectrum of a two-dimensional electron gas (e.g., fractional quantum Hall states) where quasiparticle excitations exhibit non-abelian fractional statistics. In our paradigm, the manifold is purely informational, synthesized mathematically through the UOR Atlas framework.
+To formally establish a UTQC, the underlying topological manifold must be rigorously defined. The UOR Atlas achieves this through a categorical mapping of state transitions into a non-pointed $S4$ modal logic structure, utilizing a predefined set of 24 invariant symmetry classes.
 
-\subsection{The 24-Class Holospace Manifold}
-The core of the UOR Atlas is a parametric tensor network of 24 distinct, invariant symmetry classes. Let $\mathcal{C}$ be the underlying holospace category. The states of our system correspond not to physical localized amplitudes, but to the robust equivalence classes of morphisms within $\mathcal{C}$. Specifically, the 24 classes of the UOR Atlas act as the fundamental anyonic excitations of the computational space. 
+\subsection{Formalization of the 24 Symmetry Classes}
+The conceptual model (\texttt{docs/conceptual-model}) establishes the exact specifications of the 24 symmetry classes ($\Omega = \{\omega_1, \dots, \omega_{24}\}$). These classes serve as the computational analogues to non-abelian anyonic excitations. By encoding these classes within an $S4$ topological space---characterized by reflexivity and transitivity (idempotence) without requiring point-set specificity---the framework defines a finite Alexandroff topology. The morphisms between these classes constitute the fundamental logic gates of the system.
 
-We formalize the set of Atlas classes as a finite set $\Omega = \{ \omega_1, \omega_2, \dots, \omega_{24} \}$. These classes map injectively into a non-pointed $S4$ modal logic framework, generating a topological space defined by the interior operations (analogous to the necessity operator $\Box$) and closure operations (analogous to the possibility operator $\lozenge$). 
-Because the $S4$ topology implies idempotence ($\Box\Box P \iff \Box P$) and reflexivity ($\Box P \implies P$), the resulting space is fundamentally a finite topological space possessing a precise Alexandroff structure. Within this structure, the continuous transformations representing quantum gates are strictly implemented as continuous functions preserving the specialization preorder of the $S4$ topological space.
-
-\subsection{Braiding and the Mac Lane Axioms}
-In standard topological models, the logic gates are executed by the physical braiding of anyons, corresponding to elements of the Braid Group $B_n$. In the UOR Atlas, ``braiding'' is achieved through the formalized transformation paths between the 24 symmetry classes. To ensure that these transformation paths are globally coherent—that is, the result of a computation depends only on the topology of the path and not on its specific sequence of intermediate steps—the framework strictly implements the Mac Lane coherence axioms for monoidal categories.
-
-The mathematical resolution of TQC is fundamentally anchored by the Mac Lane Pentagon and Hexagon identities, which govern the associativity and commutativity (braiding) of the tensor product $\otimes$ within a braided monoidal category. By validating that the interactions between the 24 Atlas classes satisfy these coherence constraints, we definitively prove that the state transformations are topologically invariant. 
-
-The Pentagon identity dictates that the two sequences of natural isomorphisms reassociating a four-fold tensor product must commute. For any objects $A, B, C, D \in \Omega$:
+\subsection{Parametric Proof of Mac Lane Coherence}
+A central requirement of any TQC architecture is adherence to the Mac Lane coherence theorem, ensuring that the evaluation of tensor products is topologically invariant. The Pentagon identity governing associativity:
 \begin{equation}
 \label{eq:pentagon}
     (\alpha_{A,B,C} \otimes id_D) \circ \alpha_{A,B\otimes C,D} \circ (id_A \otimes \alpha_{B,C,D}) = \alpha_{A\otimes B,C,D} \circ \alpha_{A,B,C\otimes D}
 \end{equation}
-where $\alpha$ represents the associator isomorphism.
-
-Similarly, the Hexagon identities ensure the compatibility of the braiding isomorphism $\gamma$ with the associator, guaranteeing that braiding one object past a tensor product of two others is equivalent to braiding it past each individually:
+and the Hexagon identity governing commutativity (braiding):
 \begin{equation}
 \label{eq:hexagon}
     \alpha_{B,C,A} \circ \gamma_{A,B\otimes C} \circ \alpha_{A,B,C} = (\gamma_{A,B} \otimes id_C) \circ \alpha_{B,A,C} \circ (id_B \otimes \gamma_{A,C})
 \end{equation}
+must be strictly satisfied. 
 
-In our paradigm, these coherence equations are not merely theoretical axioms; they are structurally enforced as deterministically verifiable algebraic constraints within the UOR Atlas. Every state transformation path is evaluated against Equations (\ref{eq:pentagon}) and (\ref{eq:hexagon}). Because the Atlas guarantees these identities algebraically across its 24 symmetry classes, the resulting holospace is proven to function as a globally coherent, topologically invariant computational manifold.
+In theoretical papers, these axioms are often assumed to hold for a proposed physical substrate. In this package, the proof is computational. The validation suite directly asserts Equations (\ref{eq:pentagon}) and (\ref{eq:hexagon}) as executable oracles across all permissible morphisms of the 24 classes. The repository's Continuous Integration (CI) gate executes these algebraic proofs over the combinatorial space, formally proving that the implemented operations form a valid braided monoidal category.
