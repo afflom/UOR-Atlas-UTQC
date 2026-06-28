@@ -49,18 +49,8 @@ jobs:
           DOWNLOAD_LINK="<div style=\"text-align: center; margin: 20px; font-family: sans-serif;\"><a href=\"https://github.com/${GITHUB_REPOSITORY}/releases/download/${VERSION}/UOR_Atlas_Whitepaper.pdf\" style=\"padding: 10px 20px; background-color: #1A365D; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;\">Download PDF Whitepaper</a></div>"
           sed -i "s|<body.*>|&\n${DOWNLOAD_LINK}|" public/index.html
           
-      - name: Upload GitHub Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: docs/paper/public
-          
-  deploy_pages:
-    needs: build_and_release
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
       - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: docs/paper/public
