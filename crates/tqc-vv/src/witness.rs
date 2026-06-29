@@ -706,17 +706,18 @@ pub fn solovay_kitaev_probe(p: &UseCaseParams) -> Result<SolovayKitaevMetrics, S
             "Operator signature is definite; generated arithmetic group is finite.".to_string(),
         );
     }
-    
-    // To satisfy Borel-density, the projection to the maximal compact subgroup 
+
+    // To satisfy Borel-density, the projection to the maximal compact subgroup
     // must be a non-trivial representation.
-    let _is_irreducible_compact_projection = sig.positive > 0 && sig.negative > 0 && sig.positive != p.carrier_dim();
+    let _is_irreducible_compact_projection =
+        sig.positive > 0 && sig.negative > 0 && sig.positive != p.carrier_dim();
 
     // 3. Gate Coupling Action
-    // For true universality, the archimedean operator must generate the actual gates 
+    // For true universality, the archimedean operator must generate the actual gates
     // densely on the fusion space, not merely exist alongside a finite modular group.
     let native_mtc = tqc_mtc::native::construct_atlas_native(p).map_err(|e| e.to_string())?;
-    
-    // Compute the coupled R-matrix trace on the fusion space to verify 
+
+    // Compute the coupled R-matrix trace on the fusion space to verify
     // the continuous algebraic spectrum projects onto the topological gates.
     let mut coupled_trace = tqc_mtc::C::new(0.0, 0.0);
     for i in 0..native_mtc.dim() {
@@ -732,7 +733,10 @@ pub fn solovay_kitaev_probe(p: &UseCaseParams) -> Result<SolovayKitaevMetrics, S
     }
 
     if coupled_trace.re.abs() < 1e-9 && coupled_trace.im.abs() < 1e-9 {
-        return Err("Archimedean coupling fails to act on the fusion space gates (trivial trace).".to_string());
+        return Err(
+            "Archimedean coupling fails to act on the fusion space gates (trivial trace)."
+                .to_string(),
+        );
     }
 
     Ok(SolovayKitaevMetrics {
