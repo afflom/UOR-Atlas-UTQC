@@ -63,6 +63,15 @@ substrate:
 deny:
     cargo deny check
 
+# The parametric core stays no_std / portable (matches the holospaces substrate posture).
+portability:
+    cargo build -p tqc-core --target wasm32-unknown-unknown
+    cargo build -p tqc-core --target thumbv7em-none-eabi
+
+# MSRV: the declared minimum supported Rust version must build.
+msrv:
+    cargo check -p tqc-core -p tqc-model -p tqc-atlas --all-features
+
 # Build the academic whitepaper strictly with warnings-as-errors and run chktex linting
 paper:
     cd docs/paper && latexmk -pdf -Werror -interaction=nonstopmode main.tex
@@ -73,5 +82,5 @@ anti-hardcode:
     @! grep -q "is_dense: true" crates/tqc-vv/src/witness.rs || (echo "ERROR: Hardcoded 'is_dense: true' found in witness! Must be derived parametrically." && exit 1)
 
 # The full local gate (what CI runs).
-vv: fmt lint test doc bdd honesty oracles paper anti-hardcode
+vv: fmt lint doc test bdd honesty oracles report atlas-pin-check portability msrv substrate deny paper anti-hardcode
     @echo "V&V: all gates green."
