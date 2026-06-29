@@ -221,6 +221,17 @@ tier = "suite"
 feature = "features/suites/s2_mtc/mac_lane_coherence.feature"
 
 [[row]]
+id = "finite-closure"
+tqc = "Finite Braid Closure"
+atlas = "The generated braiding subgroup is finite (Clifford-like), precluding density in SU(2)"
+source = "(derived)"
+status = "some-true"
+stage = "S4"
+oracle = "mtc-axioms"
+tier = "suite"
+feature = "features/suites/s4_equivalency/finite_closure.feature"
+
+[[row]]
 id = "solovay-kitaev"
 tqc = "Solovay-Kitaev Approximation"
 atlas = "Approximation of SU(2) via discrete braid words"
