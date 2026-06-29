@@ -1019,11 +1019,14 @@ pub fn solovay_kitaev_probe(p: &UseCaseParams) -> Result<SolovayKitaevMetrics, S
     let is_z_cyclotomic = |z: f64| -> bool {
         // We test whether Z corresponds to a root of unity of order up to n=256.
         // For a root of unity, Z = 4 cos^2(k pi / n).
-        // By Lindemann-Weierstrass, the trace of G_S (formed from integer-radian phases)
-        // is transcendental, not rational, so its eigenvalue λ is not algebraic over ℚ.
-        // Thus, the Z invariant cannot be a root of unity. A numerical sweep up to n=256
-        // with a 1e-7 tolerance cleanly separates the transcendental Atlas invariants
-        // from any low-order roots of unity, robustly preventing false density claims.
+        // By Lindemann-Weierstrass, the integer-radian phases in the generators are
+        // transcendental, not rational. However, the trace is a sum of products of these
+        // phases with the numerically-computed block basis. While a sum of transcendentals
+        // could in principle collapse to an algebraic value (ruling this out is a linear
+        // independence statement of Baker type), the numerical sweep up to n=256 with a 1e-7
+        // tolerance acts as the runtime guard. It cleanly confirms that this specific
+        // combination lands nowhere near a low-order root of unity, robustly preventing
+        // false density claims without requiring a formal proof of the non-collapse.
         let tol = 1e-7;
         for n in 1..=256 {
             for k in 0..=n {
