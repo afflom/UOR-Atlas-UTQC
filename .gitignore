@@ -1,5 +1,5 @@
 /target
-crates/tqc-substrate/target
+**/target/
 **/*.rs.bk
 Cargo.lock.bak
 # Fetched oracle payloads are reproduced from provenance; only manifests + checksums
