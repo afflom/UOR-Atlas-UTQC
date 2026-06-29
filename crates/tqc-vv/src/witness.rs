@@ -1044,7 +1044,7 @@ pub fn solovay_kitaev_probe(p: &UseCaseParams) -> Result<SolovayKitaevMetrics, S
     }
 
     Ok(SolovayKitaevMetrics {
-        is_dense: true,
+        is_dense: !(s_is_cyclo || t_is_cyclo),
         description: format!(
             "Solovay-Kitaev density mathematically verified. The su(2) Lie algebra span check passed (volume {:.3}) excluding 1D tori like Pin(2). The exact restricted 2x2 PU(2) generators yielded non-cyclotomic algebraic invariants Z_s={:.3}, Z_t={:.3}, proving infinite order and full density.",
             vol, z_s, z_t
