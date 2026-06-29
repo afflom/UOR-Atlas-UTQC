@@ -732,7 +732,11 @@ pub fn solovay_kitaev_probe(p: &UseCaseParams) -> Result<SolovayKitaevMetrics, S
         }
     }
 
-    if coupled_trace.re.abs() < 1e-9 && coupled_trace.im.abs() < 1e-9 {
+    let is_dense = (coupled_trace.re.abs() >= 1e-9 || coupled_trace.im.abs() >= 1e-9)
+        && sig.positive > 0
+        && sig.negative > 0;
+
+    if !is_dense {
         return Err(
             "Archimedean coupling fails to act on the fusion space gates (trivial trace)."
                 .to_string(),
@@ -740,7 +744,7 @@ pub fn solovay_kitaev_probe(p: &UseCaseParams) -> Result<SolovayKitaevMetrics, S
     }
 
     Ok(SolovayKitaevMetrics {
-        is_dense: true,
+        is_dense,
         description: format!(
             "Solovay-Kitaev density formally verified via Gate Coupling Action. The spectral operator signature ({}, {}) ensures an infinite arithmetic lattice. Its non-trivial projection to the maximal compact subgroup couples directly to the fusion space, generating an irrational coupled gate trace ({:.3} + {:.3}i). This proves the continuous archimedean spectrum acts as the gate action, establishing a dense subgroup for universal computation.",
             sig.positive, sig.negative, coupled_trace.re, coupled_trace.im
