@@ -1072,12 +1072,51 @@ pub fn solovay_kitaev_probe(p: &UseCaseParams) -> Result<SolovayKitaevMetrics, S
 
     // VERIFY MULTI-QUBIT PRODUCT SPACE (ℂ²)^{⊗n} DENSITY
     // Construct the 4D (ℂ² ⊗ ℂ²) topological entangling braid operator
-    let mut u_braid = vec![vec![tqc_mtc::C::new(0.0, 0.0); 4]; 4];
-    for i in 0..4 {
-        u_braid[i][i] = tqc_mtc::C::new(1.0, 0.0);
+    // The entangling gate is derived directly from the signed (non-pointed) octonion
+    // fusion structure inherent in the Atlas, not asserted.
+    let non_pointed_mtc = tqc_mtc::native::construct_atlas_native_non_pointed(p);
+    let mut r_diag = vec![vec![tqc_mtc::C::new(0.0, 0.0); dim]; dim];
+    for x in 0..dim {
+        for y in 0..dim {
+            let mut found_k = 0;
+            for k in 0..dim {
+                if non_pointed_mtc.n_ijk(x, y, k).abs() > 1e-9 {
+                    found_k = k;
+                    break;
+                }
+            }
+            r_diag[x][y] = non_pointed_mtc.r_symbol(x, y, found_k);
+        }
     }
-    // Topological inter-qubit anyon braiding acts as a nontrivial phase on the composed |11> equivalent subspace
-    u_braid[3][3] = tqc_mtc::C::new(0.0, 1.0);
+
+    let mut u_braid = vec![vec![tqc_mtc::C::new(0.0, 0.0); 4]; 4];
+    for i in 0..2 {
+        for j in 0..2 {
+            let row = i * 2 + j;
+            for i_prime in 0..2 {
+                for j_prime in 0..2 {
+                    let col = i_prime * 2 + j_prime;
+
+                    let mut sum = tqc_mtc::C::new(0.0, 0.0);
+                    for x in 0..dim {
+                        for y in 0..dim {
+                            let bra_y = tqc_mtc::C::new(v[i][y].re, -v[i][y].im);
+                            let bra_x = tqc_mtc::C::new(v[j][x].re, -v[j][x].im);
+
+                            let ket_x = v[i_prime][x];
+                            let ket_y = v[j_prime][y];
+
+                            let r_xy = r_diag[x][y];
+
+                            let term = bra_y.times(bra_x).times(r_xy).times(ket_x).times(ket_y);
+                            sum = sum.plus(term);
+                        }
+                    }
+                    u_braid[row][col] = sum;
+                }
+            }
+        }
+    }
 
     // Verify it doesn't factor by checking the purity/Schmidt-rank analog on the uniform superposition product state
     let state = [tqc_mtc::C::new(0.5, 0.0); 4];
