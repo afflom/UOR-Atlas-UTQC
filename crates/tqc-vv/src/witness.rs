@@ -1016,8 +1016,8 @@ pub fn solovay_kitaev_probe(p: &UseCaseParams) -> Result<SolovayKitaevMetrics, S
     let z_s = calc_z(&u_s);
     let z_t = calc_z(&u_t);
 
-    // By Lindemann-Weierstrass and Baker's theorem on linear forms in logarithms,
-    // the exponentials e^{i \theta} for distinct integers \theta are linearly independent
+    // By the Lindemann-Weierstrass theorem,
+    // the exponentials e^{i \theta} for distinct algebraic integers \theta are linearly independent
     // over the algebraic numbers. Since the 2D commutant projection matrix P is algebraic,
     // and the S, T matrices are algebraic, the trace coefficients \alpha_c = (P \cdot S)_{cc}
     // are algebraic. Thus, if any \beta_\theta = \sum_{c: \theta_c = \theta} \alpha_c is non-zero,
