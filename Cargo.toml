@@ -17,7 +17,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version = "1.83"
 license = "MIT"
@@ -37,14 +37,14 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 anyhow = "1"
 
 # Internal crates referenced by path (DRY: declared once, used by version+path).
-tqc-model = { path = "crates/tqc-model", version = "0.1.0" }
-tqc-core = { path = "crates/tqc-core", version = "0.1.0" }
-tqc-atlas = { path = "crates/tqc-atlas", version = "0.1.0" }
-tqc-mtc = { path = "crates/tqc-mtc", version = "0.1.0" }
-tqc-substrate = { path = "crates/tqc-substrate", version = "0.1.0" }
-tqc-vv = { path = "crates/tqc-vv", version = "0.1.0" }
-tqc-compiler = { path = "crates/tqc-compiler", version = "0.1.0" }
-tqc-algorithms = { path = "crates/tqc-algorithms", version = "0.1.0" }
+tqc-model = { path = "crates/tqc-model", version = "0.1.1" }
+tqc-core = { path = "crates/tqc-core", version = "0.1.1" }
+tqc-atlas = { path = "crates/tqc-atlas", version = "0.1.1" }
+tqc-mtc = { path = "crates/tqc-mtc", version = "0.1.1" }
+tqc-substrate = { path = "crates/tqc-substrate", version = "0.1.1" }
+tqc-vv = { path = "crates/tqc-vv", version = "0.1.1" }
+tqc-compiler = { path = "crates/tqc-compiler", version = "0.1.1" }
+tqc-algorithms = { path = "crates/tqc-algorithms", version = "0.1.1" }
 
 # Deny-heavy posture applied to every member crate. No half-measures.
 [workspace.lints.rust]

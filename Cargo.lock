@@ -1439,7 +1439,7 @@ checksum = "5d99f8c9a7727884afe522e9bd5edbfc91a3312b36a77b5fb8926e4c31a41801"
 
 [[package]]
 name = "tqc-algorithms"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "tqc-atlas",
  "tqc-compiler",
@@ -1448,7 +1448,7 @@ dependencies = [
 
 [[package]]
 name = "tqc-atlas"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "tqc-core",
  "tqc-model",
@@ -1456,7 +1456,7 @@ dependencies = [
 
 [[package]]
 name = "tqc-compiler"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "tqc-atlas",
  "tqc-core",
@@ -1464,7 +1464,7 @@ dependencies = [
 
 [[package]]
 name = "tqc-conformance"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "cucumber",
  "tokio",
@@ -1480,11 +1480,11 @@ dependencies = [
 
 [[package]]
 name = "tqc-core"
-version = "0.1.0"
+version = "0.1.1"
 
 [[package]]
 name = "tqc-model"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "serde",
  "toml",
@@ -1492,14 +1492,14 @@ dependencies = [
 
 [[package]]
 name = "tqc-mtc"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "tqc-core",
 ]
 
 [[package]]
 name = "tqc-substrate"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "hologram-archive",
  "hologram-backend",
@@ -1517,7 +1517,7 @@ dependencies = [
 
 [[package]]
 name = "tqc-vv"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "hex",
  "serde",
@@ -1849,7 +1849,7 @@ dependencies = [
 
 [[package]]
 name = "xtask"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "hex",
