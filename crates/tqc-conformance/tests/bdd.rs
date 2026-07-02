@@ -296,12 +296,23 @@ async fn t_solovay_kitaev_density(w: &mut TqcWorld) {
     witness::solovay_kitaev_decision_witness(&w.params()).unwrap();
 }
 
-#[then("the archimedean continuity is exactly located on the 22-dim block")]
+#[then("the archimedean continuity is exactly located on the 22-dim block and saturates PU(22)")]
 async fn t_archimedean_continuity(w: &mut TqcWorld) {
-    // The positive half of the density decision: the coupled generators exceed every
-    // finite gate set, with the infinite non-abelian projective closure located on the
-    // 22-dim irreducible block. Decided over Q(zeta_24); no f64 in the verdict.
+    // The positive half of the density decision, saturated: the projective closure on the
+    // 22-dim irreducible block is dense in PU(22) (spectral-flow seed, division-free Lie
+    // closure, sound mod-p lower bound 483 forcing su(22)). Universal quantum computation
+    // on a 22-dim qudit carrier. Decided over Q(zeta_24); no f64 in the verdict.
     witness::archimedean_continuity_witness(&w.params()).unwrap();
+}
+
+#[then("the pair carrier is irreducible and its closure is dense in PU(576)")]
+async fn t_pair_carrier(w: &mut TqcWorld) {
+    // Pinned theorems: pair irreducibility (commutant 1), the diagonal-sector separation
+    // (no monodromy power preserves the block tensor code), the native continuous
+    // entangling flow (Lie lower bound exceeds the local subalgebra), and PU(576) density
+    // (T1 adj-tensor-adj certificate + T2 reachability rank 92 + classical closure T3),
+    // with the n-handle corollary by the two-local composition lemma.
+    witness::pair_carrier_witness(&w.params()).unwrap();
 }
 
 #[then("the S4 modal logic frame satisfies reflexivity and transitivity")]

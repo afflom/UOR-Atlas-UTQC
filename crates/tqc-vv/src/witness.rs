@@ -699,7 +699,7 @@ pub fn solovay_kitaev_probe(p: &UseCaseParams) -> Result<SolovayKitaevMetrics, S
         let report = crate::exact::exact_density_certificate(p)?;
         if report.certified_dense {
             return Ok(SolovayKitaevMetrics {
-                is_dense: true,
+                is_dense: report.certified_dense,
                 description: report.description,
             });
         }
@@ -1473,13 +1473,16 @@ pub fn solovay_kitaev_decision_witness(p: &UseCaseParams) -> Result<(), String> 
     Ok(())
 }
 
-/// Archimedean continuity, exactly located: on the 22-dim irreducible block (support
-/// straddling all four eigenspaces) the projective closure of the coupled generators is an
-/// infinite non-abelian compact group. Certified by the adjoint-trace criterion (infinite
-/// projective order for the generator words) plus a projectively non-commuting pair, all
-/// decided over `Q(zeta_24)`. This is the exact theorem that the coupled machine exceeds
-/// every finite gate set: the beyond-Clifford content is on the 22-dim block, while the
-/// 2-dim block carries the finite projective Clifford image.
+/// Archimedean continuity, exactly located and saturated: on the 22-dim irreducible block
+/// the projective closure of the coupled generators is DENSE in PU(22). The chain: the
+/// spectral flow exp(iRM) lies in the closure (Kronecker-Weyl; pi irrational), seeding a
+/// division-free Lie closure under Ad(S), Ad(T), brackets, and torus-weight splitting; its
+/// mod-p rank on the block is a sound lower bound on dim Lie(H), and saturation at >= 483
+/// forces su(22) inside (su(22) is simple with minimal proper-subalgebra codimension 42),
+/// hence closure >= PSU(22): density. Universal quantum computation on a 22-dimensional
+/// qudit carrier follows by Solovay-Kitaev in PU(d). The 2-dim block carries the finite
+/// projective Clifford image; the continuity certificates (adjoint-trace infinite order,
+/// projectively non-commuting pair) remain asserted as prerequisites.
 pub fn archimedean_continuity_witness(p: &UseCaseParams) -> Result<(), String> {
     let r = crate::exact::exact_density_certificate(p)?;
     if r.commutant_dim != 2 {
@@ -1500,6 +1503,66 @@ pub fn archimedean_continuity_witness(p: &UseCaseParams) -> Result<(), String> {
     }
     if !r.beyond_finite {
         return Err("beyond-finite certificate not established".into());
+    }
+    if r.lie_dim_lower_22 < 483 || !r.pu22_dense {
+        return Err(format!(
+            "PU(22)-density not saturated: Lie dimension lower bound {} < 483",
+            r.lie_dim_lower_22
+        ));
+    }
+    Ok(())
+}
+
+/// The two-handle (pair-carrier) structure, exactly decided. Three theorems, pinned:
+/// (1) irreducibility: the two-handle native group (per-handle coupled generators plus
+/// the monodromy) has exact commutant dimension 1 on the 576-dim pair carrier;
+/// (2) separation: no power of the monodromy preserves the 22-block tensor code
+/// `W' (x) W'`, so the native diagonal sector cannot entangle the continuous carriers --
+/// the multi-handle carrier is the irreducible pair block itself, not a tensor code;
+/// (3) native continuous entanglement: the closure's identity component strictly exceeds
+/// the local subalgebra (sound mod-p lower bound > 976), so continuous entangling flows
+/// exist natively on the pair carrier;
+/// (4) density: the T1 certificate (nonzero adj (x) adj component, multiplicity-one
+/// isotypic, hence su(484) on the corner) and the T2 certificate (complement reachability
+/// rank 92, the ambient cap) combine with the classical closure T3 to force su(576)
+/// inside Lie(H_2): the two-handle projective closure is DENSE in PU(576), and by the
+/// two-local composition lemma the n-handle closure is dense in PU(24^n) for every
+/// n >= 2 -- gate-level universal quantum computation, scaling in n.
+/// Any drift in these exact values is an error.
+pub fn pair_carrier_witness(p: &UseCaseParams) -> Result<(), String> {
+    let r = crate::exact::exact_density_certificate(p)?;
+    if r.pair_commutant_dim != 1 {
+        return Err(format!(
+            "pair commutant dim {} != 1 (irreducibility)",
+            r.pair_commutant_dim
+        ));
+    }
+    if r.native_code_entangler.is_some() {
+        return Err(format!(
+            "separation theorem changed: monodromy power {:?} now preserves the code",
+            r.native_code_entangler
+        ));
+    }
+    if r.qudit_universal {
+        return Err("qudit_universal flag inconsistent with the separation theorem".into());
+    }
+    if r.pair_lie_dim_lower <= 976 || !r.pair_entangling_flow {
+        return Err(format!(
+            "pair Lie lower bound {} does not exceed the local subalgebra bound 976",
+            r.pair_lie_dim_lower
+        ));
+    }
+    if !r.pair_adj_component {
+        return Err("T1 failed: no adj (x) adj component certified in Lie(H_2)".into());
+    }
+    if r.pair_reach_rank != 92 {
+        return Err(format!(
+            "T2 failed: complement reachability rank {} != 92",
+            r.pair_reach_rank
+        ));
+    }
+    if !r.pu576_dense || !r.gate_level_universal {
+        return Err("pair-carrier PU(576) density chain did not close".into());
     }
     Ok(())
 }

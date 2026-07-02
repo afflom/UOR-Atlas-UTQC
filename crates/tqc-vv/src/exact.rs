@@ -1,5 +1,9 @@
 #![allow(clippy::needless_range_loop)]
 #![allow(clippy::manual_memcpy)]
+#![allow(clippy::iter_cloned_collect)]
+#![allow(clippy::ptr_arg)]
+#![allow(clippy::unwrap_used)]
+#![allow(clippy::too_many_arguments)]
 //! Exact algebraic density certificate for the coupled Atlas generators.
 //!
 //! This module discharges the reviewer item: the non-collapse / nontriviality step of the
@@ -364,6 +368,43 @@ pub struct ExactDensityReport {
     /// infinite non-abelian compact group; the coupled generators exceed every finite gate
     /// set, locating the continuous (beyond-Clifford) content of the machine.
     pub beyond_finite: bool,
+    /// Sound lower bound (rank mod p) on `dim_R Lie(H)` restricted to the 22-dim block,
+    /// from the division-free Lie closure seeded by `i M` (the spectral flow, certified
+    /// inside the closure by Kronecker-Weyl and the irrationality of pi).
+    pub lie_dim_lower_22: usize,
+    /// Saturation: `lie_dim_lower_22 >= 483` forces `Lie(H)|_22` to contain `su(22)`
+    /// (su(22) is simple with no proper subalgebra of codimension < 42), so the projective
+    /// image is DENSE in PU(22) on the 22-dim block.
+    pub pu22_dense: bool,
+    /// Number of P2-support components per handle carrying 22-block content.
+    pub code_components: usize,
+    /// The monodromy power whose diagonal preserves the code space and induces an
+    /// imprimitive gate on it, if any; `None` is the exact separation theorem for the
+    /// native diagonal sector.
+    pub native_code_entangler: Option<u32>,
+    /// Exact commutant dimension of the two-handle native group (locals + monodromy).
+    pub pair_commutant_dim: usize,
+    /// Multi-qudit tensor universality on 22-dim carriers: PU(22)-density per carrier plus
+    /// a native imprimitive code-space entangler (Brylinski-Brylinski for qudits).
+    pub qudit_universal: bool,
+    /// Sound mod-p lower bound on `dim_R Lie(H_2)` for the two-handle native group.
+    pub pair_lie_dim_lower: usize,
+    /// `pair_lie_dim_lower > 976` (the local subalgebra bound): the identity component of
+    /// the two-handle closure contains a non-local direction, a native continuous
+    /// entangling flow on the irreducible 576-dim pair carrier.
+    pub pair_entangling_flow: bool,
+    /// T1: an element of `Lie(H_2)` has nonzero `adj (x) adj` component (multiplicity-one
+    /// isotypic, certified nonzero mod p), forcing `su(484)` on the corner `W' (x) W'`.
+    pub pair_adj_component: bool,
+    /// T2: rank of the complement-reachability system; 92 (the ambient cap) certifies the
+    /// full F-isotypic space `S = C^92`.
+    pub pair_reach_rank: usize,
+    /// T1 + T2 + T3 (classical closure): `Lie(H_2)` contains `su(576)`, so the two-handle
+    /// projective closure is DENSE in PU(576) on the irreducible pair carrier.
+    pub pu576_dense: bool,
+    /// The n-handle corollary via the two-local composition lemma: density in `PU(24^n)`
+    /// for every `n >= 2`; gate-level universal quantum computation, scaling in n.
+    pub gate_level_universal: bool,
     /// Density verdict: closed subgroups of `PU(2) = SO(3)` are finite, `SO(2)`, `O(2)`,
     /// or `SO(3)`; a projectively non-commuting pair of projectively infinite-order
     /// elements excludes the first three, so the closure is all of `SO(3)`.
@@ -518,6 +559,18 @@ pub fn exact_density_certificate(
             block22_infinite: vec![],
             block22_pair: None,
             beyond_finite: false,
+            lie_dim_lower_22: 0,
+            pu22_dense: false,
+            code_components: 0,
+            native_code_entangler: None,
+            pair_commutant_dim: 0,
+            qudit_universal: false,
+            pair_lie_dim_lower: 0,
+            pair_entangling_flow: false,
+            pair_adj_component: false,
+            pair_reach_rank: 0,
+            pu576_dense: false,
+            gate_level_universal: false,
             certified_dense: false,
             description: format!(
                 "exact commutant dimension is {commutant_dim}, not 2; density on a 2-dim block is not certified"
@@ -656,6 +709,18 @@ pub fn exact_density_certificate(
             block22_infinite: vec![],
             block22_pair: None,
             beyond_finite: false,
+            lie_dim_lower_22: 0,
+            pu22_dense: false,
+            code_components: 0,
+            native_code_entangler: None,
+            pair_commutant_dim: 0,
+            qudit_universal: false,
+            pair_lie_dim_lower: 0,
+            pair_entangling_flow: false,
+            pair_adj_component: false,
+            pair_reach_rank: 0,
+            pu576_dense: false,
+            gate_level_universal: false,
             certified_dense: false,
             description: "exact isotypic dimensions are not {2,22}".into(),
         });
@@ -917,6 +982,81 @@ pub fn exact_density_certificate(
     }
     let beyond_finite = block22_pair.is_some();
 
+    // ---- identity component: exact lower bound on Lie(H) via division-free closure ----
+    // Seed theorem: u_T = T E is diagonal with phases 2 pi q_x + m_x (q_x in (1/12)Z,
+    // m_x the integer eigenvalues). By Kronecker-Weyl and the irrationality of pi, the
+    // identity component of the closure of <u_T> is exactly exp(i R M): the spectral
+    // operator's own flow lies in the closure, so i M is in Lie(H) with integer entries.
+    // Since E = exp(i M) at s = 1 lies in that flow, T = (T E) E^{-1} is in the closure,
+    // so Ad by the finite diagonal T is sound; Ad by u_S is the exact S~-conjugation
+    // (E commutes with nothing needed here since Lie(H) is Ad-invariant under the whole
+    // closure); Lie(H) is stable under brackets and under the ad(i M)-weight splitting
+    // (torus averaging), with the anti-Hermitian pair combinations X_d + X_{-d} and
+    // i(X_d - X_{-d}).
+    //
+    // All generation steps are division-free from the integer seed (Ad_S is used scaled
+    // by 24, which does not change spans), so the closure can be computed mod a prime p,
+    // and rank mod p is a SOUND LOWER BOUND on the rational rank. Saturation theorem:
+    // Lie(H) restricted to the 22-dim block sits in u(22) (real dim 484); su(22) is
+    // simple and has no proper subalgebra of codimension < 2n-2 = 42, so any subalgebra
+    // of dimension >= 483 contains su(22). Therefore a mod-p rank >= 483 on the block
+    // certifies closure >= PSU(22): the projective image is DENSE in PU(22).
+    let (lie_dim_lower_22, pu22_dense, handle_basis) = lie_closure_lower_bound(
+        &s_tilde,
+        &t_diag,
+        &p1,
+        &block_of,
+        &evals.iter().copied().collect::<Vec<i64>>(),
+        dim,
+    )?;
+
+    // ---- inter-carrier entangler decision (native diagonal sector) ----
+    // cross-check the exact monodromy against the runtime r-symbols first
+    {
+        let fuse = |x: usize, y: usize| -> usize {
+            let (m1, c1) = (x / context, x % context);
+            let (m2, c2) = (y / context, y % context);
+            ((m1 + m2) % modality) * context + (c1 ^ c2)
+        };
+        for x in 0..dim {
+            for y in 0..dim {
+                let k = fuse(x, y);
+                let r1 = native.r_symbol(x, y, k);
+                let r2 = native.r_symbol(y, x, k);
+                let m = r1.times(r2);
+                let (re, im) = chi_exact(x, y, modality, context).to_c64();
+                if (re - m.re).abs() > 1e-9 || (im - m.im).abs() > 1e-9 {
+                    return Err(format!(
+                        "exact monodromy disagrees with r-symbols at ({x},{y})"
+                    ));
+                }
+            }
+        }
+    }
+    let ent = entangler_decision(&p1, modality, context, dim)?;
+    let code_components = ent.code_components;
+    let native_code_entangler = ent.native_code_entangler;
+    let pair_commutant_dim = ent.pair_commutant_dim;
+    let qudit_universal = pu22_dense && native_code_entangler.is_some();
+    let (pair_lie_dim_lower, pair_entangling_flow) =
+        pair_lie_lower_bound(&handle_basis, dim, modality, context)?;
+    let (pair_adj_component, pair_reach_rank) = pair_density_certificates(
+        &s_tilde,
+        &t_diag,
+        &p1,
+        &block_of,
+        &evals.iter().copied().collect::<Vec<i64>>(),
+        dim,
+        modality,
+        context,
+    )?;
+    // T3 is classical representation theory (see the block comment above
+    // `pair_density_certificates`); the density verdict additionally requires the
+    // per-handle saturation (su(22)-corners inside) and irreducibility context.
+    let pu576_dense =
+        pu22_dense && pair_adj_component && pair_reach_rank == 92 && pair_commutant_dim == 1;
+    let gate_level_universal = pu576_dense;
+
     // ---- exact order of the projective image on the block (diagnostic) ----
     // Elements are the sandwiches P1 X P1 acting on the block; projective equality is
     // proportionality over F (both operands are F-matrices), decided by normalizing at the
@@ -1005,7 +1145,11 @@ pub fn exact_density_certificate(
          adjoint-trace criterion and the pair {block22_pair:?} is projectively non-commuting: \
          the closure of the projective image there is an infinite non-abelian compact group, so \
          the coupled generators exceed every finite gate set and the continuous content of the \
-         machine is located on the 22-dim block. The one \
+         machine is located on the 22-dim block. Identity component: the spectral flow exp(iRM) \
+         lies in the closure (Kronecker-Weyl; pi irrational), seeding a division-free Lie \
+         closure whose mod-p rank on the block is {lie_dim_lower_22} (sound lower bound on \
+         dim Lie(H)); saturation at >= 483 forces su(22), so PU(22)-density on the block is \
+         {pu22_dense}. The one \
          analytic input is Lindemann (t = e^i transcendental); every other step is decided over \
          Q(zeta_24). No f64 value participates in any decision."
     );
@@ -1023,6 +1167,18 @@ pub fn exact_density_certificate(
         block22_infinite,
         block22_pair,
         beyond_finite,
+        lie_dim_lower_22,
+        pu22_dense,
+        code_components,
+        native_code_entangler,
+        pair_commutant_dim,
+        qudit_universal,
+        pair_lie_dim_lower,
+        pair_entangling_flow,
+        pair_adj_component,
+        pair_reach_rank,
+        pu576_dense,
+        gate_level_universal,
         certified_dense,
         description,
     })
@@ -1331,4 +1487,959 @@ fn find_roots(c_mat: &Mat, a_co: &Cyc, b_co: &Cyc, dim: usize) -> Result<(Cyc, C
          not (2,22); no 2-dimensional block exists"
             .into(),
     )
+}
+
+// ---------------------------------------------------------------------------
+// Identity-component lower bound: division-free Lie closure mod p, with
+// zeta_24 evaluated at a primitive 24th root of unity w in F_p (p = 1 mod 24).
+// Evaluation is a linear map on the Q-span, so rank can only drop: the computed
+// rank is a SOUND LOWER BOUND on the rational rank.
+// ---------------------------------------------------------------------------
+
+/// Prime with `p = 1 (mod 24)`, and a fixed primitive 24th root of unity mod p.
+const LIE_P: u64 = 999_999_937; // 999_999_936 = 2^7 * 3 * ... ; verified p = 1 mod 24 at runtime
+
+fn modpow(mut b: u64, mut e: u64, p: u64) -> u64 {
+    let mut acc: u64 = 1;
+    b %= p;
+    while e > 0 {
+        if e & 1 == 1 {
+            acc = acc.wrapping_mul(b) % p;
+        }
+        b = b.wrapping_mul(b) % p;
+        e >>= 1;
+    }
+    acc
+}
+
+/// Find a primitive 24th root of unity mod `LIE_P`.
+fn primitive_24th_root() -> Result<u64, String> {
+    let p = LIE_P;
+    if (p - 1) % 24 != 0 {
+        return Err("LIE_P is not 1 mod 24".into());
+    }
+    for g in 2..2000u64 {
+        let w = modpow(g, (p - 1) / 24, p);
+        // primitive iff w^12 != 1 and w^8 != 1 (proper divisors via maximal ones 12, 8)
+        if modpow(w, 12, p) != 1 && modpow(w, 8, p) != 1 {
+            return Err(String::new()).or(Ok(w));
+        }
+    }
+    Err("no primitive 24th root found".into())
+}
+
+/// Evaluate an exact `Cyc` at `zeta = w` mod p. Errors on denominators divisible by p.
+fn eval_cyc(c: &Cyc, wpows: &[u64; 8]) -> Result<u64, String> {
+    let p = num_bigint::BigInt::from(LIE_P);
+    let mut acc: u64 = 0;
+    for k in 0..8 {
+        if c.c[k].is_zero() {
+            continue;
+        }
+        let den = ((c.c[k].denom() % &p) + &p) % &p;
+        if den == num_bigint::BigInt::from(0) {
+            return Err("denominator divisible by the Lie prime".into());
+        }
+        let d64 = den.to_u64().ok_or("denominator reduction failed")?;
+        let num = (((c.c[k].numer() % &p) + &p) % &p)
+            .to_u64()
+            .ok_or("numerator reduction failed")?;
+        let v = num.wrapping_mul(modpow(d64, LIE_P - 2, LIE_P)) % LIE_P;
+        acc = (acc + v.wrapping_mul(wpows[k]) % LIE_P) % LIE_P;
+    }
+    Ok(acc)
+}
+
+type MatS = Vec<Vec<u64>>; // dim x dim scalars mod LIE_P
+
+fn mats_mul(a: &MatS, b: &MatS) -> MatS {
+    let n = a.len();
+    let mut r = vec![vec![0u64; n]; n];
+    for i in 0..n {
+        for k in 0..n {
+            let aik = a[i][k];
+            if aik == 0 {
+                continue;
+            }
+            let (ri, bk) = (&mut r[i], &b[k]);
+            for j in 0..n {
+                ri[j] = (ri[j] + aik.wrapping_mul(bk[j]) % LIE_P) % LIE_P;
+            }
+        }
+    }
+    r
+}
+fn mats_sub(a: &MatS, b: &MatS) -> MatS {
+    let n = a.len();
+    (0..n)
+        .map(|i| {
+            (0..n)
+                .map(|j| (a[i][j] + LIE_P - b[i][j]) % LIE_P)
+                .collect()
+        })
+        .collect()
+}
+fn mats_vec(a: &MatS) -> Vec<u64> {
+    a.iter().flat_map(|r| r.iter().copied()).collect()
+}
+
+/// Incremental rank tracker over F_p.
+struct RankP {
+    rows: Vec<Vec<u64>>,
+    pivots: Vec<usize>,
+}
+impl RankP {
+    fn new() -> Self {
+        RankP {
+            rows: vec![],
+            pivots: vec![],
+        }
+    }
+    fn insert(&mut self, mut v: Vec<u64>) -> bool {
+        for (r, &pc) in self.rows.iter().zip(self.pivots.iter()) {
+            if v[pc] != 0 {
+                let f = LIE_P - v[pc];
+                for (x, y) in v.iter_mut().zip(r.iter()) {
+                    *x = (*x + f.wrapping_mul(*y) % LIE_P) % LIE_P;
+                }
+            }
+        }
+        if let Some(pc) = v.iter().position(|&x| x != 0) {
+            let inv = modpow(v[pc], LIE_P - 2, LIE_P);
+            for x in v.iter_mut() {
+                *x = x.wrapping_mul(inv) % LIE_P;
+            }
+            self.rows.push(v);
+            self.pivots.push(pc);
+            true
+        } else {
+            false
+        }
+    }
+    fn rank(&self) -> usize {
+        self.rows.len()
+    }
+}
+
+/// Sound lower bound on `dim_R Lie(H)` restricted to the 22-dim block.
+///
+/// Seed: `i M` (the spectral flow, in the closure by Kronecker-Weyl and the irrationality
+/// of pi). Closure operations, each certified to preserve membership in `Lie(H)`:
+/// `Ad(S)` and `Ad(S^{-1})` (scale-free), `Ad(T)` (T = (TE) E^{-1} is in the closure since
+/// `E = exp(iM)` at s = 1 lies in the spectral flow), brackets, and the `ad(iM)`-weight
+/// splitting into the anti-Hermitian combinations `X_d + X_{-d}` and `i(X_d - X_{-d})`.
+/// Returns `(rank_22, rank_22 >= 483)`; saturation forces `su(22)` inside `Lie(H)|_22`
+/// (su(22) is simple, minimal proper-subalgebra codimension 2n-2 = 42 > 1), hence density
+/// in PU(22).
+#[allow(clippy::too_many_lines)]
+fn lie_closure_lower_bound(
+    s_tilde: &Mat,
+    t_diag: &[Cyc],
+    p1: &Mat,
+    block_of: &[usize],
+    evals: &[i64],
+    dim: usize,
+) -> Result<(usize, bool, Vec<MatS>), String> {
+    let w = primitive_24th_root()?;
+    let mut wpows = [1u64; 8];
+    for k in 1..8 {
+        wpows[k] = wpows[k - 1].wrapping_mul(w) % LIE_P;
+    }
+    // conjugation at the scalar level: zeta -> zeta^{-1} becomes w -> w^{23} = w^{-1};
+    // conj of an evaluated scalar is evaluation of the conjugate, which for a general
+    // element is NOT a scalar operation. Instead, conjugated matrices are produced from
+    // the exact objects directly.
+    let ev_mat = |m: &Mat| -> Result<MatS, String> {
+        m.iter()
+            .map(|row| row.iter().map(|c| eval_cyc(c, &wpows)).collect())
+            .collect()
+    };
+    let sp = ev_mat(s_tilde)?;
+    let sp_adj = ev_mat(&mat_adjoint(s_tilde))?;
+    let p1p = ev_mat(p1)?;
+    let tp: Vec<u64> = t_diag
+        .iter()
+        .map(|c| eval_cyc(c, &wpows))
+        .collect::<Result<Vec<_>, _>>()?;
+    let tp_conj: Vec<u64> = t_diag
+        .iter()
+        .map(|c| eval_cyc(&c.conj(), &wpows))
+        .collect::<Result<Vec<_>, _>>()?;
+    let i_unit = wpows[6]; // zeta^6 = i
+
+    // seed i M
+    let mut seed: MatS = vec![vec![0u64; dim]; dim];
+    for x in 0..dim {
+        let m = evals[block_of[x]];
+        let mm = if m >= 0 {
+            (m as u64) % LIE_P
+        } else {
+            LIE_P - ((-m) as u64 % LIE_P)
+        };
+        seed[x][x] = i_unit.wrapping_mul(mm) % LIE_P;
+    }
+
+    let mut diffs: Vec<i64> = Vec::new();
+    for &a in evals {
+        for &b in evals {
+            if a > b && !diffs.contains(&(a - b)) {
+                diffs.push(a - b);
+            }
+        }
+    }
+
+    let mask = |x: &MatS, d: i64| -> MatS {
+        let mut r = vec![vec![0u64; dim]; dim];
+        for i in 0..dim {
+            for j in 0..dim {
+                if evals[block_of[i]] - evals[block_of[j]] == d {
+                    r[i][j] = x[i][j];
+                }
+            }
+        }
+        r
+    };
+
+    // exact canaries: the reductions must satisfy the exact identities
+    {
+        let pp = mats_mul(&p1p, &p1p);
+        if pp != p1p {
+            return Err("canary: P1 reduction is not idempotent mod p".into());
+        }
+        let ssd = mats_mul(&sp, &sp_adj);
+        for i in 0..dim {
+            for j in 0..dim {
+                let want = if i == j { 24 % LIE_P } else { 0 };
+                if ssd[i][j] != want {
+                    return Err("canary: S~ S~^dagger != 24 I mod p".into());
+                }
+            }
+        }
+    }
+
+    let mut rank_all = RankP::new();
+    let mut rank_22 = RankP::new();
+    let block_image = |x: &MatS| -> Vec<u64> {
+        let px = mats_mul(&mats_mul(&p1p, x), &p1p);
+        mats_vec(&mats_sub(x, &px))
+    };
+
+    let target = 483usize;
+    let mut basis: Vec<MatS> = Vec::new();
+    let mut worklist: Vec<MatS> = vec![seed];
+
+    // try_insert: returns true if the element enlarged the span
+    while let Some(x) = worklist.pop() {
+        if rank_22.rank() >= target {
+            break;
+        }
+        if !rank_all.insert(mats_vec(&x)) {
+            continue;
+        }
+        rank_22.insert(block_image(&x));
+
+        // unary closure operations on the newly inserted element
+        let ad_s = mats_mul(&mats_mul(&sp, &x), &sp_adj);
+        let ad_s_inv = mats_mul(&mats_mul(&sp_adj, &x), &sp);
+        let mut ad_t = x.clone();
+        for i in 0..dim {
+            for j in 0..dim {
+                ad_t[i][j] = tp[i].wrapping_mul(x[i][j]) % LIE_P;
+                ad_t[i][j] = ad_t[i][j].wrapping_mul(tp_conj[j]) % LIE_P;
+            }
+        }
+        worklist.push(ad_s);
+        worklist.push(ad_s_inv);
+        worklist.push(ad_t);
+        for &d in &diffs {
+            let a = mask(&x, d);
+            let b = mask(&x, -d);
+            let c1: MatS = (0..dim)
+                .map(|i| (0..dim).map(|j| (a[i][j] + b[i][j]) % LIE_P).collect())
+                .collect();
+            let c2: MatS = (0..dim)
+                .map(|i| {
+                    (0..dim)
+                        .map(|j| i_unit.wrapping_mul((a[i][j] + LIE_P - b[i][j]) % LIE_P) % LIE_P)
+                        .collect()
+                })
+                .collect();
+            worklist.push(c1);
+            worklist.push(c2);
+        }
+        // brackets with the existing basis
+        for b in &basis {
+            let br = mats_sub(&mats_mul(&x, b), &mats_mul(b, &x));
+            worklist.push(br);
+        }
+        basis.push(x);
+    }
+
+    let d22 = rank_22.rank();
+    Ok((d22, d22 >= target, basis))
+}
+
+// ---------------------------------------------------------------------------
+// Inter-carrier entangler decision: does the native diagonal (monodromy)
+// sector supply an imprimitive gate on the 22-block code space?
+// ---------------------------------------------------------------------------
+
+/// Exact double-braiding monodromy bicharacter of the pointed theory:
+/// `chi(x,y) = R^k_{xy} R^k_{yx} = zeta_3^{2 m1 m2} * (-1)^{popcount(c1 & c2)}`.
+fn chi_exact(x: usize, y: usize, modality: usize, context: usize) -> Cyc {
+    let (m1, c1) = (x / context, x % context);
+    let (m2, c2) = (y / context, y % context);
+    let z = Cyc::zeta_pow(16 * ((m1 * m2) % modality) as i64); // zeta_3^2 = zeta_24^16
+    if (c1 & c2).count_ones() % 2 == 1 {
+        z.neg()
+    } else {
+        z
+    }
+}
+
+/// Decision data for the inter-carrier entangler question.
+pub struct EntanglerDecision {
+    /// Number of P2-support components per handle carrying nonzero 22-block content.
+    pub code_components: usize,
+    /// The monodromy power `k` for which `diag(chi^k)` preserves the code space AND induces
+    /// an imprimitive (entangling) gate on it, if any. `None` is the separation theorem:
+    /// no native diagonal inter-handle operation entangles the continuous carrier.
+    pub native_code_entangler: Option<u32>,
+    /// Exact dimension of the commutant of the two-handle native group
+    /// (per-handle coupled generators plus the monodromy).
+    pub pair_commutant_dim: usize,
+}
+
+/// Decide the native diagonal-sector entangler question on the 22-block code space, and
+/// compute the exact commutant dimension of the two-handle native group.
+///
+/// A unitary diagonal (in the label basis) `V` preserves the code space `W' (x) W'` iff
+/// `[V, P2 (x) P2] = 0`, iff its values are constant on the connected components of the
+/// support graph of `P2 (x) P2`. The native inter-handle diagonals are exactly
+/// `chi^k * (a (x) b)` with `a`, `b` per-handle code-preserving diagonals (necessarily
+/// component-constant), so the decision reduces to exact constancy of `chi^k` on component
+/// pairs, plus an exact 2x2-minor (rank >= 2) test for imprimitivity of the induced gate.
+#[allow(clippy::too_many_lines)]
+fn entangler_decision(
+    p1: &Mat,
+    modality: usize,
+    context: usize,
+    dim: usize,
+) -> Result<EntanglerDecision, String> {
+    // union-find over per-handle coordinates; edges where P2 (equivalently P1) couples
+    let mut parent: Vec<usize> = (0..dim).collect();
+    fn find(p: &mut Vec<usize>, mut x: usize) -> usize {
+        while p[x] != x {
+            p[x] = p[p[x]];
+            x = p[x];
+        }
+        x
+    }
+    // P2 diagonal must be nonzero everywhere (P1_xx != 1) for self-loop reasoning
+    for x in 0..dim {
+        if p1[x][x] == Cyc::one() {
+            return Err("P1 has a unit diagonal entry; component reasoning invalid".into());
+        }
+    }
+    for x in 0..dim {
+        for y in (x + 1)..dim {
+            if !p1[x][y].is_zero() {
+                let (rx, ry) = (find(&mut parent, x), find(&mut parent, y));
+                if rx != ry {
+                    parent[rx] = ry;
+                }
+            }
+        }
+    }
+    let mut comp_of = vec![0usize; dim];
+    let mut comps: Vec<usize> = Vec::new();
+    for x in 0..dim {
+        let r = find(&mut parent, x);
+        let id = match comps.iter().position(|&c| c == r) {
+            Some(i) => i,
+            None => {
+                comps.push(r);
+                comps.len() - 1
+            }
+        };
+        comp_of[x] = id;
+    }
+    let ncomp = comps.len();
+
+    // 22-block content per component: tr(P2 Pi_C) = |C| - tr(P1 Pi_C), exact
+    let mut content = vec![false; ncomp];
+    {
+        let mut tr1 = vec![Cyc::zero(); ncomp];
+        let mut size = vec![0i64; ncomp];
+        for x in 0..dim {
+            tr1[comp_of[x]] = tr1[comp_of[x]].add(&p1[x][x]);
+            size[comp_of[x]] += 1;
+        }
+        for c in 0..ncomp {
+            if Cyc::from_int(size[c]).sub(&tr1[c]) != Cyc::zero() {
+                content[c] = true;
+            }
+        }
+    }
+    let code_components = content.iter().filter(|&&b| b).count();
+
+    // native diagonal sector: chi^k constant on every component pair?
+    // (product components of the P2 (x) P2 support graph are exactly C_i x C_j, since
+    // every node has a self-loop: P2 diagonal nonzero, verified above)
+    let mut native_code_entangler: Option<u32> = None;
+    'kloop: for k in 1..=5u32 {
+        // chi^k per label pair, via repeated exact multiplication
+        let chi_k = |x: usize, y: usize| -> Cyc {
+            let base = chi_exact(x, y, modality, context);
+            let mut r = Cyc::one();
+            for _ in 0..k {
+                r = r.mul(&base);
+            }
+            r
+        };
+        // constancy per component pair, recording the value matrix
+        let mut vbar: Vec<Vec<Option<Cyc>>> = vec![vec![None; ncomp]; ncomp];
+        for x in 0..dim {
+            for y in 0..dim {
+                let v = chi_k(x, y);
+                let (ci, cj) = (comp_of[x], comp_of[y]);
+                match &vbar[ci][cj] {
+                    None => vbar[ci][cj] = Some(v),
+                    Some(w) => {
+                        if *w != v {
+                            continue 'kloop; // not code-preserving
+                        }
+                    }
+                }
+            }
+        }
+        // imprimitivity on the code: rank >= 2 of the value matrix over content components
+        let idx: Vec<usize> = (0..ncomp).filter(|&c| content[c]).collect();
+        for a in 0..idx.len() {
+            for b in (a + 1)..idx.len() {
+                for c in 0..idx.len() {
+                    for d in (c + 1)..idx.len() {
+                        let (i1, i2, j1, j2) = (idx[a], idx[b], idx[c], idx[d]);
+                        let m11 = vbar[i1][j1].clone().unwrap();
+                        let m12 = vbar[i1][j2].clone().unwrap();
+                        let m21 = vbar[i2][j1].clone().unwrap();
+                        let m22 = vbar[i2][j2].clone().unwrap();
+                        if m11.mul(&m22) != m12.mul(&m21) {
+                            native_code_entangler = Some(k);
+                            break 'kloop;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ---- exact commutant dimension of the two-handle native group ----
+    // Without the monodromy the commutant is span{P_i (x) P_j} (4-dim, two irreducible
+    // inequivalent blocks per handle). Writing X = mu0 I + mu1 P1(x)1 + mu2 1(x)P1
+    // + mu3 P1(x)P1, the extra condition [X, U] = 0 (U = diag chi) kills entries between
+    // label pairs with different chi values:
+    //   (i)  x != x', y  = y', chi(x,y) != chi(x',y), P1[x][x'] != 0:
+    //          mu1 + mu3 * P1[y][y] = 0
+    //   (ii) symmetric in the handles: mu2 + mu3 * P1[x][x] = 0
+    //   (iii) x != x', y != y', chi differs, P1[x][x'] P1[y][y'] != 0: mu3 = 0
+    let mut rows: Vec<[Cyc; 3]> = Vec::new();
+    let chi1 = |x: usize, y: usize| chi_exact(x, y, modality, context);
+    for x in 0..dim {
+        for xp in 0..dim {
+            if x == xp || p1[x][xp].is_zero() {
+                continue;
+            }
+            for y in 0..dim {
+                if chi1(x, y) != chi1(xp, y) {
+                    rows.push([Cyc::one(), Cyc::zero(), p1[y][y].clone()]);
+                }
+                if chi1(y, x) != chi1(y, xp) {
+                    rows.push([Cyc::zero(), Cyc::one(), p1[y][y].clone()]);
+                }
+                for yp in 0..dim {
+                    if y != yp && !p1[y][yp].is_zero() && chi1(x, y) != chi1(xp, yp) {
+                        rows.push([Cyc::zero(), Cyc::zero(), Cyc::one()]);
+                    }
+                }
+            }
+        }
+    }
+    // eliminate the little system over F
+    let mut basis: Vec<[Cyc; 3]> = Vec::new();
+    for mut r in rows {
+        for b in &basis {
+            let pc = (0..3).find(|&j| !b[j].is_zero()).unwrap();
+            if !r[pc].is_zero() {
+                let f = r[pc].mul(&b[pc].inv()?);
+                for j in 0..3 {
+                    r[j] = r[j].sub(&b[j].mul(&f));
+                }
+            }
+        }
+        if r.iter().any(|c| !c.is_zero()) {
+            basis.push(r);
+            if basis.len() == 3 {
+                break;
+            }
+        }
+    }
+    let pair_commutant_dim = 1 + (3 - basis.len());
+
+    Ok(EntanglerDecision {
+        code_components,
+        native_code_entangler,
+        pair_commutant_dim,
+    })
+}
+
+// ---------------------------------------------------------------------------
+// Two-handle identity component: does Lie(H_2) exceed the local subalgebra?
+// Targeted, sound construction: the per-handle Lie basis embeds as B (x) 1 and
+// 1 (x) B (locals, <= 976 dims); the non-local candidates Ad(U)(A (x) 1) and
+// Ad(U)(1 (x) A) have closed-form entries and are projected without
+// materialization. Every element is certified inside Lie(H_2): per-handle Lie
+// algebras embed since K (x) 1 and 1 (x) K lie in the closure, and Ad(U) is an
+// automorphism of Lie(H_2) because the monodromy U is a group generator.
+// A sound mod-p rank > 976 certifies a non-local direction: a native
+// continuous entangling flow on the irreducible 576-dim pair carrier.
+// ---------------------------------------------------------------------------
+
+/// Sound lower bound on `dim_R Lie(H_2)` for the two-handle native group.
+fn pair_lie_lower_bound(
+    handle_basis: &[MatS],
+    dim: usize,
+    modality: usize,
+    context: usize,
+) -> Result<(usize, bool), String> {
+    let w = primitive_24th_root()?;
+    let mut wpows = [1u64; 8];
+    for k in 1..8 {
+        wpows[k] = wpows[k - 1].wrapping_mul(w) % LIE_P;
+    }
+    let n2 = dim * dim;
+    // monodromy values and conjugates
+    let mut chi = vec![vec![0u64; dim]; dim];
+    let mut chi_c = vec![vec![0u64; dim]; dim];
+    for x in 0..dim {
+        for y in 0..dim {
+            let c = chi_exact(x, y, modality, context);
+            chi[x][y] = eval_cyc(&c, &wpows)?;
+            chi_c[x][y] = eval_cyc(&c.conj(), &wpows)?;
+        }
+    }
+
+    // fixed sparse random projection to 2048 coordinates of the n2 x n2 space
+    const PROJ: usize = 2048;
+    const SAMPLES: usize = 48;
+    let mut rng: u64 = 0x9E37_79B9_7F4A_7C15;
+    let mut next = move || {
+        rng ^= rng << 13;
+        rng ^= rng >> 7;
+        rng ^= rng << 17;
+        rng
+    };
+    let total = (n2 * n2) as u64;
+    let proj_idx: Vec<Vec<(usize, usize, u64)>> = (0..PROJ)
+        .map(|_| {
+            (0..SAMPLES)
+                .map(|_| {
+                    let i = (next() % total) as usize;
+                    let (a, b) = (i / n2, i % n2);
+                    let c = next() % (LIE_P - 1) + 1;
+                    (a, b, c)
+                })
+                .collect()
+        })
+        .collect();
+    // entry evaluators index pair-space coordinates a = (x, y) = x*dim + y
+    let project = |entry: &dyn Fn(usize, usize, usize, usize) -> u64| -> Vec<u64> {
+        proj_idx
+            .iter()
+            .map(|samples| {
+                let mut acc: u128 = 0;
+                for &(a, b, c) in samples {
+                    let (x, y) = (a / dim, a % dim);
+                    let (xp, yp) = (b / dim, b % dim);
+                    let v = entry(x, y, xp, yp);
+                    if v != 0 {
+                        acc += v as u128 * c as u128;
+                    }
+                }
+                (acc % LIE_P as u128) as u64
+            })
+            .collect()
+    };
+
+    let mut rank = RankP::new();
+    // locals: B (x) 1 and 1 (x) B
+    for b in handle_basis {
+        let left = |x: usize, y: usize, xp: usize, yp: usize| -> u64 {
+            if y == yp {
+                b[x][xp]
+            } else {
+                0
+            }
+        };
+        rank.insert(project(&left));
+        let right = |x: usize, y: usize, xp: usize, yp: usize| -> u64 {
+            if x == xp {
+                b[y][yp]
+            } else {
+                0
+            }
+        };
+        rank.insert(project(&right));
+    }
+    let local_rank = rank.rank();
+
+    // non-local candidates: Ad(U)(A (x) 1) and Ad(U)(1 (x) A)
+    let target = 977usize;
+    for a in handle_basis {
+        if rank.rank() >= target + 8 {
+            break;
+        }
+        let cand_l = |x: usize, y: usize, xp: usize, yp: usize| -> u64 {
+            if y != yp {
+                return 0;
+            }
+            let v = a[x][xp];
+            if v == 0 {
+                return 0;
+            }
+            let t = v as u128 * chi[x][y] as u128 % LIE_P as u128;
+            (t * chi_c[xp][y] as u128 % LIE_P as u128) as u64
+        };
+        rank.insert(project(&cand_l));
+        let cand_r = |x: usize, y: usize, xp: usize, yp: usize| -> u64 {
+            if x != xp {
+                return 0;
+            }
+            let v = a[y][yp];
+            if v == 0 {
+                return 0;
+            }
+            let t = v as u128 * chi[x][y] as u128 % LIE_P as u128;
+            (t * chi_c[x][yp] as u128 % LIE_P as u128) as u64
+        };
+        rank.insert(project(&cand_r));
+    }
+    let r = rank.rank();
+    let _ = local_rank;
+    Ok((r, r >= target))
+}
+
+// ---------------------------------------------------------------------------
+// Pair-carrier density: PU(576) via structural saturation.
+//
+// Chain (T1 -> T2 -> T3), with s = su(22)-corner (+) su(22)-corner inside
+// Lie(H_2) from the per-handle saturation:
+//
+// T1 (certified here, mod p; nonzero mod p implies nonzero exactly):
+//   adj (x) adj occurs with multiplicity ONE in gl(576) as an s-module (each
+//   End(C^24) contains adj exactly once). Lie(H_2)_C is an ad(s)-stable
+//   subspace, isotypic projections preserve it, and a multiplicity-one
+//   irreducible is cyclic from any nonzero vector. Hence a single element of
+//   Lie(H_2) with nonzero adj (x) adj component forces the whole component
+//   inside; brackets with corner-supported anticommutators (whose trace parts
+//   are proportional to the CORNER identity I_{W'}) then close up to the full
+//   su(484)-corner on F = W' (x) W'.
+//
+// T2 (certified here, mod p rank): with su(F) inside, the F-isotypic part of
+//   Lie(H_2)_C within Hom(F,T) (+) Hom(T,F) (T = 92-dim complement) equals
+//   S-bar (x) F* (+) S (x) F for a unique S in C^92, and dim S equals the rank
+//   of the stacked block images Q xi (P2 (x) P2). Rank 92 mod p certifies
+//   S = C^92 (rank can only drop under reduction, and 92 is the ambient cap).
+//
+// T3 (classical representation theory, no computation): sl(F) + C^92 (x) F
+//   + conjugate bracket-generates sl(576): compositions of the Hom blocks
+//   produce all rank-one operators on T and span End(F)-parts, so the graded
+//   pieces of sl(576) all appear. Real form: dim_C Lie(H_2)_C = dim_R Lie(H_2),
+//   so Lie(H_2) is a >= 331775-dim subalgebra of u(576); su(576) is simple
+//   with minimal proper-subalgebra codimension 2n-2 = 1150, so Lie(H_2)
+//   contains su(576): the projective closure is DENSE in PU(576).
+//
+// n handles (composition lemma): inside the n-handle native group, each pair
+// (i, j) carries the full two-handle group on its tensor factors, so the
+// closure contains SU(24^2) on every pair; two-local SU(d^2) gates on
+// overlapping pairs generate SU(d^n), hence density in PU(24^n) for every
+// n >= 2: gate-level universal quantum computation, scaling in n. (n = 1 is
+// decided separately: Clifford on the 2-block, PU(22) on the 22-block.)
+// ---------------------------------------------------------------------------
+
+fn mats_mul_fast(a: &[Vec<u64>], b: &[Vec<u64>]) -> Vec<Vec<u64>> {
+    let n = a.len();
+    let mut r = vec![vec![0u64; n]; n];
+    for i in 0..n {
+        for k in 0..n {
+            let aik = a[i][k] as u128;
+            if aik == 0 {
+                continue;
+            }
+            let bk = &b[k];
+            let ri = &mut r[i];
+            for j in 0..n {
+                ri[j] = ((ri[j] as u128 + aik * bk[j] as u128) % LIE_P as u128) as u64;
+            }
+        }
+    }
+    r
+}
+
+/// Certify T1 and T2. Returns `(adj_adj_nonzero, reach_rank)`.
+#[allow(clippy::too_many_lines)]
+fn pair_density_certificates(
+    s_tilde: &Mat,
+    t_diag: &[Cyc],
+    p1: &Mat,
+    block_of: &[usize],
+    evals: &[i64],
+    dim: usize,
+    modality: usize,
+    context: usize,
+) -> Result<(bool, usize), String> {
+    let w = primitive_24th_root()?;
+    let mut wpows = [1u64; 8];
+    for k in 1..8 {
+        wpows[k] = wpows[k - 1].wrapping_mul(w) % LIE_P;
+    }
+    let ev = |c: &Cyc| eval_cyc(c, &wpows);
+    let mulp = |a: u64, b: u64| -> u64 { (a as u128 * b as u128 % LIE_P as u128) as u64 };
+    let subp = |a: u64, b: u64| -> u64 { (a + LIE_P - b) % LIE_P };
+
+    // per-handle exact objects mod p
+    let mut sp = vec![vec![0u64; dim]; dim];
+    let mut sp_adj = vec![vec![0u64; dim]; dim];
+    let mut p2 = vec![vec![0u64; dim]; dim];
+    for i in 0..dim {
+        for j in 0..dim {
+            sp[i][j] = ev(&s_tilde[i][j])?;
+            sp_adj[i][j] = ev(&s_tilde[j][i].conj())?;
+            let d = if i == j { Cyc::one() } else { Cyc::zero() };
+            p2[i][j] = ev(&d.sub(&p1[i][j]))?;
+        }
+    }
+    let tp: Vec<u64> = t_diag.iter().map(&ev).collect::<Result<Vec<_>, _>>()?;
+    let tp_c: Vec<u64> = t_diag
+        .iter()
+        .map(|c| ev(&c.conj()))
+        .collect::<Result<Vec<_>, _>>()?;
+    let mut chi = vec![vec![0u64; dim]; dim];
+    let mut chi_c = vec![vec![0u64; dim]; dim];
+    for x in 0..dim {
+        for y in 0..dim {
+            let c = chi_exact(x, y, modality, context);
+            chi[x][y] = ev(&c)?;
+            chi_c[x][y] = ev(&c.conj())?;
+        }
+    }
+    let i_unit = wpows[6];
+
+    // eta family: exact non-diagonal elements of the per-handle Lie algebra
+    // (all honestly in Lie(K): iM is the seed; Ad by S, T are automorphisms;
+    //  brackets close). Scalings are irrelevant for the certificates.
+    let mval = |x: usize| -> u64 {
+        let m = evals[block_of[x]];
+        if m >= 0 {
+            (m as u64) % LIE_P
+        } else {
+            LIE_P - ((-m) as u64 % LIE_P)
+        }
+    };
+    let im: Vec<Vec<u64>> = (0..dim)
+        .map(|x| {
+            (0..dim)
+                .map(|y| if x == y { mulp(i_unit, mval(x)) } else { 0 })
+                .collect()
+        })
+        .collect();
+    let eta1 = mats_mul_fast(&mats_mul_fast(&sp, &im), &sp_adj); // Ad_S(iM), scaled
+    let eta2 = mats_mul_fast(&mats_mul_fast(&sp_adj, &im), &sp); // Ad_{S^-1}(iM)
+    let mut eta3 = eta1.clone(); // Ad_T(eta1)
+    for i in 0..dim {
+        for j in 0..dim {
+            eta3[i][j] = mulp(mulp(tp[i], eta1[i][j]), tp_c[j]);
+        }
+    }
+    let br = |a: &Vec<Vec<u64>>, b: &Vec<Vec<u64>>| -> Vec<Vec<u64>> {
+        let ab = mats_mul_fast(a, b);
+        let ba = mats_mul_fast(b, a);
+        (0..dim)
+            .map(|i| (0..dim).map(|j| subp(ab[i][j], ba[i][j])).collect())
+            .collect()
+    };
+    let eta4 = br(&im, &eta1);
+    let etas = vec![eta1, eta2, eta3, eta4];
+
+    // ---- T1: adj (x) adj component of Ad(U)(eta (x) 1) is nonzero ----
+    // Scale-free adj projection: P'(X) = 22 * P2 X P2 - tr(P2 X P2) * P2.
+    let adj_proj = |x: &Vec<Vec<u64>>| -> Vec<Vec<u64>> {
+        let pxp = mats_mul_fast(&mats_mul_fast(&p2, x), &p2);
+        let mut tr: u64 = 0;
+        for i in 0..dim {
+            tr = (tr + pxp[i][i]) % LIE_P;
+        }
+        (0..dim)
+            .map(|i| {
+                (0..dim)
+                    .map(|j| subp(mulp(22, pxp[i][j]), mulp(tr, p2[i][j])))
+                    .collect()
+            })
+            .collect()
+    };
+    let mut adj_adj_nonzero = false;
+    'etaloop: for eta in &etas {
+        // L_y = P'(eta^{(y)}), R_y = P'(e_yy); Theta = sum_y L_y (x) R_y
+        let mut ls: Vec<Vec<Vec<u64>>> = Vec::with_capacity(dim);
+        let mut rs: Vec<Vec<Vec<u64>>> = Vec::with_capacity(dim);
+        for y in 0..dim {
+            let mut ey: Vec<Vec<u64>> = (0..dim)
+                .map(|a| {
+                    (0..dim)
+                        .map(|b| mulp(mulp(eta[a][b], chi[a][y]), chi_c[b][y]))
+                        .collect()
+                })
+                .collect();
+            ls.push(adj_proj(&ey));
+            for r in ey.iter_mut() {
+                for e in r.iter_mut() {
+                    *e = 0;
+                }
+            }
+            ey[y][y] = 1;
+            rs.push(adj_proj(&ey));
+        }
+        for x1 in 0..dim {
+            for x2 in 0..dim {
+                for y1 in 0..dim {
+                    for y2 in 0..dim {
+                        let mut acc: u128 = 0;
+                        for y in 0..dim {
+                            acc += ls[y][x1][x2] as u128 * rs[y][y1][y2] as u128;
+                        }
+                        if (acc % LIE_P as u128) != 0 {
+                            adj_adj_nonzero = true;
+                            break 'etaloop;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ---- T2: reachability rank of the complement T (92-dim) ----
+    // Vectors u = Q xi (P2 (x) P2) v for xi = Ad(U^m)(eta (x) 1) and the
+    // right-handed versions, computed by matvec chains. Rank cap is 92.
+    let n2 = dim * dim;
+    let pp_apply = |v: &[u64]| -> Vec<u64> {
+        // (P2 (x) P2) v via two 24-contractions
+        let mut t = vec![0u64; n2];
+        for x in 0..dim {
+            for xp in 0..dim {
+                let c = p2[x][xp] as u128;
+                if c == 0 {
+                    continue;
+                }
+                for y in 0..dim {
+                    t[x * dim + y] = ((t[x * dim + y] as u128 + c * v[xp * dim + y] as u128)
+                        % LIE_P as u128) as u64;
+                }
+            }
+        }
+        let mut r = vec![0u64; n2];
+        for y in 0..dim {
+            for yp in 0..dim {
+                let c = p2[y][yp] as u128;
+                if c == 0 {
+                    continue;
+                }
+                for x in 0..dim {
+                    r[x * dim + y] = ((r[x * dim + y] as u128 + c * t[x * dim + yp] as u128)
+                        % LIE_P as u128) as u64;
+                }
+            }
+        }
+        r
+    };
+    let mut rng: u64 = 0xA5A5_5A5A_1234_9ABC;
+    let mut next = move || {
+        rng ^= rng << 13;
+        rng ^= rng >> 7;
+        rng ^= rng << 17;
+        rng % LIE_P
+    };
+    let mut rank = RankP::new();
+    for m in 1..=5u32 {
+        // chi^m diagonal on the pair space
+        let mut um = vec![0u64; n2];
+        let mut um_c = vec![0u64; n2];
+        for x in 0..dim {
+            for y in 0..dim {
+                let mut a = 1u64;
+                let mut b = 1u64;
+                for _ in 0..m {
+                    a = mulp(a, chi[x][y]);
+                    b = mulp(b, chi_c[x][y]);
+                }
+                um[x * dim + y] = a;
+                um_c[x * dim + y] = b;
+            }
+        }
+        for eta in &etas {
+            for &left in &[true, false] {
+                for _probe in 0..6 {
+                    if rank.rank() >= 92 {
+                        break;
+                    }
+                    let v: Vec<u64> = (0..n2).map(|_| next()).collect();
+                    let mut u = pp_apply(&v);
+                    // U^{-m}
+                    for a in 0..n2 {
+                        u[a] = mulp(u[a], um_c[a]);
+                    }
+                    // (eta (x) 1) or (1 (x) eta)
+                    let mut t = vec![0u64; n2];
+                    if left {
+                        for x in 0..dim {
+                            for xp in 0..dim {
+                                let c = eta[x][xp] as u128;
+                                if c == 0 {
+                                    continue;
+                                }
+                                for y in 0..dim {
+                                    t[x * dim + y] = ((t[x * dim + y] as u128
+                                        + c * u[xp * dim + y] as u128)
+                                        % LIE_P as u128)
+                                        as u64;
+                                }
+                            }
+                        }
+                    } else {
+                        for y in 0..dim {
+                            for yp in 0..dim {
+                                let c = eta[y][yp] as u128;
+                                if c == 0 {
+                                    continue;
+                                }
+                                for x in 0..dim {
+                                    t[x * dim + y] = ((t[x * dim + y] as u128
+                                        + c * u[x * dim + yp] as u128)
+                                        % LIE_P as u128)
+                                        as u64;
+                                }
+                            }
+                        }
+                    }
+                    // U^m, then Q = 1 - P2 (x) P2
+                    for a in 0..n2 {
+                        t[a] = mulp(t[a], um[a]);
+                    }
+                    let ppt = pp_apply(&t);
+                    let qv: Vec<u64> = (0..n2).map(|a| subp(t[a], ppt[a])).collect();
+                    rank.insert(qv);
+                }
+            }
+        }
+    }
+    Ok((adj_adj_nonzero, rank.rank()))
 }

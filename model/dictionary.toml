@@ -244,14 +244,25 @@ feature = "features/suites/s4_equivalency/solovay_kitaev.feature"
 
 [[row]]
 id = "archimedean-continuity"
-tqc = "Archimedean Continuity (Located)"
-atlas = "On the 22-dim irreducible block the projective closure of the coupled generators is an infinite non-abelian compact group (adjoint-trace criterion plus a projectively non-commuting pair, exact over Q(zeta_24)): the machine exceeds every finite gate set, with the continuous content located on the block where the coupling is non-scalar"
+tqc = "Archimedean Continuity (PU(22)-Dense)"
+atlas = "On the 22-dim irreducible block the projective closure of the coupled generators is dense in PU(22): the spectral flow exp(iRM) lies in the closure (Kronecker-Weyl), and the division-free Lie closure saturates su(22) (sound mod-p lower bound 483), giving universal quantum computation on a 22-dimensional qudit carrier; the 2-dim block carries the finite projective Clifford image"
 source = "(derived)"
 status = "some-true"
 stage = "S4"
 oracle = "mtc-axioms"
 tier = "suite"
 feature = "features/suites/s4_equivalency/archimedean_continuity.feature"
+
+[[row]]
+id = "pair-carrier-structure"
+tqc = "Pair-Carrier Density (PU(576))"
+atlas = "The two-handle native group acts irreducibly on the 576-dim pair carrier (exact commutant dim 1) and its projective closure is dense in PU(576): the certified adj-tensor-adj component forces su(484) on the corner (multiplicity-one isotypic), complement reachability saturates at rank 92, and the classical closure yields su(576) inside Lie(H_2); by the two-local composition lemma the n-handle closure is dense in PU(24^n) for every n >= 2 -- gate-level universal quantum computation scaling in n. The separation theorem stands: no monodromy power preserves the 22-block tensor code, so the carrier is the irreducible pair block, not a tensor code"
+source = "(derived)"
+status = "some-true"
+stage = "S4"
+oracle = "mtc-axioms"
+tier = "suite"
+feature = "features/suites/s4_equivalency/pair_carrier_structure.feature"
 
 [[row]]
 id = "advantage"

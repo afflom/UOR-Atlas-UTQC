@@ -202,6 +202,7 @@ fn run_suite_witness(
         "two-qubit-universality" => witness::two_qubit_universality_probe(p).map(|_| ()),
         "solovay-kitaev" => witness::solovay_kitaev_decision_witness(p),
         "archimedean-continuity" => witness::archimedean_continuity_witness(p),
+        "pair-carrier-structure" => witness::pair_carrier_witness(p),
         "finite-closure" => witness::finite_closure_probe(p).map(|_| ()),
         "whitepaper-formatting"
         | "s4-modal-logic"

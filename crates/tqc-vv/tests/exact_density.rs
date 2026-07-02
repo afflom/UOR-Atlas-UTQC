@@ -20,6 +20,18 @@ fn exact_density_atlas() {
     println!("block22 infinite   = {:?}", report.block22_infinite);
     println!("block22 pair       = {:?}", report.block22_pair);
     println!("beyond finite      = {}", report.beyond_finite);
+    println!("lie dim lower (22) = {}", report.lie_dim_lower_22);
+    println!("pu22 dense         = {}", report.pu22_dense);
+    println!("code components    = {}", report.code_components);
+    println!("native entangler   = {:?}", report.native_code_entangler);
+    println!("pair commutant dim = {}", report.pair_commutant_dim);
+    println!("qudit universal    = {}", report.qudit_universal);
+    println!("pair lie dim lower = {}", report.pair_lie_dim_lower);
+    println!("pair entangl flow  = {}", report.pair_entangling_flow);
+    println!("pair adj component = {}", report.pair_adj_component);
+    println!("pair reach rank    = {}", report.pair_reach_rank);
+    println!("pu576 dense        = {}", report.pu576_dense);
+    println!("gate level univ    = {}", report.gate_level_universal);
     println!("certified_dense    = {}", report.certified_dense);
     println!("{}", report.description);
     assert_eq!(report.commutant_dim, 2, "exact commutant dimension");
