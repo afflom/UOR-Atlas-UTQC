@@ -75,7 +75,7 @@ msrv:
 # Build the academic whitepaper strictly with warnings-as-errors and run chktex linting
 paper:
     cd docs/paper && latexmk -pdf -Werror -interaction=nonstopmode main.tex
-    cd docs/paper && chktex main.tex -q -n 1 -n 3 -n 8 -n 18 -n 22 -n 24 -n 30 -n 46
+    cd docs/paper && chktex main.tex -q -n 1 -n 18 -n 22 -n 24 -n 30 -n 46
 
 # Forbid hardcoding of critical proof metrics
 anti-hardcode:
