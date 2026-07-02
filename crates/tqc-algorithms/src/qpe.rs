@@ -43,30 +43,11 @@ impl QpeSolver {
         // over the topological substrate. We simulate the QPE interference pattern
         // purely algebraically to extract the estimated phase, bypassing tensor contraction
         // while formally executing the algorithmic projection.
+        // Evaluate the QPE interference purely algebraically
+        // P(k) peaks mathematically at the integer k minimizing |theta - k/M|.
+        // We find this peak exactly without f64 accumulation loops.
         let m_states = 1 << self.counting_qubits;
-        let mut max_k = 0;
-        let mut max_p = -1.0;
-
-        for k in 0..m_states {
-            let mut p_k = 0.0;
-            for j in 0..m_states {
-                for l in 0..m_states {
-                    // Evaluate the QPE interference purely algebraically
-                    // P(k) = sum_{j, l} exp(2 pi i (j - l) (theta - k/M))
-                    let angle = 2.0
-                        * std::f64::consts::PI
-                        * ((j as f64) - (l as f64))
-                        * (true_phase - (k as f64) / (m_states as f64));
-                    p_k += angle.cos();
-                }
-            }
-            if p_k > max_p {
-                max_p = p_k;
-                max_k = k;
-            }
-        }
-
-        let measured_integer = max_k;
+        let measured_integer = (true_phase * (m_states as f64)).round() as usize % m_states;
         let estimated_phase = (measured_integer as f64) / (m_states as f64);
 
         Ok(ExactQpeReport {

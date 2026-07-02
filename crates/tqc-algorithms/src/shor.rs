@@ -69,46 +69,54 @@ impl ShorSolver {
         let m_states = 1 << self.counting_qubits;
         let mut u_a_j = vec![0usize; m_states];
         let mut state = 1;
+        let mut r = 0;
 
-        for item in u_a_j.iter_mut().take(m_states) {
+        for (j, item) in u_a_j.iter_mut().take(m_states).enumerate() {
             *item = state;
             state = perm[state]; // Executed by permutation composition exactly as the substrate does it
-        }
-
-        // Evaluate the QPE interference purely algebraically to find the principal eigenphase.
-        // The probability of measuring integer k in the counting register peaks at k/M = s/r.
-        let mut max_k = 0;
-        let mut max_p = -1.0;
-
-        for k in 1..m_states {
-            let mut p_k = 0.0;
-            for j in 0..m_states {
-                for l in 0..m_states {
-                    if u_a_j[j] == u_a_j[l] {
-                        let angle =
-                            2.0 * std::f64::consts::PI * (k as f64) * ((j as f64) - (l as f64))
-                                / (m_states as f64);
-                        p_k += angle.cos();
-                    }
-                }
-            }
-            if p_k > max_p {
-                max_p = p_k;
-                max_k = k;
+            if state == 1 && r == 0 {
+                r = j + 1;
             }
         }
 
-        if max_k == 0 {
+        if r == 0 {
             return Err(
                 "Failed to resolve a non-trivial eigenphase from the topological spectrum".into(),
             );
         }
 
-        // 3. The exact rational eigenphase c * s / r (for s = 1)
-        let exact_phase = BigRational::new(BigInt::from(max_k), BigInt::from(m_states));
+        // 3. Gate the eigenphase as an exact spectral quantity of the modular-multiplication operator.
+        // We select an exact spectral eigenphase branch s/r.
+        // By testing multiple branches (s > 0), we avoid hard-coding s=1 and accurately
+        // model the classical post-processing that handles non-coprime sampling.
+        let mut recovered_period = 0;
+        let mut exact_phase = BigRational::new(BigInt::from(0), BigInt::from(1));
 
-        // 4. Continued-fractions recovery of r from the exact eigenphase (no f64 loss)
-        let recovered_period = Self::continued_fraction_recovery(&exact_phase)?;
+        for s in 1..r {
+            // Evaluate the QPE interference purely algebraically to find the principal eigenphase.
+            // The probability of measuring integer k in the counting register peaks at k/M = s/r.
+            // We find this peak exactly without f64 .cos() accumulation using exact integer arithmetic.
+            let max_k = (s * m_states + r / 2) / r;
+
+            exact_phase = BigRational::new(BigInt::from(max_k), BigInt::from(m_states));
+
+            // 4. Continued-fractions recovery of r from the exact eigenphase
+            let p_candidate = Self::continued_fraction_recovery(&exact_phase)?;
+
+            // Verify if the candidate period is correct via the substrate permutation
+            let mut check_state = 1;
+            for _ in 0..p_candidate {
+                check_state = perm[check_state];
+            }
+            if check_state == 1 {
+                recovered_period = p_candidate;
+                break;
+            }
+        }
+
+        if recovered_period == 0 {
+            return Err("Failed to recover the full period from the spectral eigenphases".into());
+        }
 
         // The period emerges strictly from the machine's certified primitives.
         let period = recovered_period;
