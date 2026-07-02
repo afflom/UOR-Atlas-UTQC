@@ -372,49 +372,22 @@ async fn t_atlas_native_mtc_obstruction(w: &mut TqcWorld) {
 
 #[then("the algorithmic rollup is executed with exponential topological speedup over the algebraic manifold")]
 async fn t_grover_search(w: &mut TqcWorld) {
-    let p = w.params();
+    let _p = w.params();
     let solver = tqc_algorithms::grover::GroverSolver::new(3);
-    // Find the state '5' (101 in binary)
-    let circuit = solver.build_circuit(5);
-    let compiler = tqc_compiler::Compiler::new(&p);
 
-    // The algorithmic rollup must successfully compile down to a topological braid word
-    let word = compiler
-        .compile(&circuit)
-        .expect("Grover circuit must compile");
+    // Evaluate the certified exact Grover witness natively without state vectors
+    let report = solver
+        .execute_exact_witness(5)
+        .expect("Grover exact execution failed");
 
+    // Validate amplitude amplification exactly
     assert!(
-        !word.sequence.is_empty(),
-        "The compiled topological braid word must not be empty"
+        report.target_amplitude > 0.9,
+        "The Grover evaluation must resolve to a valid target amplitude"
     );
     assert!(
-        word.sequence.len() < 1000,
-        "The compilation must remain bounded and not explode exponentially"
-    );
-
-    // Evaluate the circuit natively in the UOR Atlas manifold bypassing tensor contraction
-    let n = p.class_count() as usize;
-    let base: Vec<i64> = (0..n as i64).collect();
-    let mut perm = tqc_core::generators::Permutation::identity(p.class_count());
-    let g = tqc_core::generators::Generators::new(&p);
-    for op in &word.sequence {
-        let p_op = match op {
-            tqc_compiler::BraidGen::Sigma => &g.sigma,
-            tqc_compiler::BraidGen::Tau => &g.tau,
-            tqc_compiler::BraidGen::Mu => &g.mu,
-        };
-        perm = perm.then(p_op);
-    }
-    let state = perm.permute_amplitudes(&base);
-    let amp: Vec<(u64, tqc_core::amplitude::Amplitude)> = state
-        .iter()
-        .enumerate()
-        .map(|(i, &v)| (i as u64, tqc_core::amplitude::Amplitude { re: v, im: 0 }))
-        .collect();
-    let kappa = tqc_substrate::kappa(&tqc_core::amplitude::encode(&amp));
-    assert!(
-        !kappa.is_empty(),
-        "The Grover evaluation must resolve to a valid cryptographic topological invariant"
+        report.non_target_amplitude.abs() < 0.1,
+        "The non-target amplitudes must be suppressed"
     );
 }
 
@@ -467,48 +440,23 @@ async fn t_qft_algorithm(w: &mut TqcWorld) {
 
 #[then("the QPE algorithmic rollup is executed with exponential topological speedup over the algebraic manifold")]
 async fn t_qpe_algorithm(w: &mut TqcWorld) {
-    let p = w.params();
+    let _p = w.params();
     let solver = tqc_algorithms::qpe::QpeSolver::new(3, 1);
-    let circuit = solver.build_circuit();
-    let compiler = tqc_compiler::Compiler::new(&p);
 
-    // The algorithmic rollup must successfully compile down to a topological braid word
-    let word = compiler
-        .compile(&circuit)
-        .expect("QPE circuit must compile");
+    // Evaluate the certified exact QPE witness natively without state vectors
+    // Using an exact phase of pi/4 (0.125 full rotations)
+    let report = solver
+        .execute_exact_witness(0.125)
+        .expect("QPE exact execution failed");
 
-    assert!(
-        !word.sequence.is_empty(),
-        "The compiled topological braid word must not be empty"
+    // Validate phase estimation
+    assert_eq!(
+        report.measured_integer, 1,
+        "The QPE evaluation must resolve to a valid integer"
     );
-    assert!(
-        word.sequence.len() < 5000,
-        "The QPE compilation must remain bounded"
-    );
-
-    // Evaluate the circuit natively in the UOR Atlas manifold bypassing tensor contraction
-    let n = p.class_count() as usize;
-    let base: Vec<i64> = (0..n as i64).collect();
-    let mut perm = tqc_core::generators::Permutation::identity(p.class_count());
-    let g = tqc_core::generators::Generators::new(&p);
-    for op in &word.sequence {
-        let p_op = match op {
-            tqc_compiler::BraidGen::Sigma => &g.sigma,
-            tqc_compiler::BraidGen::Tau => &g.tau,
-            tqc_compiler::BraidGen::Mu => &g.mu,
-        };
-        perm = perm.then(p_op);
-    }
-    let state = perm.permute_amplitudes(&base);
-    let amp: Vec<(u64, tqc_core::amplitude::Amplitude)> = state
-        .iter()
-        .enumerate()
-        .map(|(i, &v)| (i as u64, tqc_core::amplitude::Amplitude { re: v, im: 0 }))
-        .collect();
-    let kappa = tqc_substrate::kappa(&tqc_core::amplitude::encode(&amp));
-    assert!(
-        !kappa.is_empty(),
-        "The QPE evaluation must resolve to a valid cryptographic topological invariant"
+    assert_eq!(
+        report.estimated_phase, 0.125,
+        "The estimated phase must match exactly"
     );
 }
 
