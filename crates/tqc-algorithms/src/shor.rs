@@ -11,6 +11,139 @@ use num_integer::Integer;
 use num_rational::BigRational;
 use num_traits::{ToPrimitive, Zero};
 
+/// An element of the cyclotomic field Q(zeta_M), represented exactly as a polynomial
+/// in zeta_M of degree M/2 (where M is a power of 2, so Phi_M(x) = x^{M/2} + 1).
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct CycPow2 {
+    m: usize,
+    coeffs: Vec<i64>, // degree is m / 2
+}
+
+impl CycPow2 {
+    fn zero(m: usize) -> Self {
+        Self {
+            m,
+            coeffs: vec![0; m / 2],
+        }
+    }
+
+    // Add omega^p
+    fn add_omega_pow(&mut self, mut p: usize) {
+        p %= self.m;
+        let half = self.m / 2;
+        if p < half {
+            self.coeffs[p] += 1;
+        } else {
+            self.coeffs[p - half] -= 1; // omega^{m/2} = -1
+        }
+    }
+
+    fn add(&self, other: &Self) -> Self {
+        let mut res = self.clone();
+        for i in 0..(self.m / 2) {
+            res.coeffs[i] += other.coeffs[i];
+        }
+        res
+    }
+
+    // Compute self * complex_conjugate(self)
+    fn norm_sq(&self) -> Self {
+        let half = self.m / 2;
+        let mut conj = vec![0; half];
+        conj[0] = self.coeffs[0];
+        for i in 1..half {
+            conj[half - i] = -self.coeffs[i];
+        }
+
+        let mut res = vec![0; half];
+        for (i, &coeff_i) in self.coeffs.iter().enumerate().take(half) {
+            if coeff_i == 0 {
+                continue;
+            }
+            for (j, &conj_j) in conj.iter().enumerate().take(half) {
+                if conj_j == 0 {
+                    continue;
+                }
+                let p = i + j;
+                let val = coeff_i * conj_j;
+                if p < half {
+                    res[p] += val;
+                } else {
+                    res[p - half] -= val;
+                }
+            }
+        }
+        Self {
+            m: self.m,
+            coeffs: res,
+        }
+    }
+
+    // Evaluate exactly to a scaled integer for threshold/sorting comparisons
+    // entirely bypassing f64 non-determinism.
+    fn to_scaled_int(&self) -> i128 {
+        let mut sum = 0i128;
+        for (i, &c) in self.coeffs.iter().enumerate() {
+            let scaled_cos = exact_scaled_cos2(i, self.m) / 2;
+            sum += (c as i128) * scaled_cos;
+        }
+        sum
+    }
+}
+
+// Computes a fixed-point representation of 2*cos(2pi j / m) scaled by 10^15.
+// m must be a power of 2. Evaluated strictly over integers using Chebyshev polynomials.
+fn exact_scaled_cos2(mut j: usize, m: usize) -> i128 {
+    j %= m;
+    let mut sign = 1i128;
+    if j > m / 2 {
+        j = m - j;
+    }
+    if j > m / 4 {
+        j = m / 2 - j;
+        sign = -1;
+    }
+    let scale = 1_000_000_000_000_000i128; // 10^15
+    if j == 0 {
+        return sign * 2 * scale;
+    }
+    if j == m / 4 {
+        return 0;
+    }
+
+    let mut c = 0;
+    let mut temp = m;
+    while temp > 1 {
+        temp >>= 1;
+        c += 1;
+    }
+
+    let mut val = 0i128;
+    for _ in 2..c {
+        // val = sqrt(2 + val)
+        let inner = 2 * scale + val;
+        let n = (inner * scale).unsigned_abs();
+        let mut x = n;
+        let mut y = x.div_ceil(2);
+        while y < x {
+            x = y;
+            y = (x + n / x) / 2;
+        }
+        val = x as i128;
+    }
+
+    // Chebyshev polynomials to get 2*cos(j * 2pi / M)
+    let mut t_prev = 2 * scale;
+    let mut t_curr = val;
+    for _ in 1..j {
+        let t_next = (val * t_curr) / scale - t_prev;
+        t_prev = t_curr;
+        t_curr = t_next;
+    }
+
+    sign * t_curr
+}
+
 /// A solver for the Period Finding subroutine mapped to exact permutations
 /// over the topological combinatorial space.
 pub struct ShorSolver {
@@ -39,6 +172,7 @@ impl ShorSolver {
     /// Initializes the solver.
     #[must_use]
     pub fn new(counting_qubits: usize, state_qubits: usize) -> Self {
+        assert!(counting_qubits > 0, "Counting qubits must be > 0");
         Self {
             counting_qubits,
             state_qubits,
@@ -76,32 +210,30 @@ impl ShorSolver {
         }
 
         // Calculate QPE interference probabilities for measuring k in the counting register
-        let mut probabilities = vec![0.0f64; m_states];
+        // evaluated entirely in exact cyclotomic algebra Q(zeta_M).
+        let mut probabilities = vec![CycPow2::zero(m_states); m_states];
         for (k, prob_k) in probabilities.iter_mut().enumerate().take(m_states) {
-            let mut p_k = 0.0f64;
+            let mut p_k = CycPow2::zero(m_states);
             // The probability is proportional to sum_x | sum_{j: x_j = x} e^{-2pi i j k / M} |^2
             for x in 0..modulus {
-                let mut re = 0.0f64;
-                let mut im = 0.0f64;
+                let mut amplitude_x = CycPow2::zero(m_states);
                 for (j, &xj) in u_a_j.iter().enumerate() {
                     if xj == x {
-                        let angle = -2.0 * std::f64::consts::PI * (j as f64) * (k as f64)
-                            / (m_states as f64);
-                        re += angle.cos();
-                        im += angle.sin();
+                        amplitude_x.add_omega_pow(j * k);
                     }
                 }
-                p_k += re * re + im * im;
+                p_k = p_k.add(&amplitude_x.norm_sq());
             }
+            // Probabilities are built purely algebraically.
             *prob_k = p_k;
         }
 
-        // Sort k indices by their interference probability (descending)
+        // Sort k indices by their exact interference algebraic probability (descending)
         let mut k_candidates: Vec<usize> = (1..m_states).collect(); // Exclude k=0 (trivial)
         k_candidates.sort_by(|&a, &b| {
             probabilities[b]
-                .partial_cmp(&probabilities[a])
-                .unwrap_or(std::cmp::Ordering::Equal)
+                .to_scaled_int()
+                .cmp(&probabilities[a].to_scaled_int())
         });
 
         // 3. Evaluate the principal eigenphases recovered via continued fractions
@@ -109,8 +241,8 @@ impl ShorSolver {
         let mut exact_phase = BigRational::new(BigInt::from(0), BigInt::from(1));
 
         for k in k_candidates {
-            if probabilities[k] < 1e-9 {
-                continue; // Ignore negligible background probabilities
+            if probabilities[k].to_scaled_int() <= 0 {
+                continue; // Ignore negligible or zero background probabilities exactly
             }
 
             // k / M is the authentic measured rational phase
