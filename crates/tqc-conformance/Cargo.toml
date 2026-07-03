@@ -17,6 +17,8 @@ tqc-mtc = { workspace = true }
 tqc-substrate = { workspace = true }
 tqc-algorithms = { workspace = true }
 tqc-compiler = { workspace = true }
+num-rational = "0.4.2"
+num-bigint = "0.4"
 
 [dev-dependencies]
 cucumber = { workspace = true }

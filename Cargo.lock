@@ -1516,6 +1516,8 @@ name = "tqc-conformance"
 version = "0.1.1"
 dependencies = [
  "cucumber",
+ "num-bigint",
+ "num-rational",
  "tokio",
  "tqc-algorithms",
  "tqc-atlas",

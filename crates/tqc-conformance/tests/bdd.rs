@@ -381,13 +381,16 @@ async fn t_grover_search(w: &mut TqcWorld) {
         .expect("Grover exact execution failed");
 
     // Validate amplitude amplification exactly
-    assert!(
-        report.target_amplitude > 0.9,
-        "The Grover evaluation must resolve to a valid target amplitude"
+    // For 3 qubits, N=8. 2 iterations yields amplitude 11/4. Probability = 121/128.
+    let p_t = &report.target_amplitude_coeff * &report.target_amplitude_coeff
+        / num_rational::BigRational::new(num_bigint::BigInt::from(8), num_bigint::BigInt::from(1));
+    let expected_p_t = num_rational::BigRational::new(
+        num_bigint::BigInt::from(121),
+        num_bigint::BigInt::from(128),
     );
-    assert!(
-        report.non_target_amplitude.abs() < 0.1,
-        "The non-target amplitudes must be suppressed"
+    assert_eq!(
+        p_t, expected_p_t,
+        "The Grover evaluation must resolve to a valid target amplitude exactly"
     );
 }
 
@@ -445,8 +448,10 @@ async fn t_qpe_algorithm(w: &mut TqcWorld) {
 
     // Evaluate the certified exact QPE witness natively without state vectors
     // Using an exact phase of pi/4 (0.125 full rotations)
+    let true_phase =
+        num_rational::BigRational::new(num_bigint::BigInt::from(1), num_bigint::BigInt::from(8));
     let report = solver
-        .execute_exact_witness(0.125)
+        .execute_exact_witness(&true_phase)
         .expect("QPE exact execution failed");
 
     // Validate phase estimation
@@ -455,7 +460,7 @@ async fn t_qpe_algorithm(w: &mut TqcWorld) {
         "The QPE evaluation must resolve to a valid integer"
     );
     assert_eq!(
-        report.estimated_phase, 0.125,
+        report.estimated_phase, true_phase,
         "The estimated phase must match exactly"
     );
 }

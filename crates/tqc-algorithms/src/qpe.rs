@@ -3,6 +3,10 @@
 //! Synthesizes the core QPE routine natively into the topological combinatorial
 //! space as a certified execution witness without tensor expansion.
 
+use num_bigint::BigInt;
+use num_rational::BigRational;
+use num_traits::ToPrimitive;
+
 /// A QPE algorithmic solver mapped to exact phase evaluation.
 pub struct QpeSolver {
     /// The number of counting qubits (precision of the phase estimation).
@@ -17,9 +21,9 @@ pub struct ExactQpeReport {
     /// The number of precision bits.
     pub counting_qubits: usize,
     /// The exact underlying phase eigenvalue.
-    pub exact_phase: f64,
+    pub exact_phase: BigRational,
     /// The estimated phase from the QPE process.
-    pub estimated_phase: f64,
+    pub estimated_phase: BigRational,
     /// The highest probability measurement integer.
     pub measured_integer: usize,
 }
@@ -38,7 +42,10 @@ impl QpeSolver {
     ///
     /// Evaluates the true rational phase mathematically through the
     /// algorithmic QFT projection sequence.
-    pub fn execute_exact_witness(&self, true_phase: f64) -> Result<ExactQpeReport, String> {
+    pub fn execute_exact_witness(
+        &self,
+        true_phase: &BigRational,
+    ) -> Result<ExactQpeReport, String> {
         // 2. Gate the phase as an exact spectral quantity mathematically evaluated
         // over the topological substrate. We simulate the QPE interference pattern
         // purely algebraically to extract the estimated phase, bypassing tensor contraction
@@ -47,12 +54,20 @@ impl QpeSolver {
         // P(k) peaks mathematically at the integer k minimizing |theta - k/M|.
         // We find this peak exactly without f64 accumulation loops.
         let m_states = 1 << self.counting_qubits;
-        let measured_integer = (true_phase * (m_states as f64)).round() as usize % m_states;
-        let estimated_phase = (measured_integer as f64) / (m_states as f64);
+
+        let m_rational = BigRational::new(BigInt::from(m_states), BigInt::from(1));
+        let scaled = true_phase * &m_rational;
+        let half = BigRational::new(BigInt::from(1), BigInt::from(2));
+        let shifted = scaled + half;
+        let rounded = shifted.to_integer();
+
+        let measured_integer = (rounded % BigInt::from(m_states)).to_usize().unwrap_or(0);
+        let estimated_phase =
+            BigRational::new(BigInt::from(measured_integer), BigInt::from(m_states));
 
         Ok(ExactQpeReport {
             counting_qubits: self.counting_qubits,
-            exact_phase: true_phase,
+            exact_phase: true_phase.clone(),
             estimated_phase,
             measured_integer,
         })
@@ -66,8 +81,9 @@ mod tests {
     #[test]
     fn test_qpe_exact_witness() {
         let solver = QpeSolver::new(3, 1);
-        let report = solver.execute_exact_witness(0.125).unwrap();
+        let true_phase = BigRational::new(BigInt::from(1), BigInt::from(8));
+        let report = solver.execute_exact_witness(&true_phase).unwrap();
         assert_eq!(report.measured_integer, 1);
-        assert_eq!(report.estimated_phase, 0.125);
+        assert_eq!(report.estimated_phase, true_phase);
     }
 }

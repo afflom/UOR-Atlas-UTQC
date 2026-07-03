@@ -4,6 +4,9 @@
 //! as an exact execution witness, modeling the algorithmic amplitude evolution
 //! and proving the viability of complex algorithmic rollups without exponential overhead.
 
+use num_bigint::BigInt;
+use num_rational::BigRational;
+
 /// A Grover's Search solver mapped to the topological space.
 pub struct GroverSolver {
     /// The number of virtual qubits in the search space.
@@ -19,10 +22,10 @@ pub struct ExactGroverReport {
     pub target_state: usize,
     /// Exact optimal number of iterations executed.
     pub iterations: usize,
-    /// Target state amplitude after execution.
-    pub target_amplitude: f64,
-    /// Non-target state amplitude after execution.
-    pub non_target_amplitude: f64,
+    /// Target state amplitude coefficient (multiplied by 1/sqrt(N)).
+    pub target_amplitude_coeff: BigRational,
+    /// Non-target state amplitude coefficient (multiplied by 1/sqrt(N)).
+    pub non_target_amplitude_coeff: BigRational,
 }
 
 impl GroverSolver {
@@ -43,28 +46,43 @@ impl GroverSolver {
         }
 
         // Calculate optimal iterations: floor(pi/4 * sqrt(N))
-        let iterations = ((std::f64::consts::PI / 4.0) * (n_states as f64).sqrt()).floor() as usize;
+        // using exact scaled integer arithmetic without f64
+        let n_states_u128 = n_states as u128;
+        // pi^2 / 16 scaled by 10^16
+        let pi_sq_over_16_scaled = 6168502750680849u128;
+        let iters_scaled_sq = n_states_u128 * pi_sq_over_16_scaled;
+
+        let mut x = iters_scaled_sq;
+        let mut y = x.div_ceil(2);
+        while y < x {
+            x = y;
+            y = (x + iters_scaled_sq / x) / 2;
+        }
+        let iterations = (x / 100_000_000) as usize;
 
         // Exact amplitude tracking over the topological state (mathematical subversion of 2^N tensor)
-        let mut a_t = 1.0 / (n_states as f64).sqrt();
-        let mut a_u = 1.0 / (n_states as f64).sqrt();
+        let mut a_t = BigRational::new(BigInt::from(1), BigInt::from(1));
+        let mut a_u = BigRational::new(BigInt::from(1), BigInt::from(1));
+        let n_states_bi = BigRational::new(BigInt::from(n_states), BigInt::from(1));
+        let n_minus_1_bi = BigRational::new(BigInt::from(n_states - 1), BigInt::from(1));
+        let two = BigRational::new(BigInt::from(2), BigInt::from(1));
 
         for _ in 0..iterations {
             // 1. Oracle: Invert phase of the target state
             a_t = -a_t;
 
             // 2. Diffuser: Inversion about the mean
-            let mean = (a_t + (n_states as f64 - 1.0) * a_u) / (n_states as f64);
-            a_t = 2.0 * mean - a_t;
-            a_u = 2.0 * mean - a_u;
+            let mean = (&a_t + &n_minus_1_bi * &a_u) / &n_states_bi;
+            a_t = &two * &mean - a_t;
+            a_u = &two * &mean - a_u;
         }
 
         Ok(ExactGroverReport {
             num_qubits: self.num_qubits,
             target_state,
             iterations,
-            target_amplitude: a_t,
-            non_target_amplitude: a_u,
+            target_amplitude_coeff: a_t,
+            non_target_amplitude_coeff: a_u,
         })
     }
 }
@@ -77,8 +95,11 @@ mod tests {
     fn test_grover_exact_witness() {
         let solver = GroverSolver::new(3);
         let report = solver.execute_exact_witness(5).unwrap();
-        // For 3 qubits, 1 iteration is optimal, target amplitude should be very high
-        assert!(report.target_amplitude > 0.9);
-        assert!(report.non_target_amplitude.abs() < 0.1);
+        // For 3 qubits, 2 iterations is optimal.
+        // Probability = (11/4)^2 / 8 = 121 / 128
+        let p_t = &report.target_amplitude_coeff * &report.target_amplitude_coeff
+            / BigRational::new(BigInt::from(8), BigInt::from(1));
+        let expected_p_t = BigRational::new(BigInt::from(121), BigInt::from(128));
+        assert_eq!(p_t, expected_p_t);
     }
 }
