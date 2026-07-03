@@ -63,47 +63,70 @@ impl ShorSolver {
         // 1. Modular exponentiation as an exact permutation on Z/N
         let perm: Vec<usize> = (0..modulus).map(|i| (i * base) % modulus).collect();
 
-        // 2. Gate the eigenphase as an exact spectral quantity of the modular-multiplication operator.
-        // Instead of the classical orbit-length shortcut, we mathematically execute the QPE
-        // interference pattern over the topological substrate.
+        // 2. Evaluate the quantum state evolution and QPE interference.
+        // We authentically execute the QPE interference pattern by evaluating the Fourier amplitudes
+        // without classical orbit-length shortcuts.
         let m_states = 1 << self.counting_qubits;
         let mut u_a_j = vec![0usize; m_states];
         let mut state = 1;
-        let mut r = 0;
 
-        for (j, item) in u_a_j.iter_mut().take(m_states).enumerate() {
+        for item in u_a_j.iter_mut().take(m_states) {
             *item = state;
-            state = perm[state]; // Executed by permutation composition exactly as the substrate does it
-            if state == 1 && r == 0 {
-                r = j + 1;
+            state = perm[state]; // Executed by permutation composition
+        }
+
+        // Calculate QPE interference probabilities for measuring k in the counting register
+        let mut probabilities = vec![0.0f64; m_states];
+        for (k, prob_k) in probabilities.iter_mut().enumerate().take(m_states) {
+            let mut p_k = 0.0f64;
+            // The probability is proportional to sum_x | sum_{j: x_j = x} e^{-2pi i j k / M} |^2
+            for x in 0..modulus {
+                let mut re = 0.0f64;
+                let mut im = 0.0f64;
+                for (j, &xj) in u_a_j.iter().enumerate() {
+                    if xj == x {
+                        let angle = -2.0 * std::f64::consts::PI * (j as f64) * (k as f64)
+                            / (m_states as f64);
+                        re += angle.cos();
+                        im += angle.sin();
+                    }
+                }
+                p_k += re * re + im * im;
             }
+            *prob_k = p_k;
         }
 
-        if r == 0 {
-            return Err(
-                "Failed to resolve a non-trivial eigenphase from the topological spectrum".into(),
-            );
-        }
+        // Sort k indices by their interference probability (descending)
+        let mut k_candidates: Vec<usize> = (1..m_states).collect(); // Exclude k=0 (trivial)
+        k_candidates.sort_by(|&a, &b| {
+            probabilities[b]
+                .partial_cmp(&probabilities[a])
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
-        // 3. Gate the eigenphase as an exact spectral quantity of the modular-multiplication operator.
-        // We select an exact spectral eigenphase branch s/r.
-        // By testing multiple branches (s > 0), we avoid hard-coding s=1 and accurately
-        // model the classical post-processing that handles non-coprime sampling.
+        // 3. Evaluate the principal eigenphases recovered via continued fractions
         let mut recovered_period = 0;
         let mut exact_phase = BigRational::new(BigInt::from(0), BigInt::from(1));
 
-        for s in 1..r {
-            // Evaluate the QPE interference purely algebraically to find the principal eigenphase.
-            // The probability of measuring integer k in the counting register peaks at k/M = s/r.
-            // We find this peak exactly without f64 .cos() accumulation using exact integer arithmetic.
-            let max_k = (s * m_states + r / 2) / r;
+        for k in k_candidates {
+            if probabilities[k] < 1e-9 {
+                continue; // Ignore negligible background probabilities
+            }
 
-            exact_phase = BigRational::new(BigInt::from(max_k), BigInt::from(m_states));
+            // k / M is the authentic measured rational phase
+            exact_phase = BigRational::new(BigInt::from(k), BigInt::from(m_states));
 
-            // 4. Continued-fractions recovery of r from the exact eigenphase
-            let p_candidate = Self::continued_fraction_recovery(&exact_phase)?;
+            // 4. Continued-fractions recovery of candidate r
+            let p_candidate = match Self::continued_fraction_recovery(&exact_phase) {
+                Ok(p) => p,
+                Err(_) => continue,
+            };
 
-            // Verify if the candidate period is correct via the substrate permutation
+            if p_candidate == 0 {
+                continue;
+            }
+
+            // Verify if the candidate period successfully closes the orbit
             let mut check_state = 1;
             for _ in 0..p_candidate {
                 check_state = perm[check_state];
@@ -118,7 +141,7 @@ impl ShorSolver {
             return Err("Failed to recover the full period from the spectral eigenphases".into());
         }
 
-        // The period emerges strictly from the machine's certified primitives.
+        // The period emerges strictly from the machine's QPE interference primitives.
         let period = recovered_period;
 
         Ok(ExactShorReport {

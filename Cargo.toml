@@ -65,3 +65,9 @@ used_underscore_binding = "deny"
 
 [profile.release]
 overflow-checks = true
+
+[profile.dev]
+opt-level = 1
+
+[profile.test]
+opt-level = 3

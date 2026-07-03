@@ -448,10 +448,6 @@ mod tests {
 
     #[test]
     fn test_non_pointed_computational_coherence() {
-        if cfg!(debug_assertions) {
-            println!("Skipping O(N^6) coherence proof in debug mode to prevent timeout.");
-            return;
-        }
         let p = UseCaseParams::new(4, 3, 8); // scope=4, modality=3, context=8
         let non_pointed = construct_atlas_native_non_pointed(&p);
 

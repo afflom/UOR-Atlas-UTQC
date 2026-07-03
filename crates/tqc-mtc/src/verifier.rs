@@ -151,22 +151,22 @@ pub fn verify_mtc_axioms(m: &dyn ModularData, tol: f64) -> Result<(), String> {
     // Pentagon equation
     for i1 in 0..dim {
         for i2 in 0..dim {
-            for i3 in 0..dim {
-                for i4 in 0..dim {
-                    for i5 in 0..dim {
-                        for a in 0..dim {
-                            if m.n_ijk(i1, i2, a).abs() < tol {
-                                continue;
-                            }
-                            for b in 0..dim {
-                                if m.n_ijk(a, i3, b).abs() < tol {
+            for a in 0..dim {
+                if m.n_ijk(i1, i2, a).abs() < tol {
+                    continue;
+                }
+                for i3 in 0..dim {
+                    for b in 0..dim {
+                        if m.n_ijk(a, i3, b).abs() < tol {
+                            continue;
+                        }
+                        for i4 in 0..dim {
+                            for c in 0..dim {
+                                if m.n_ijk(i3, i4, c).abs() < tol {
                                     continue;
                                 }
-                                if m.n_ijk(b, i4, i5).abs() < tol {
-                                    continue;
-                                }
-                                for c in 0..dim {
-                                    if m.n_ijk(i3, i4, c).abs() < tol {
+                                for i5 in 0..dim {
+                                    if m.n_ijk(b, i4, i5).abs() < tol {
                                         continue;
                                     }
                                     if m.n_ijk(a, c, i5).abs() < tol {
@@ -219,20 +219,20 @@ pub fn verify_mtc_axioms(m: &dyn ModularData, tol: f64) -> Result<(), String> {
     // Hexagon equations
     for i1 in 0..dim {
         for i2 in 0..dim {
-            for i3 in 0..dim {
-                for d in 0..dim {
-                    for a in 0..dim {
-                        if m.n_ijk(i1, i2, a).abs() < tol {
-                            continue;
-                        }
+            for a in 0..dim {
+                if m.n_ijk(i1, i2, a).abs() < tol {
+                    continue;
+                }
+                if m.n_ijk(i2, i1, a).abs() < tol {
+                    continue;
+                }
+                for i3 in 0..dim {
+                    for d in 0..dim {
                         if m.n_ijk(a, i3, d).abs() < tol {
                             continue;
                         }
 
                         for c in 0..dim {
-                            if m.n_ijk(i2, i1, a).abs() < tol {
-                                continue;
-                            }
                             if m.n_ijk(i1, i3, c).abs() < tol {
                                 continue;
                             }
