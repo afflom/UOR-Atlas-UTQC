@@ -26,7 +26,34 @@ The transition matrices acting upon these elements are explicitly constructed fr
     \tau &\equiv \text{Transposition (order 8, $\tau^8 = I$)} \\
     \mu &\equiv \text{Conjugation mirror (order 2, $\mu^2 = I$)}
 \end{align}
-These generators act on the 24-dimensional space via permutation matrices, forming a non-abelian monoidal category. By encoding these classes within the non-pointed $S4$ topological space, the framework defines a finite Alexandroff topology~\cite{alexandroff1937}, where every point possesses a uniquely defined minimal neighborhood. The continuous morphisms between these classes constitute the fundamental logic gates of the system. In this formulation, the necessity operator ($\Box$) maps to the maximal invariant subspace (topological interior) preserved under a given generator sequence, while the possibility operator ($\lozenge$) maps to the orbit closure under $\Omega$.
+Generators act via permutation matrices; they are the braid alphabet for circuit compilation (order data: $\sigma^4 = \tau^8 = \mu^2 = I$, from scope $q = 4$, context $O = 8$).
+
+The framework distinguishes two indexings of cardinality 24: the $S_4$ modal classes ($|S_4| = 24$, verification topology and braid alphabet) and the abelian anyon labels $A = \mathbb{Z}_T \times \mathbb{Z}_2^3$ ($|A| = T \cdot O = 24$, the algebra of Sections 3--6). The bijection is fixed by the parametric tuple. The fusion category is pointed abelian; non-abelian content arises in the coupled closure. By encoding these classes within the non-pointed $S4$ topological space, the framework defines a finite Alexandroff topology~\cite{alexandroff1937}, where every point possesses a uniquely defined minimal neighborhood. The continuous morphisms between these classes constitute the fundamental logic gates of the system. In this formulation, the necessity operator ($\Box$) maps to the maximal invariant subspace (topological interior) preserved under a given generator sequence, while the possibility operator ($\lozenge$) maps to the orbit closure under $\Omega$.
+
+\subsection{Formal Definition of the UOR Atlas}\label{sec:atlas_def}
+
+Parameters: modality $T = 3$ (minimal nontrivial cyclic order), context $O = 8$ (maximal real normed division algebra dimension). Every constant derives from $(T, O)$.
+Labels: $A = \mathbb{Z}_T \times \mathbb{Z}_2^3$, enumeration $x = O \cdot m + c$, $\dim = T \cdot O = 24$. Fusion = group law, multiplicity-free.
+Modular data, with $\zeta_n = e^{2\pi i/n}$:
+\begin{align*}
+S_{xy} &= \frac{1}{\sqrt{24}} \zeta_T^{m_1 m_2} (-1)^{|c_1 \wedge c_2|} \\
+T_{xx} &= \zeta_T^{m^2} i^{|c|}
+\end{align*}
+All entries in $\mathbb{Q}(\zeta_{24})$, the exact arithmetic substrate of every certificate. Charge conjugation $(m, c) \mapsto (T - m, c)$. Monodromy bicharacter $\chi(x,y) = R_{xy}R_{yx} = \zeta_T^{2m_1m_2} (-1)^{c_1 \cdot c_2}$.
+
+Spectral operator: $M = (O+2)I - T \cdot \Pi_T - O \cdot \Pi_O$; parametric eigenvalues $[O+2, O+2-T, O+2-O, O+2-T-O] = [10, 7, 2, -1]$; multiplicities (1, 2, 7, 14) sourced from F1 and reconciled at runtime by three identities: $\sum \text{mult} = 24$, $\sum \lambda \cdot \text{mult} = 24$ (trace), indefiniteness; signature $(10^+, 14^-)$.
+Coupling: $t = e^i$ (transcendental, Lindemann); $E = \exp(iM) = \operatorname{diag}(t^{m_x})$. Coupled generators: $G_S = S \cdot E$, $G_T = T \cdot E$.
+
+The UOR Atlas UTQC is the tuple $(A, S, T, \chi, M, E, G_S, G_T)$; for $n$ handles, one copy of the coupled generators per handle plus pairwise monodromy diagonals $U_{ij} = \operatorname{diag} \chi(x_i, x_j)$. Every theorem in Sections 3--6 is about the closure of the group these operators generate.
+
+\subsection{Structural Analysis of the Atlas}\label{sec:atlas_analysis}
+
+\begin{enumerate}
+    \item The spectrum dictates the carrier decomposition. Commutant dimension 2 splits $\mathbb{C}^{24}$ into $W$ ($\dim 2$) and $W'$ ($\dim 22$). $W$ is confined to the $(-1)$ eigenspace of $M$, the unique eigenspace where $E$ is a scalar phase $t^{-1}$. Coupling scalar $\Rightarrow$ finite sector (projective Clifford, order 24); coupling non-scalar $\Rightarrow$ continuous sector saturating $\operatorname{PU}(22)$. The indefinite eigenvalue $-1 = O+2-T-O$ is the boundary between the finite and continuous sectors.
+    \item The coupling is entailed. By Kronecker--Weyl and the irrationality of $\pi$, the flow $\exp(i \mathbb{R} M)$ is the identity component of the closure of $\langle T \cdot E \rangle$. The discrete data forces its own continuous evolution, with $M$ as generator.
+    \item The monodromy dissolves locality. On two handles, $U = \operatorname{diag} \chi$ reduces the commutant from 4 to 1 (irreducible 576-dim pair carrier) while never preserving the $W' \otimes W'$ tensor code: too entangling for a code architecture, exactly entangling enough for $\operatorname{PU}(576)$ density.
+    \item One grading, every verdict. The Laurent grading by powers of $t$ equals the $\operatorname{ad}(iM)$-weight decomposition; the refutation on $W$, density on $W'$, and pair-carrier density all run through this single mechanism.
+\end{enumerate}
 
 \subsection{Parametric Proof of Mac Lane Coherence}
 A central requirement of any braided monoidal category is adherence to the Mac Lane coherence theorem~\cite{maclane1963}, ensuring that the evaluation of tensor products is topologically invariant regardless of the sequence of associative or commutative operations. The Pentagon identity governing associativity:
