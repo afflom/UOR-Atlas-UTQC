@@ -31,8 +31,172 @@ fn main() -> Result<()> {
         "oracle-verify" => oracle_verify(),
         "atlas-pin-check" => atlas_pin_check(),
         "report" => report(),
-        other => bail!("unknown command `{other}`; use: oracle-verify | atlas-pin-check | report"),
+        "paper-check" => paper_check(),
+        other => bail!(
+            "unknown command `{other}`; use: oracle-verify | atlas-pin-check | report | paper-check"
+        ),
     }
+}
+
+/// The maintained paper-claim ⇄ dictionary-row crosswalk (`docs/paper/claims_crosswalk.toml`).
+#[derive(serde::Deserialize)]
+struct Crosswalk {
+    #[serde(default)]
+    assert: Vec<AssertClaim>,
+    #[serde(default)]
+    forbid: Vec<ForbidClaim>,
+    #[serde(default)]
+    global: GlobalForbid,
+}
+
+#[derive(serde::Deserialize)]
+struct AssertClaim {
+    claim: String,
+    row: String,
+}
+
+#[derive(serde::Deserialize)]
+struct ForbidClaim {
+    row: String,
+    phrases: Vec<String>,
+}
+
+#[derive(serde::Deserialize, Default)]
+struct GlobalForbid {
+    #[serde(default)]
+    forbidden: Vec<String>,
+}
+
+/// The honesty gate, extended to the paper. Mechanical and conservative:
+///
+/// 1. Every `[[assert]]` entry names a real dictionary row whose status is **assertable**
+///    (`some-true` / `build`, i.e. gating). A row demoted to `open` under an asserted claim
+///    is a status regression and fails the gate.
+/// 2. Every `open` model row must appear in a `[[forbid]]` block, so a newly-open row cannot
+///    silently escape the scan.
+/// 3. No `[[forbid]]` phrase appears in the paper as an **affirmative** assertion — a
+///    negation window (`not`, `never`, `no`, `without`, `rather than`, `cannot`) before the
+///    phrase marks a permitted disclaimer.
+/// 4. No `[global].forbidden` phrase appears anywhere (phrases with no legitimate use).
+fn paper_check() -> Result<()> {
+    let model = Model::load().map_err(|e| anyhow!(e.to_string()))?;
+    let root = root();
+    let cross_path = root.join("docs/paper/claims_crosswalk.toml");
+    let cross_text =
+        fs::read_to_string(&cross_path).context("reading docs/paper/claims_crosswalk.toml")?;
+    let cross: Crosswalk = toml::from_str(&cross_text).context("parsing claims_crosswalk.toml")?;
+
+    // Concatenate the paper section sources.
+    let sections_dir = root.join("docs/paper/sections");
+    let mut paper = String::new();
+    let mut files: Vec<_> = fs::read_dir(&sections_dir)
+        .context("reading docs/paper/sections")?
+        .filter_map(Result::ok)
+        .map(|e| e.path())
+        .filter(|p| p.extension().and_then(|s| s.to_str()) == Some("tex"))
+        .collect();
+    files.sort();
+    for f in &files {
+        paper.push_str(&fs::read_to_string(f).with_context(|| format!("reading {}", f.display()))?);
+        paper.push('\n');
+    }
+    let paper_lc = paper.to_lowercase();
+
+    // (1) Asserted claims must name assertable rows.
+    for a in &cross.assert {
+        let row = model
+            .rows
+            .iter()
+            .find(|r| r.id == a.row)
+            .ok_or_else(|| anyhow!("crosswalk asserts unknown row `{}`", a.row))?;
+        let status = model
+            .status(&row.status)
+            .ok_or_else(|| anyhow!("row `{}` has unknown status `{}`", row.id, row.status))?;
+        if !status.gating {
+            bail!(
+                "paper asserts claim \"{}\" backed by row `{}`, but that row is now non-gating \
+                 (status `{}`): status regression",
+                a.claim,
+                a.row,
+                row.status
+            );
+        }
+    }
+
+    // (2) Every open (non-gating) model row must have a forbid block.
+    for row in &model.rows {
+        let status = model
+            .status(&row.status)
+            .ok_or_else(|| anyhow!("row `{}` has unknown status `{}`", row.id, row.status))?;
+        if !status.gating && !cross.forbid.iter().any(|f| f.row == row.id) {
+            bail!(
+                "open row `{}` has no [[forbid]] block in the crosswalk: its claim could be \
+                 asserted in the paper unchecked",
+                row.id
+            );
+        }
+    }
+
+    // (3) No forbidden open-row phrase appears as an affirmative assertion.
+    for f in &cross.forbid {
+        for phrase in &f.phrases {
+            for pos in find_all(&paper_lc, &phrase.to_lowercase()) {
+                if !negated_before(&paper_lc, pos) {
+                    bail!(
+                        "paper affirmatively asserts open-row `{}` claim phrase \"{}\" (no \
+                         negation in the preceding window); disclaim it or demote the claim",
+                        f.row,
+                        phrase
+                    );
+                }
+            }
+        }
+    }
+
+    // (4) Globally-forbidden phrases must not appear at all.
+    for phrase in &cross.global.forbidden {
+        if paper_lc.contains(&phrase.to_lowercase()) {
+            bail!("paper contains globally-forbidden phrase \"{phrase}\" (removed at a159aed)");
+        }
+    }
+
+    println!(
+        "paper-check: {} asserted claims backed by gating rows; {} open row(s) guarded; \
+         {} globally-forbidden phrase(s) absent",
+        cross.assert.len(),
+        cross.forbid.len(),
+        cross.global.forbidden.len()
+    );
+    Ok(())
+}
+
+/// All byte offsets at which `needle` occurs in `hay`.
+fn find_all(hay: &str, needle: &str) -> Vec<usize> {
+    let mut out = Vec::new();
+    let mut from = 0;
+    while let Some(rel) = hay[from..].find(needle) {
+        let at = from + rel;
+        out.push(at);
+        from = at + needle.len();
+    }
+    out
+}
+
+/// Whether a negation token appears within the ~40-char window before `pos`.
+fn negated_before(hay: &str, pos: usize) -> bool {
+    let start = pos.saturating_sub(40);
+    let window = &hay[start..pos];
+    [
+        "not ",
+        "never ",
+        "no ",
+        "without ",
+        "rather than ",
+        "cannot ",
+        "nor ",
+    ]
+    .iter()
+    .any(|tok| window.contains(tok))
 }
 
 /// Verify every committed oracle artifact against its recorded sha256, and that the
@@ -172,6 +336,18 @@ fn report() -> Result<()> {
                     ),
                     Err(e) => format!("MEASUREMENT FAILED (non-gating): {e}"),
                 },
+                "reduction-crux" => match tqc_vv::exact::diagonal_sector_crux_measure(&p) {
+                    Ok(m) => format!(
+                        "MEASURED (non-gating): graded diagonal-sector κ by word length {:?}; \
+                         total distinct κ {}; plateau at length {:?}; max graded degree {} \
+                         (a plateau is finite closure on the diagonal sector; not asserted)",
+                        m.distinct_kappa_by_len,
+                        m.total_distinct_kappa,
+                        m.plateau_len,
+                        m.max_graded_degree
+                    ),
+                    Err(e) => format!("MEASUREMENT FAILED (non-gating): {e}"),
+                },
                 _ => "target (expected-RED, non-gating)".to_owned(),
             },
         };
@@ -237,6 +413,10 @@ fn run_suite_witness(
         "solovay-kitaev" => witness::solovay_kitaev_decision_witness(p),
         "archimedean-continuity" => witness::archimedean_continuity_witness(p),
         "pair-carrier-structure" => witness::pair_carrier_witness(p),
+        "encoded-qubit-universality" => witness::encoded_qubit_universality_witness(p),
+        "certified-carrier-compilation" => {
+            tqc_algorithms::checks::certified_carrier_compilation_check(p)
+        }
         "finite-closure" => witness::finite_closure_probe(p).map(|_| ()),
         "s4-modal-logic" => witness::s4_frame_witness(p),
         "mac-lane-coherence" => witness::mac_lane_coherence(p),

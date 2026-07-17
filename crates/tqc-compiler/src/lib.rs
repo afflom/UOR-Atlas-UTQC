@@ -12,10 +12,15 @@
 pub mod qasm;
 pub mod sk;
 
-use sk::SkWeaver;
+use sk::{Carrier, SkWeaver};
 use tqc_core::UseCaseParams;
 
 /// A topological Braid Word composed of native Atlas generators.
+///
+/// `Sigma`, `Tau`, `Mu` are the single-handle Clifford sub-alphabet (permutations of the
+/// class space). `Flow` is the certified-carrier spectral-flow generator: it is available
+/// only on a density-certified carrier and carries a continuous phase, so it never appears
+/// in a Clifford (permutation) word.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BraidGen {
     /// The \(\sigma\) generator (fusion twist).
@@ -24,6 +29,8 @@ pub enum BraidGen {
     Tau,
     /// The \(\mu\) generator (conjugation mirror).
     Mu,
+    /// The spectral-flow generator on a density-certified carrier (continuous phase).
+    Flow,
 }
 
 impl BraidGen {
@@ -34,7 +41,14 @@ impl BraidGen {
             Self::Sigma => 'σ',
             Self::Tau => 'τ',
             Self::Mu => 'μ',
+            Self::Flow => 'Φ',
         }
+    }
+
+    /// Whether this generator is a Clifford (permutation) generator.
+    #[must_use]
+    pub fn is_clifford(&self) -> bool {
+        matches!(self, Self::Sigma | Self::Tau | Self::Mu)
     }
 }
 
@@ -93,15 +107,26 @@ pub struct Compiler<'a> {
 }
 
 impl<'a> Compiler<'a> {
-    /// Initializes the compiler against the target topological `UseCaseParams`.
+    /// Initializes the single-handle **Clifford** compiler: rotations are admitted only at
+    /// exact discrete phases, since single-handle gate-set density is exactly refuted (finite
+    /// projective Clifford image). See `tqc-vv::exact::exact_density_certificate`.
     #[must_use]
     pub fn new(params: &'a UseCaseParams) -> Self {
         Self {
             params,
-            // The weaver admits only exact discrete phases: single-handle gate-set density
-            // is exactly refuted (finite projective Clifford image), so no approximation
-            // path exists. See `tqc-vv::exact::exact_density_certificate`.
             weaver: SkWeaver::new(params),
+        }
+    }
+
+    /// Initializes the compiler on a **density-certified** carrier (`Carrier::Certified22`
+    /// or `Carrier::Certified576`), where the projective closure is dense (Theorem: PU(22)
+    /// / PU(576) density) and arbitrary rotations are synthesized by deterministic
+    /// spectral-flow search to precision `epsilon`.
+    #[must_use]
+    pub fn for_certified_carrier(params: &'a UseCaseParams, carrier: Carrier) -> Self {
+        Self {
+            params,
+            weaver: SkWeaver::for_carrier(params, carrier),
         }
     }
 

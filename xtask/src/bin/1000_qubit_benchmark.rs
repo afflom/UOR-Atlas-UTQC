@@ -53,6 +53,7 @@ fn main() {
                 BraidGen::Sigma => &g.sigma,
                 BraidGen::Tau => &g.tau,
                 BraidGen::Mu => &g.mu,
+                BraidGen::Flow => continue,
             };
             perm = perm.then(p_gen);
 

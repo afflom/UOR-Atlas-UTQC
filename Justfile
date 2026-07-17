@@ -55,6 +55,11 @@ atlas-pin-check:
 report:
     cargo run -p xtask -- report
 
+# The paper honesty gate: the paper may affirm a claim only while its dictionary row is
+# assertable, and never affirms an `open` row's claim (docs/paper/claims_crosswalk.toml).
+paper-check:
+    cargo run -p xtask -- paper-check
+
 # Build + test the substrate facade (workspace member wrapping the pinned real
 # holospaces/hologram/uor-addr graph).
 substrate:
@@ -85,5 +90,5 @@ anti-hardcode:
     @! grep -rnE "is_dense: (true|false)|is_coherent: (true|false)|is_logarithmic_scaling: (true|false)|is_entangling: (true|false)|certified_dense: (true|false)|assert!\(true|SkWeaver::new\(true" crates xtask --include="*.rs" || (echo "ERROR: hardcoded verdict or constant assertion found; verdicts must be derived, not literal." && exit 1)
 
 # The full local gate (what CI runs).
-vv: fmt lint doc test bdd honesty oracles report atlas-pin-check portability msrv substrate deny paper anti-hardcode
+vv: fmt lint doc test bdd honesty oracles report paper-check atlas-pin-check portability msrv substrate deny paper anti-hardcode
     @echo "V&V: all gates green."

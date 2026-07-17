@@ -1202,6 +1202,10 @@ pub fn utqc_proven_probe(model: &Model, f1: &F1Constants, p: &UseCaseParams) -> 
             }
         }),
     )?;
+    name(
+        "encoded-qubit-universality",
+        encoded_qubit_universality_witness(p),
+    )?;
     Ok(())
 }
 
@@ -1751,6 +1755,48 @@ pub fn isotopy_collision_witness(p: &UseCaseParams) -> Witness {
     check(
         kappa_of(&id) == kappa_of(&pow),
         "isotopic words (identity vs σ^order) resolved to different κ",
+    )
+}
+
+/// VV (build) — encoded-qubit universality corollary. On the `n=2` handle carrier
+/// (`24^2 = 576`), density in PU(576) (from [`pair_carrier_witness`]) plus the fact that the
+/// `k`-qubit code subgroup `SU(2^k) ⊕ I` is a CLOSED subgroup of `SU(576)` yields dense
+/// encoded single- and two-qubit gates on the register. The machine-checked content is the
+/// exact `Q(ζ₂₄)` verification that the encoded gate set (H on each logical qubit and a
+/// genuine CZ entangler) is unitary with its defining relations and that `U ↦ U ⊕ I` is
+/// `*`-preserving and injective on the generators, plus the density premise; the encoding
+/// is pinned by `κ`. Image closedness and density itself are the cited closed-subgroup
+/// consequence, not re-derived here.
+///
+/// # Errors
+/// If any premise of the corollary fails or the pinned encoding `κ` drifts.
+pub fn encoded_qubit_universality_witness(p: &UseCaseParams) -> Result<(), String> {
+    let r = crate::exact::encoded_qubit_certificate(p)?;
+    check(r.code_fits, "code does not embed: 2^k > 24^n")?;
+    check(
+        r.generators_unitary,
+        "encoded generators are not exactly unitary over Q(zeta_24)",
+    )?;
+    check(
+        r.relations_hold,
+        "encoded generator relations fail (H^2=I, CZ^2=I, commuting, CZ entangling)",
+    )?;
+    check(
+        r.faithful_star_embedding,
+        "the U ↦ U ⊕ I block embedding failed the exact *-preservation / injectivity checks",
+    )?;
+    check(
+        r.density_premise,
+        "PU(24^n) density premise not established by the pair-carrier certificate",
+    )?;
+    check(
+        r.encoding_kappa
+            == "blake3:13e70fcfc33f841ea898a5fc2e5d42e45abb3477d26f152a4cabbec2b99c88f8",
+        format!("encoding κ drifted: {}", r.encoding_kappa),
+    )?;
+    check(
+        r.encoded_universal,
+        "encoded-qubit universality corollary did not close",
     )
 }
 

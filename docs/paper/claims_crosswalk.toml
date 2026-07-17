@@ -1,0 +1,95 @@
+# Paper-claim -> dictionary-row crosswalk, enforced by `cargo run -p xtask -- paper-check`
+# (a gating V&V step). This makes the paper<->model consistency achieved at commit a159aed
+# durable: the paper may affirm a claim only while its backing dictionary row carries an
+# assertable status (some-true / build), and it may never affirm the claim text of an `open`
+# row. The gate additionally requires every `open` model row to appear in a `[[forbid]]`
+# block, so a row demoted to `open` cannot silently escape the scan.
+
+# --- Load-bearing affirmative claims. Each names the dictionary row that licenses it.
+#     If that row is or becomes `open`, the gate fails (status regression). ---
+
+[[assert]]
+claim = "SU(2)/2-dim-block gate-set density is exactly refuted (finite projective Clifford image, order 24)"
+row = "solovay-kitaev"
+
+[[assert]]
+claim = "PU(22) density on the 22-dim irreducible block"
+row = "archimedean-continuity"
+
+[[assert]]
+claim = "PU(576) density on the two-handle pair carrier; PU(24^n) for n>=2"
+row = "pair-carrier-structure"
+
+[[assert]]
+claim = "native CZ-equivalent entangler with no gate-set density claim"
+row = "two-qubit-universality"
+
+[[assert]]
+claim = "finite closure of the modular representation (Ng-Schauenburg)"
+row = "finite-closure"
+
+[[assert]]
+claim = "phase-exact modular S/T with the Gauss-sum anomaly"
+row = "modular-s-t"
+
+[[assert]]
+claim = "phase-exact braiding R (hexagon, monodromy-S)"
+row = "braiding-r-matrix"
+
+[[assert]]
+claim = "pentagon and hexagon Mac Lane coherence"
+row = "mac-lane-coherence"
+
+[[assert]]
+claim = "exact Grover reference evaluation (121/128)"
+row = "grover-search"
+
+[[assert]]
+claim = "exact QPE reference evaluation (phase 1/8, 1/(2M) guarantee)"
+row = "qpe-algorithm"
+
+[[assert]]
+claim = "exact Shor reference evaluation (period 4, base 2 mod 15)"
+row = "shor-algorithm"
+
+[[assert]]
+claim = "encoded-qubit universality corollary on the qudit carrier"
+row = "encoded-qubit-universality"
+
+[[assert]]
+claim = "certified-carrier compilation: Shor's QFT rotations compile unconditionally and replay against the exact reference"
+row = "certified-carrier-compilation"
+
+# --- Open-row claims the paper must NOT affirm. Every `open` model row must appear here.
+#     The listed phrases are affirmative assertion forms; the gate scans for them with a
+#     negation window, so disclaimed mentions ("not a proven ... advantage") are permitted. ---
+
+[[forbid]]
+row = "reduction-crux"
+phrases = [
+    "polynomial reduction crux",
+    "proven reduction crux",
+    "the reduction crux holds",
+    "polynomial graded growth",
+]
+
+[[forbid]]
+row = "advantage"
+phrases = [
+    "proven quantum advantage",
+    "proven quantum-computational advantage",
+    "proven topological quantum advantage",
+    "exponential quantum speedup",
+    "quantum supremacy",
+]
+
+# --- Phrases removed at a159aed that must never reappear in any form (no legitimate use). ---
+[global]
+forbidden = [
+    "P = BQP",
+    "P=BQP",
+    "$P = BQP$",
+    "collapses BQP",
+    "subverts the #P-hard",
+    "subverts #P",
+]

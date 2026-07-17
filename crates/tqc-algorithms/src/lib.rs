@@ -93,6 +93,8 @@ impl<'a> VqeSolver<'a> {
                 BraidGen::Sigma => &self.generators.sigma,
                 BraidGen::Tau => &self.generators.tau,
                 BraidGen::Mu => &self.generators.mu,
+                // The VQE demo uses the Clifford compiler, which never emits Flow.
+                BraidGen::Flow => continue,
             };
             perm = perm.then(p);
         }

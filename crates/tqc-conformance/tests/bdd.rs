@@ -219,6 +219,16 @@ async fn t_archimedean_continuity(w: &mut TqcWorld) {
     witness::archimedean_continuity_witness(&w.params()).unwrap();
 }
 
+#[then("the certified carrier compiles Shor's rotations and the instance replays against the exact reference")]
+async fn t_certified_carrier_compilation(w: &mut TqcWorld) {
+    tqc_algorithms::checks::certified_carrier_compilation_check(&w.params()).unwrap();
+}
+
+#[then("the encoded-qubit gate set embeds faithfully over the certified carrier and universality follows")]
+async fn t_encoded_qubit_universality(w: &mut TqcWorld) {
+    witness::encoded_qubit_universality_witness(&w.params()).unwrap();
+}
+
 #[then("the pair carrier is irreducible and its closure is dense in PU(576)")]
 async fn t_pair_carrier(w: &mut TqcWorld) {
     // Pinned theorems: pair irreducibility (commutant 1), the diagonal-sector separation

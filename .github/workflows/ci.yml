@@ -52,6 +52,8 @@ jobs:
         run: cargo run -p xtask -- oracle-verify
       - name: conformance ledger
         run: cargo run -p xtask -- report
+      - name: paper honesty gate (claim <-> dictionary crosswalk)
+        run: cargo run -p xtask -- paper-check
 
   # The pinned F1 commit exists upstream and the artifact digest matches (online).
   atlas-pin:

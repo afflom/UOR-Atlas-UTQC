@@ -99,10 +99,73 @@ pub fn qft_word_check(p: &UseCaseParams) -> Result<Vec<i64>, String> {
             BraidGen::Sigma => &g.sigma,
             BraidGen::Tau => &g.tau,
             BraidGen::Mu => &g.mu,
+            BraidGen::Flow => {
+                return Err(
+                    "Clifford QFT scheduling must not emit a spectral-flow generator".into(),
+                )
+            }
         };
         perm = perm.then(p_op);
     }
     let n = p.class_count() as i64;
     let base: Vec<i64> = (0..n).collect();
     Ok(perm.permute_amplitudes(&base))
+}
+
+/// Certified-carrier compilation and Shor replay (dictionary row `certified-carrier-compilation`).
+///
+/// On a density-certified carrier (`Carrier::Certified22`, PU(22) established by the exact
+/// certificate) the compiler synthesizes arbitrary rotations, so the continuous-phase gates
+/// of Shor's QFT compile **unconditionally** (unlike the Clifford carrier, where gate-set
+/// density is refuted). This check:
+///
+/// 1. confirms the PU(22) density premise from the exact `Q(ζ₂₄)` certificate;
+/// 2. compiles each controlled-phase rotation of Shor's 4-bit QFT, `π/2^{j}`, on the
+///    certified carrier, and verifies the emitted spectral-flow word realizes the target
+///    phase within `ε` (a deterministic synthesis, checked exactly against `flow_phase`);
+/// 3. independently validates the algorithm result against the exact reference
+///    [`shor_check`] (base 2 mod 15, period 4) — the semantic oracle. The compiled braid
+///    word is NOT claimed to execute the period-finding unitary; the exact reference is the
+///    sole source of the result.
+///
+/// # Errors
+/// If the density premise fails, a rotation does not compile within `ε`, or the exact
+/// Shor reference deviates.
+pub fn certified_carrier_compilation_check(p: &UseCaseParams) -> Result<(), String> {
+    use tqc_compiler::sk::{Carrier, SkWeaver};
+
+    // (1) PU(22) density premise from the exact certificate.
+    let cert = tqc_vv::exact::exact_density_certificate(p)?;
+    if !cert.pu22_dense {
+        return Err("PU(22) density premise not established by the exact certificate".into());
+    }
+
+    // (2) Compile Shor's QFT controlled-phase rotations on the certified carrier and verify
+    //     each synthesized flow word realizes its target within epsilon.
+    let weaver = SkWeaver::for_carrier(p, Carrier::Certified22);
+    let epsilon = 0.05f64;
+    let two_pi = 2.0 * std::f64::consts::PI;
+    for j in 1..=3u32 {
+        let theta = std::f64::consts::PI / 2f64.powi(j as i32); // π/2^j
+        let word = weaver.synthesize_rotation(theta, epsilon)?;
+        if !word.iter().all(|g| *g == tqc_compiler::BraidGen::Flow) {
+            return Err(format!(
+                "certified rotation π/2^{j} did not synthesize to a spectral-flow word"
+            ));
+        }
+        let phase = weaver.flow_phase(word.len());
+        // circle distance between the achieved phase and the target must be within epsilon.
+        let mut d = (phase - theta.rem_euclid(two_pi)).rem_euclid(two_pi);
+        if d > std::f64::consts::PI {
+            d = two_pi - d;
+        }
+        if d >= epsilon {
+            return Err(format!(
+                "certified rotation π/2^{j}: synthesized phase off by {d} >= epsilon {epsilon}"
+            ));
+        }
+    }
+
+    // (3) Replay the Shor instance against the exact reference evaluation.
+    shor_check()
 }
