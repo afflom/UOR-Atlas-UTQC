@@ -7,8 +7,13 @@ meta-gate enforces it mechanically.
 | Status | Meaning | What V&V may assert | Tier |
 |---|---|---|---|
 | `some-true` | Established: an F1 theorem, a realized uor-addr operation, or a holospaces `vv` witness. | A green, gating check that the implementation reproduces the sourced fact. | gating `suite` |
-| `build` | A precisely-scoped construction on sourced pieces, validated against universal axioms. | That the construction satisfies the **MTC axioms** (hexagon, Yang–Baxter, SL(2,ℤ), Verlinde, …) — never that it is *the* unique object. | gating `suite` |
-| `open` | A genuine unknown. | Only *measurements*. The claim itself is reported, never asserted true. | non-gating `target` |
+| `build` | A precisely-scoped construction on sourced pieces, validated against universal axioms or an exact in-repo certificate. | That the construction satisfies the **MTC axioms** (hexagon, Yang–Baxter, SL(2,ℤ), Verlinde, …) or carries an exact certificate — never that it is *the* unique object. | gating `suite` |
+| `open` | A genuine unknown. Measured and reported, never asserted true. | Only *measurements*. The claim itself is reported, never asserted true. | non-gating `target` |
+
+**External-anchor rule (strengthened).** A `some-true` row must carry an **external source
+anchor** — an F1 theorem name, a realized uor-addr operation, or a holospaces `vv` witness.
+A source of "(derived)" is never acceptable for `some-true`: derived constructions belong at
+`build` (or `open` if genuinely unknown).
 
 The UTQC inner product is the positive-definite Euclidean composition norm `Σxᵢ²` — a manifest
 sum of squares — so "generators are unitary" is genuine orthogonality, established directly.
@@ -25,6 +30,8 @@ the Atlas composition norm-multiplicative; it is `some-true`.
 ## Forbidden assertions
 
 The honesty gate fails CI if any feature line affirmatively asserts, as established, an `open`
-claim. (Note: `universality` and `advantage` have been established and are no longer open).
+claim. `advantage` is `open` (tier `target`, non-gating): its content-addressed deduplication
+(cache-collapse) metrics are *measured and reported* via `just report`, never asserted as a
+proven quantum advantage.
 
-These may be *probed and reported*; their truth value is never green if they are `open`.
+Open claims may be *probed and reported*; their truth value is never green while they are `open`.

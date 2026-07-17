@@ -13,13 +13,14 @@ nothing is *defined* without a place in the conceptual model.
         docs/conceptual-model/00-source.md          (1) the cited authority (prose)
                      │  transcribed, row by row, into
                      ▼
-        model/{dictionary,status,oracles}.toml      (2) the model as typed data
+        model/{dictionary,status,oracles,usecases}.toml      (2) the model as typed data
                      │  parsed + invariant-checked by
                      ▼
         crates/tqc-model                             (3) typed registries (single source of truth)
                      │  each dictionary row names a
                      ▼
-        features/<stage>/<row>.feature               (4) the BDD definition (Gherkin)
+        features/suites/<stage>/<row>.feature        (4) the BDD definition (Gherkin)
+        features/targets/<stage>/<row>.feature           (open rows: expected-RED, non-gating)
                      │  whose steps are bound in
                      ▼
         crates/tqc-conformance (cucumber steps)      (5) the test
@@ -30,6 +31,10 @@ nothing is *defined* without a place in the conceptual model.
                      ▼
         crates/tqc-vv + oracles/                     (7) the external authoritative oracle
 ```
+
+Gating scenarios live under `features/suites/<stage>/`; `open` rows live under
+`features/targets/<stage>/` as expected-RED, non-gating probes whose results are measured and
+reported (via `just report`), never asserted.
 
 A feature is **done** only when (4)→(7) are all present and green in CI. The honesty gate
 (below) mechanically forbids skipping any link — e.g. a dictionary row with no feature, a
@@ -46,11 +51,13 @@ change in one concern touches one crate.
 | `tqc-model` | Parses `model/*.toml` into typed, invariant-checked registries (dictionary, status ledger, oracle registry) and the parametric `UseCaseParams`. No math, no substrate. | the conceptual model changes |
 | `tqc-core` | The **parametric** MTC framework: label space, generators, inner product, spectrum, coxeter, modular, octonion eight-square, E8 PSD anchor, amplitude encoding — generic over a use-case, `no_std`. DRY home of all pure behavior. | the mathematics changes |
 | `tqc-atlas` | The UOR Atlas **use-case instance** `(q=4, T=3, O=8)` over `tqc-core`, the use-case registry, and the E8 Cartan/Gram. | the Atlas instance changes |
-| `tqc-mtc` | The **MTC builds**: the modular `S`/`T` and braiding `R` constructed as the quantum double `D(Z_n)` and validated against the MTC axioms. Generic over the use-case; `std`. | the MTC construction changes |
+| `tqc-mtc` | The **MTC builds**: the modular `S`/`T` and braiding `F`/`R` of the Atlas-native pointed category, validated phase-exactly against the full MTC axiom set; the quantum double `D(Z_n)` is the anomaly-free generic reference theory exercising the same verifier. Generic over the use-case; `std`. | the MTC construction changes |
+| `tqc-algorithms` | Exact-arithmetic reference evaluations of Grover / QFT / QPE / Shor instances. | an algorithm reference changes |
+| `tqc-compiler` | Gate-word scheduling front-end: QASM parsing + braid-word emission; no gate-semantics equivalence claim. | the compilation front-end changes |
 | `tqc-substrate` | The **sole** importer of holospaces / hologram / uor-addr. Exposes κ-addressing and the realized `g2`/`f4`/`e6`/`e7`/`e8` compositions across all five σ-axes. | the substrate API changes |
 | `tqc-vv` | V&V witnesses + loaders for external oracle artifacts (with checksum verification); binds each row to its oracle. | an oracle or a witness changes |
 | `tqc-conformance` | The cucumber BDD runner (gating suites + the open-probe harness), the step definitions, and the honesty meta-gate (model ⇄ features ⇄ witnesses cross-check + parametricity leak-check). | the BDD/gate wiring changes |
-| `xtask` | Automation: oracle verification, F1 pin checking, conformance reporting. | tooling changes |
+| `xtask` | Automation: oracle verification, F1 pin checking, conformance reporting; also hosts ungated benchmark utilities as bins (`1000_qubit_benchmark`, `vqe_benchmark`, `scaling_benchmark`, `balancing_check`, `qasm_compiler`) — measurement tools outside the CI gate. | tooling changes |
 
 **Why a facade for the substrate.** Exactly one crate (`tqc-substrate`) may name
 holospaces/hologram/uor-addr. The pure math crates (`tqc-model`, `tqc-core`, `tqc-atlas`,
@@ -80,8 +87,9 @@ The Atlas is therefore one *instance*. The framework is validated two ways:
    machine-checked constants F1 proves (`96`, `24`, `{10,7,2,−1}`, `{1,2,7,14}`, σ/τ/μ
    orders, …). This is the authoritative anchor.
 2. **Across instances** — the framework is exercised at a *second*, arbitrary `UseCaseParams`
-   to prove genuine parametricity (no Atlas constant leaks into the generic code). Known
-   small MTCs (e.g. the trivial / cyclic models, and later Fibonacci/Ising) double as oracles
+   to prove genuine parametricity (no Atlas constant leaks into the generic code). The
+   MTC-axiom verifier is exercised by the quantum double `D(Z_n)` and by the Atlas-native
+   pointed category `C(Z_3 × Z_2^3, q)` — both implemented in-repo — which double as oracles
    for the MTC-axiom predicates.
 
 DRY is structural: a quantity is defined once, in `tqc-core`, as a function of the
@@ -96,9 +104,11 @@ Each dictionary row carries one of three levels (see
 
 - **Coverage** — every dictionary row has a feature *and* a witness; every feature/witness
   maps back to a row (bidirectional).
-- **Status discipline** — a `some-true` row's witness must be a green, gating check; a
-  `build` row is validated **only against MTC axioms / sourced reductions**, never assumed
-  sound; an `open` row may be *probed and reported* but never asserted true.
+- **Status discipline** — a `some-true` row's witness must be a green, gating check anchored
+  to an external source (F1 / uor-addr / holospaces); a `build` row is validated **only
+  against MTC axioms / sourced reductions / exact in-repo certificates**, never assumed
+  sound; an `open` row (tier `target`, non-gating) may be *probed and reported* but never
+  asserted true.
 - **Euclidean inner product** — the inner product is the positive-definite Euclidean
   composition norm `Σxᵢ²`, so "generators are unitary" is genuine orthogonality, established
   directly.

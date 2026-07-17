@@ -37,6 +37,9 @@ jobs:
         run: cargo test --workspace --all-features
       - name: bdd (cucumber, fails on any skipped/undefined step)
         run: cargo test -p tqc-conformance --test bdd
+      - name: anti-hardcode (no literal verdicts or constant assertions)
+        run: |
+          ! grep -rnE "is_dense: (true|false)|is_coherent: (true|false)|is_logarithmic_scaling: (true|false)|is_entangling: (true|false)|certified_dense: (true|false)|assert!\(true|SkWeaver::new\(true" crates xtask --include="*.rs"
 
   # Every committed oracle artifact matches its recorded checksum.
   oracles:

@@ -35,12 +35,24 @@ fn main() -> Result<()> {
     }
 }
 
-/// Verify every committed oracle artifact against its recorded sha256.
+/// Verify every committed oracle artifact against its recorded sha256, and that the
+/// human-readable provenance table (`oracles/PROVENANCE.md`) agrees with the
+/// machine-readable manifest: every oracle id must appear in the table, and every
+/// artifact-bearing oracle's sha256 prefix must appear beside it.
 fn oracle_verify() -> Result<()> {
     let model = Model::load().map_err(|e| anyhow!(e.to_string()))?;
     let root = root();
+    let provenance = fs::read_to_string(root.join("oracles/PROVENANCE.md"))
+        .context("reading oracles/PROVENANCE.md")?;
     let mut checked = 0u32;
     for o in &model.oracles {
+        if !provenance.contains(&format!("`{}`", o.id)) {
+            bail!(
+                "oracle `{}` is missing from oracles/PROVENANCE.md; the provenance table \
+                 must agree with model/oracles.toml",
+                o.id
+            );
+        }
         if o.artifact.is_empty() {
             continue;
         }
@@ -52,10 +64,21 @@ fn oracle_verify() -> Result<()> {
                 o.sha256
             );
         }
+        if !provenance.contains(&got[..8]) {
+            bail!(
+                "oracle `{}`: sha256 prefix {} missing from oracles/PROVENANCE.md",
+                o.id,
+                &got[..8]
+            );
+        }
         println!("ok   {:<22} {}  {}…", o.id, o.artifact, &got[..12]);
         checked += 1;
     }
-    println!("oracle-verify: {checked} artifact(s) verified against model/oracles.toml");
+    println!(
+        "oracle-verify: {checked} artifact(s) verified; PROVENANCE.md agrees with \
+         model/oracles.toml on all {} oracles",
+        model.oracles.len()
+    );
     Ok(())
 }
 
@@ -124,7 +147,7 @@ fn report() -> Result<()> {
         let result = match row.tier {
             Tier::Suite => {
                 suites += 1;
-                match run_suite_witness(&row.id, &p, &f1) {
+                match run_suite_witness(&row.id, &model, &p, &f1) {
                     Some(Ok(())) => {
                         passed += 1;
                         "PASS".to_owned()
@@ -133,7 +156,24 @@ fn report() -> Result<()> {
                     None => "NO WITNESS".to_owned(),
                 }
             }
-            Tier::Target => "target (expected-RED, non-gating)".to_owned(),
+            Tier::Target => match row.id.as_str() {
+                // Open rows are measured and reported, never asserted.
+                "advantage" => match witness::advantage_probe(&p) {
+                    Ok(m) => format!(
+                        "MEASURED (non-gating): degeneracy {:.3}x over {} paths / {} distinct κ; \
+                         compute savings {:.2}%; storage compression {:.2}x ({} → {} bytes)",
+                        m.topological_degeneracy,
+                        m.total_paths,
+                        m.distinct_states,
+                        m.compute_savings_pct,
+                        m.memory_compression_ratio,
+                        m.total_state_bytes,
+                        m.unique_state_bytes
+                    ),
+                    Err(e) => format!("MEASUREMENT FAILED (non-gating): {e}"),
+                },
+                _ => "target (expected-RED, non-gating)".to_owned(),
+            },
         };
         lines.push(format!(
             "| {} | {} | {:?} | {} | {} |",
@@ -142,23 +182,11 @@ fn report() -> Result<()> {
     }
     lines.push(format!("\nsuites: {passed}/{suites} passed"));
 
-    let uni_str = match tqc_vv::exact::exact_density_certificate(&p) {
+    let cert_str = match tqc_vv::exact::exact_density_certificate(&p) {
         Ok(m) => m.description,
-        Err(e) => e,
+        Err(e) => format!("certificate error: {e}"),
     };
-    let adv = witness::advantage_probe(&p).unwrap_or(witness::ParetoMetrics {
-        total_paths: 0,
-        distinct_states: 0,
-        topological_degeneracy: 0.0,
-        compute_savings_pct: 0.0,
-        memory_compression_ratio: 0.0,
-        network_bandwidth_reduction: 0.0,
-    });
-    lines.push(format!(
-        "open probes (measured, never asserted): universality = {uni_str}; \
-         advantage topological degeneracy (UOR Pareto metric) = {:.3}x (compute savings: {:.2}%, memory compression: {:.2}x)\n",
-         adv.topological_degeneracy, adv.compute_savings_pct, adv.memory_compression_ratio
-    ));
+    lines.push(format!("\nexact certificate: {cert_str}\n"));
 
     let report = lines.join("\n");
     let out_dir = root().join("target/conformance");
@@ -173,6 +201,7 @@ fn report() -> Result<()> {
 
 fn run_suite_witness(
     id: &str,
+    model: &Model,
     p: &tqc_core::UseCaseParams,
     f1: &F1Constants,
 ) -> Option<Result<(), String>> {
@@ -194,28 +223,57 @@ fn run_suite_witness(
         "braiding-r-matrix" => witness::braiding_r_matrix(p),
         "holospace-cycle" => witness::holospace_cycle(p),
         "atlas-native-mtc" => witness::atlas_native_mtc(p),
-        "advantage" => witness::advantage_probe(p).map(|_| ()),
-        "generative-closure" => witness::generative_closure_probe(p).map(|_| ()),
-        "utqc-proven" => witness::utqc_proven_probe(p).map(|_| ()),
+        "generative-closure" => witness::generative_closure_probe(p),
+        "utqc-proven" => witness::utqc_proven_probe(model, f1, p),
         "quantum-realization" => witness::quantum_realization(p),
         "universality" => witness::equivalency_universality_probe(p),
-        "two-qubit-universality" => witness::two_qubit_universality_probe(p).map(|_| ()),
+        "two-qubit-universality" => witness::two_qubit_universality_probe(p).and_then(|m| {
+            if m.is_entangling && m.is_coherent {
+                Ok(())
+            } else {
+                Err("no coherent native entangler decided".into())
+            }
+        }),
         "solovay-kitaev" => witness::solovay_kitaev_decision_witness(p),
         "archimedean-continuity" => witness::archimedean_continuity_witness(p),
         "pair-carrier-structure" => witness::pair_carrier_witness(p),
         "finite-closure" => witness::finite_closure_probe(p).map(|_| ()),
-        "whitepaper-formatting"
-        | "s4-modal-logic"
-        | "mac-lane-coherence"
-        | "fault-tolerance"
-        | "complexity-bound"
-        | "reconstructability"
-        | "topological-entanglement"
-        | "grover-search"
-        | "qft-algorithm"
-        | "qpe-algorithm"
-        | "shor-algorithm"
-        | "tensor-contraction-bypass" => Ok(()),
+        "s4-modal-logic" => witness::s4_frame_witness(p),
+        "mac-lane-coherence" => witness::mac_lane_coherence(p),
+        "fault-tolerance" => witness::deterministic_replay_witness(p),
+        "complexity-bound" => witness::complexity_bound_witness(p),
+        "reconstructability" => witness::reconstruction_witness(p),
+        "tensor-contraction-bypass" => witness::isotopy_collision_witness(p),
+        "topological-entanglement" => witness::topological_entanglement_probe(p).and_then(|m| {
+            if m.is_logarithmic_scaling && m.entropy_bound > 0.0 {
+                Ok(())
+            } else {
+                Err(format!(
+                    "measured entanglement profile fails the derived verdict: {:?}",
+                    m.depth_profile
+                ))
+            }
+        }),
+        "grover-search" => tqc_algorithms::checks::grover_check(),
+        "qft-algorithm" => tqc_algorithms::checks::qft_word_check(p).map(|_| ()),
+        "qpe-algorithm" => tqc_algorithms::checks::qpe_check(),
+        "shor-algorithm" => tqc_algorithms::checks::shor_check(),
+        "whitepaper-formatting" => whitepaper_formatting_check(),
         _ => return None,
     })
+}
+
+/// The whitepaper-formatting row: docs/paper/main.tex conforms to the RevTeX 4-2 spec
+/// (document class) and carries the tikz visual-aid dependency — the same checks the BDD
+/// steps make.
+fn whitepaper_formatting_check() -> Result<(), String> {
+    let path = root().join("docs/paper/main.tex");
+    let text = fs::read_to_string(&path).map_err(|e| format!("reading main.tex: {e}"))?;
+    if !text.contains("{revtex4-2}") {
+        return Err("main.tex does not use the revtex4-2 document class".into());
+    }
+    if !text.contains("\\usepackage{tikz}") {
+        return Err("main.tex does not include tikz".into());
+    }
+    Ok(())
 }

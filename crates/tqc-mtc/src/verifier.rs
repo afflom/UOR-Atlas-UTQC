@@ -1,6 +1,6 @@
 use crate::{close_mat, identity, is_symmetric, is_unitary, mat_pow, zeros, Matrix, C};
 
-/// Data for a generic Modular Tensor Category (MTC), potentially non-pointed.
+/// Data for a generic Modular Tensor Category (MTC).
 pub trait ModularData {
     /// The number of simple objects.
     fn dim(&self) -> usize;
@@ -18,18 +18,32 @@ pub trait ModularData {
     fn r_symbol(&self, i: usize, j: usize, k: usize) -> C;
 }
 
-/// Verify the universal MTC axioms for a generalized Atlas-native category.
+/// The search cap for the multiplicative order of a twist. Vafa's theorem guarantees the
+/// twists of a genuine MTC are roots of unity; a data set whose twists exceed this order
+/// is rejected rather than silently accepted.
+const TWIST_ORDER_CAP: usize = 1 << 16;
+
+/// Verify the universal MTC axioms for the supplied modular data.
 ///
-/// **Implemented checks:**
-/// - Modular `S` and `T` matrices satisfy SL(2,ℤ) relations (`S` symmetric/unitary, `S⁴ = I`, `(ST)³ = S²`, `S² = C`).
-/// - Fusion coefficients `N_{ij}^k` are non-negative integers.
-/// - Full nonnegative integral Verlinde fusion checks linking `S` to `N_{ij}^k`.
-/// - Full `F`-symbol pentagon coherence.
-/// - Full hexagon coherence for `F` and `R`.
-/// - Yang–Baxter coverage and monodromy consistency for general non-pointed MTCs.
+/// **Implemented checks** (each compares full complex values within `tol` — no
+/// magnitude-only comparisons):
+/// - `S` is symmetric and unitary; `S⁴ = I`; `S² = C` (charge conjugation).
+/// - Every twist `θᵢ` is a phase of finite multiplicative order (Vafa's theorem).
+/// - `(ST)³ = p⁺ S²` where the anomaly `p⁺` is a phase, and `p⁺` equals the Gauss sum
+///   `(Σᵢ dᵢ² θᵢ)/D` — it is cross-derived, not merely read off `(ST)³`.
+/// - Fusion coefficients `N_{ij}^k` are non-negative integers with a unique identity object.
+/// - The Verlinde formula reproduces `N_{ij}^k` exactly (real part = N, imaginary part = 0).
+/// - `R`-symbols are unit phases on every admissible fusion channel.
+/// - The balancing (ribbon) equation `R^k_{ij} R^k_{ji} = θ_k θᵢ⁻¹ θⱼ⁻¹` holds exactly.
+/// - The pentagon equation holds exactly for the `F`-symbols.
+/// - Both hexagon equations hold exactly for `F` and `R` (by Joyal–Street coherence,
+///   pentagon + hexagons imply the Yang–Baxter relation for the induced braiding).
+/// - The monodromy–S relation `D·S_{ab} = Σ_c N_{āb}^c d_c θ_c θ_ā⁻¹ θ_b⁻¹` ties the
+///   braiding data back to the modular data.
+///
 /// # Errors
 /// Returns a description of the first axiom that fails within `tol`.
-#[allow(clippy::needless_range_loop)]
+#[allow(clippy::needless_range_loop, clippy::too_many_lines)]
 pub fn verify_mtc_axioms(m: &dyn ModularData, tol: f64) -> Result<(), String> {
     let dim = m.dim();
     let s = m.s_matrix();
@@ -42,9 +56,75 @@ pub fn verify_mtc_axioms(m: &dyn ModularData, tol: f64) -> Result<(), String> {
         return Err("S is not unitary".into());
     }
 
+    // Twists are phases of finite multiplicative order (Vafa).
     for (i, theta) in t.iter().enumerate() {
         if (theta.abs2() - 1.0).abs() > tol {
             return Err(format!("T[{i}] is not a phase"));
+        }
+        let mut pow = *theta;
+        let mut order = 1usize;
+        while !pow.close(C::new(1.0, 0.0), tol) {
+            pow = pow.times(*theta);
+            order += 1;
+            if order > TWIST_ORDER_CAP {
+                return Err(format!(
+                    "T[{i}] has no finite order <= {TWIST_ORDER_CAP} (Vafa violated)"
+                ));
+            }
+        }
+    }
+
+    // Fusion coefficients are non-negative integers.
+    for i in 0..dim {
+        for j in 0..dim {
+            for k in 0..dim {
+                let n_val = m.n_ijk(i, j, k);
+                if n_val < -tol || (n_val - n_val.round()).abs() > tol {
+                    return Err(format!(
+                        "N_{{{i},{j}}}^{k} = {n_val} is not a non-negative integer"
+                    ));
+                }
+            }
+        }
+    }
+
+    // Unique identity object: N_{e,j}^k = δ_{jk}.
+    let mut identity_obj = None;
+    for i in 0..dim {
+        let is_id = (0..dim).all(|j| {
+            (0..dim).all(|k| {
+                let expected = if j == k { 1.0 } else { 0.0 };
+                (m.n_ijk(i, j, k) - expected).abs() <= tol
+            })
+        });
+        if is_id {
+            if let Some(prev) = identity_obj {
+                return Err(format!("identity object is not unique: {prev} and {i}"));
+            }
+            identity_obj = Some(i);
+        }
+    }
+    let e =
+        identity_obj.ok_or_else(|| "No identity object found (N_{e,i}^j != δ_{ij})".to_string())?;
+
+    // Quantum dimensions d_i = S_{ei}/S_{ee} and the total dimension D = 1/S_{ee}.
+    let s_ee = s[e][e];
+    if s_ee.abs2() < tol * tol {
+        return Err("S_{ee} is zero".into());
+    }
+    if s_ee.im.abs() > tol {
+        return Err("S_{ee} is not real".into());
+    }
+    let d_total = 1.0 / s_ee.re;
+    let dims: Vec<f64> = (0..dim)
+        .map(|i| {
+            let d = s[e][i];
+            d.re / s_ee.re
+        })
+        .collect();
+    for i in 0..dim {
+        if s[e][i].im.abs() > tol {
+            return Err(format!("quantum dimension d_{i} is not real"));
         }
     }
 
@@ -53,7 +133,8 @@ pub fn verify_mtc_axioms(m: &dyn ModularData, tol: f64) -> Result<(), String> {
         return Err("S^4 != I".into());
     }
 
-    // (ST)^3 = p^+ S^2 (where p^+ is the anomaly phase e^{i pi c / 4})
+    // (ST)^3 = p^+ S^2 where p^+ is the anomaly phase e^{2πi c/8}. The anomaly is
+    // cross-derived from the Gauss sum (Σ d_a² θ_a)/D and must agree with (ST)³ S⁻².
     let mut st = zeros(dim);
     for (i, row) in st.iter_mut().enumerate() {
         for (j, cell) in row.iter_mut().enumerate() {
@@ -61,11 +142,14 @@ pub fn verify_mtc_axioms(m: &dyn ModularData, tol: f64) -> Result<(), String> {
         }
     }
     let st3 = mat_pow(&st, 3);
-    // Extract the anomaly phase from the identity element
-    let p_plus = st3[0][0];
+    let mut gauss = C::new(0.0, 0.0);
+    for i in 0..dim {
+        gauss = gauss.plus(t[i].scale(dims[i] * dims[i]));
+    }
+    let p_plus = gauss.scale(1.0 / d_total);
     if (p_plus.abs2() - 1.0).abs() > tol {
         return Err(format!(
-            "Anomaly phase p^+ has invalid magnitude: {}",
+            "Anomaly phase p^+ (Gauss sum / D) has invalid magnitude: {}",
             p_plus.abs2().sqrt()
         ));
     }
@@ -76,39 +160,15 @@ pub fn verify_mtc_axioms(m: &dyn ModularData, tol: f64) -> Result<(), String> {
         }
     }
     if !close_mat(&st3, &scaled_s2, tol) {
-        return Err("(ST)^3 != p^+ S^2".into());
+        return Err("(ST)^3 != p^+ S^2 for the Gauss-sum anomaly p^+".into());
     }
 
     if !close_mat(&s2, &m.charge_conjugation(), tol) {
         return Err("S^2 != charge conjugation".into());
     }
 
-    // Find identity object
-    let mut identity_obj = None;
-    for i in 0..dim {
-        let mut is_id = true;
-        for j in 0..dim {
-            for k in 0..dim {
-                let n_val = m.n_ijk(i, j, k);
-                let expected = if j == k { 1.0 } else { 0.0 };
-                if (n_val - expected).abs() > tol {
-                    is_id = false;
-                    break;
-                }
-            }
-            if !is_id {
-                break;
-            }
-        }
-        if is_id {
-            identity_obj = Some(i);
-            break;
-        }
-    }
-    let e =
-        identity_obj.ok_or_else(|| "No identity object found (N_{e,i}^j != δ_{ij})".to_string())?;
-
-    // Verlinde formula
+    // Verlinde formula, exact: the sum must equal N_{ij}^k (already known to be a
+    // non-negative integer) with vanishing imaginary part.
     for i in 0..dim {
         for j in 0..dim {
             for k in 0..dim {
@@ -123,32 +183,60 @@ pub fn verify_mtc_axioms(m: &dyn ModularData, tol: f64) -> Result<(), String> {
                     let term = s[i][l].times(s[j][l]).times(s[k][l].conj());
                     sum = sum.plus(term.times(inv));
                 }
-                if (sum.re - n_val.abs()).abs() > tol || sum.im.abs() > tol {
+                if (sum.re - n_val).abs() > tol || sum.im.abs() > tol {
                     return Err(format!("Verlinde formula fails at N_{{{i},{j}}}^{k}"));
                 }
             }
         }
     }
 
-    // Balancing Equation (Ribbon twist compatibility)
+    // R-symbols are unit phases on admissible channels, and the balancing (ribbon)
+    // equation holds exactly: R^k_{ij} R^k_{ji} = θ_k θ_i⁻¹ θ_j⁻¹.
     for i in 0..dim {
         for j in 0..dim {
             for k in 0..dim {
                 if m.n_ijk(i, j, k).abs() > tol {
                     let r1 = m.r_symbol(i, j, k);
-                    let r2 = m.r_symbol(j, i, k);
-                    let lhs = r1.times(r2);
-
-                    let rhs = t[k].times(t[i].conj()).times(t[j].conj());
-                    if (lhs.abs2() - rhs.abs2()).abs() > tol {
-                        return Err(format!("Balancing equation fails at N_{{{i},{j}}}^{k}"));
+                    if (r1.abs2() - 1.0).abs() > tol {
+                        return Err(format!("R_{{{i},{j}}}^{k} is not a unit phase"));
+                    }
+                    if m.n_ijk(j, i, k).abs() > tol {
+                        let r2 = m.r_symbol(j, i, k);
+                        let lhs = r1.times(r2);
+                        let rhs = t[k].times(t[i].conj()).times(t[j].conj());
+                        if !lhs.close(rhs, tol) {
+                            return Err(format!("Balancing equation fails at N_{{{i},{j}}}^{k}"));
+                        }
                     }
                 }
             }
         }
     }
 
-    // Pentagon equation
+    // Monodromy–S relation: D·S_{ab} = Σ_c N_{āb}^c d_c θ_c θ_ā⁻¹ θ_b⁻¹, where ā is the
+    // charge conjugate of a. This ties the braiding/twist data back to the S matrix.
+    let cc = m.charge_conjugation();
+    for a in 0..dim {
+        let a_bar = (0..dim)
+            .find(|&x| (cc[a][x].re - 1.0).abs() <= tol && cc[a][x].im.abs() <= tol)
+            .ok_or_else(|| format!("charge conjugation row {a} is not a permutation row"))?;
+        for b in 0..dim {
+            let mut sum = C::new(0.0, 0.0);
+            for c in 0..dim {
+                let n_val = m.n_ijk(a_bar, b, c);
+                if n_val.abs() > tol {
+                    let term = t[c].times(t[a_bar].conj()).times(t[b].conj());
+                    sum = sum.plus(term.scale(n_val * dims[c]));
+                }
+            }
+            let want = s[a][b].scale(d_total);
+            if !sum.close(want, tol) {
+                return Err(format!("monodromy–S relation fails at ({a},{b})"));
+            }
+        }
+    }
+
+    // Pentagon equation, exact.
     for i1 in 0..dim {
         for i2 in 0..dim {
             for a in 0..dim {
@@ -203,7 +291,7 @@ pub fn verify_mtc_axioms(m: &dyn ModularData, tol: f64) -> Result<(), String> {
                                             rhs = rhs.plus(term);
                                         }
 
-                                        if (lhs.abs2() - rhs.abs2()).abs() > tol {
+                                        if !lhs.close(rhs, tol) {
                                             return Err(format!("Pentagon equation fails at 1={i1} 2={i2} 3={i3} 4={i4} 5={i5} a={a} b={b} c={c} d={d}"));
                                         }
                                     }
@@ -216,7 +304,7 @@ pub fn verify_mtc_axioms(m: &dyn ModularData, tol: f64) -> Result<(), String> {
         }
     }
 
-    // Hexagon equations
+    // Hexagon equations, exact.
     for i1 in 0..dim {
         for i2 in 0..dim {
             for a in 0..dim {
@@ -272,12 +360,12 @@ pub fn verify_mtc_axioms(m: &dyn ModularData, tol: f64) -> Result<(), String> {
                                 rhs2 = rhs2.plus(f2.times(m.r_symbol(b, i1, d).conj()).times(f1));
                             }
 
-                            if (lhs1.abs2() - rhs1.abs2()).abs() > tol {
+                            if !lhs1.close(rhs1, tol) {
                                 return Err(format!(
                                     "Hexagon 1 fails at 1={i1} 2={i2} 3={i3} d={d} a={a} c={c}"
                                 ));
                             }
-                            if (lhs2.abs2() - rhs2.abs2()).abs() > tol {
+                            if !lhs2.close(rhs2, tol) {
                                 return Err(format!(
                                     "Hexagon 2 fails at 1={i1} 2={i2} 3={i3} d={d} a={a} c={c}"
                                 ));
@@ -295,7 +383,9 @@ pub fn verify_mtc_axioms(m: &dyn ModularData, tol: f64) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::native::construct_atlas_native;
     use crate::DoubleZn;
+    use tqc_core::params::UseCaseParams;
 
     #[test]
     fn verify_generalized_mtc_axioms_for_double_zn() {
@@ -308,5 +398,64 @@ mod tests {
         let d3 = DoubleZn { n: 3 };
         verify_mtc_axioms(&d3, tol)
             .unwrap_or_else(|e| panic!("verify_mtc_axioms failed for D(Z_3): {e}"));
+    }
+
+    #[test]
+    fn verify_full_phase_exact_axioms_for_atlas_native() {
+        // The Atlas-native pointed category C(Z_3 × Z_2^3, q) must pass every axiom
+        // with full complex-valued (phase-sensitive) comparisons — and so must the
+        // second (even-modality) use-case instance, which exercises the level-1
+        // Eilenberg–MacLane cocycle branch.
+        // (2,4,4) exercises an even modality >= 4, where the S-matrix bicharacter level
+        // differs from the naive +2·m1m2/n exponent.
+        for (scope, modality, context) in [(4u32, 3u32, 8u32), (2, 2, 4), (2, 4, 4), (3, 5, 2)] {
+            let p = UseCaseParams::new(scope, modality, context);
+            let native = construct_atlas_native(&p).expect("construction");
+            verify_mtc_axioms(&*native, 1e-9).unwrap_or_else(|e| {
+                panic!("phase-exact axioms failed at ({scope},{modality},{context}): {e}")
+            });
+        }
+    }
+
+    #[test]
+    fn phase_blind_data_is_rejected() {
+        // A mutant of D(Z_2) whose R-symbol carries a wrong sign must be caught. The
+        // magnitude of every symbol is unchanged, so a magnitude-only checker would
+        // accept it; the phase-exact checker must reject it.
+        struct WrongSign(DoubleZn);
+        impl ModularData for WrongSign {
+            fn dim(&self) -> usize {
+                ModularData::dim(&self.0)
+            }
+            fn s_matrix(&self) -> Matrix {
+                ModularData::s_matrix(&self.0)
+            }
+            fn t_diag(&self) -> Vec<C> {
+                ModularData::t_diag(&self.0)
+            }
+            fn charge_conjugation(&self) -> Matrix {
+                ModularData::charge_conjugation(&self.0)
+            }
+            fn n_ijk(&self, i: usize, j: usize, k: usize) -> f64 {
+                self.0.n_ijk(i, j, k)
+            }
+            fn f_symbol(&self, i: usize, j: usize, k: usize, l: usize, m: usize, n: usize) -> C {
+                self.0.f_symbol(i, j, k, l, m, n)
+            }
+            fn r_symbol(&self, i: usize, j: usize, k: usize) -> C {
+                // Flip the sign on one non-identity channel.
+                let r = self.0.r_symbol(i, j, k);
+                if i == 1 && j == 1 {
+                    r.scale(-1.0)
+                } else {
+                    r
+                }
+            }
+        }
+        let mutant = WrongSign(DoubleZn { n: 2 });
+        assert!(
+            verify_mtc_axioms(&mutant, 1e-9).is_err(),
+            "a phase error must be detected"
+        );
     }
 }

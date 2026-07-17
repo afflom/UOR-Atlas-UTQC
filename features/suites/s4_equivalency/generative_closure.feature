@@ -1,7 +1,8 @@
-@row:generative-closure @stage:S4 @status:some-true @oracle:mtc-axioms
-Feature: Generative closure
-  All S0 labels and operators are reachable from the single Atlas generator.
+@row:generative-closure @stage:S4 @status:build @oracle:exact-algebra
+Feature: Generative closure (orbit decomposition)
+  The generator group closure is computed by BFS: the class space partitions into the
+  derived mirror orbits, covering every label from one seed per mirror class.
 
-  Scenario: Reachability
+  Scenario: Orbit decomposition
     Given the UOR Atlas use-case
-    Then all S0 labels and operators are reachable from the single Atlas generator
+    Then the generator closure partitions the class space into the derived mirror orbits covering every label

@@ -1,8 +1,10 @@
-//! Exact Topological Grover's Search Algorithm
+//! Grover amplitude evolution, evaluated exactly.
 //!
-//! Synthesizes Grover's Search natively over the combinatorial manifold
-//! as an exact execution witness, modeling the algorithmic amplitude evolution
-//! and proving the viability of complex algorithmic rollups without exponential overhead.
+//! An exact-arithmetic *reference evaluation* of Grover's amplitude recurrence at a fixed
+//! instance: the two amplitude coefficients (target / non-target) evolve under the exact
+//! rational reflection recurrence, with the optimal iteration count from the exact integer
+//! square root. This validates the algorithm mathematics; it is a classical exact
+//! computation and claims no speedup.
 
 use num_bigint::BigInt;
 use num_rational::BigRational;
@@ -38,7 +40,7 @@ impl GroverSolver {
     /// Executes the certified exact Grover witness natively.
     ///
     /// Evaluates the sequence of Oracle and Diffuser reflections exactly on the
-    /// amplitude basis, subverting the #P-hard tensor contraction requirement.
+    /// amplitude basis, at the fixed reference instance; no #P-hardness claim is attached.
     pub fn execute_exact_witness(&self, target_state: usize) -> Result<ExactGroverReport, String> {
         let n_states = 1 << self.num_qubits;
         if target_state >= n_states {
@@ -60,7 +62,8 @@ impl GroverSolver {
         }
         let iterations = (x / 100_000_000) as usize;
 
-        // Exact amplitude tracking over the topological state (mathematical subversion of 2^N tensor)
+        // Exact amplitude tracking on the two-coefficient symmetric subspace (the
+        // Grover state stays in span{|target>, uniform-rest} throughout)
         let mut a_t = BigRational::new(BigInt::from(1), BigInt::from(1));
         let mut a_u = BigRational::new(BigInt::from(1), BigInt::from(1));
         let n_states_bi = BigRational::new(BigInt::from(n_states), BigInt::from(1));

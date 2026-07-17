@@ -35,9 +35,37 @@ pub fn audit(model: &Model, root: &Path) -> Result<AuditReport, String> {
             return Err(format!("row `{}`: feature file missing: {rel}", row.id));
         }
         let text = fs::read_to_string(&path).map_err(|e| format!("read {rel}: {e}"))?;
-        let tag = format!("@row:{}", row.id);
-        if !text.contains(&tag) {
-            return Err(format!("feature `{rel}` is missing the `{tag}` tag"));
+        // The feature's tag line must carry the row id AND agree with the dictionary on
+        // stage, status, and oracle — tags are validated bindings, not decoration.
+        for tag in [
+            format!("@row:{}", row.id),
+            format!("@stage:{}", row.stage),
+            format!("@status:{}", row.status),
+            format!("@oracle:{}", row.oracle),
+        ] {
+            if !text.contains(&tag) {
+                return Err(format!(
+                    "feature `{rel}` is missing or contradicts the `{tag}` tag"
+                ));
+            }
+        }
+
+        // Source discipline: `some-true` means externally established. A parenthetical
+        // source ("(derived)", "(future proof)", "(not in source)", …) is an in-repo
+        // derivation and may never be billed as some-true — that is the status-inflation
+        // pattern this gate exists to reject.
+        if row.status == "some-true" && row.source.trim_start().starts_with('(') {
+            return Err(format!(
+                "row `{}`: status `some-true` requires an external source anchor, got `{}`",
+                row.id, row.source
+            ));
+        }
+        // The in-repo exact-certificate oracle is build-level by definition.
+        if row.status == "some-true" && row.oracle == "exact-algebra" {
+            return Err(format!(
+                "row `{}`: the in-repo `exact-algebra` oracle cannot back a `some-true` row",
+                row.id
+            ));
         }
         let prefix = match row.tier {
             Tier::Suite => "features/suites/",
@@ -113,21 +141,27 @@ fn collect_features(dir: &Path, root: &Path, out: &mut BTreeSet<String>) -> Resu
     Ok(())
 }
 
+fn collect_rs_files(dir: &Path, out: &mut Vec<std::path::PathBuf>) -> Result<(), String> {
+    for entry in fs::read_dir(dir).map_err(|e| format!("read {}: {e}", dir.display()))? {
+        let path = entry.map_err(|e| e.to_string())?.path();
+        if path.is_dir() {
+            collect_rs_files(&path, out)?;
+        } else if path.extension().and_then(|s| s.to_str()) == Some("rs") {
+            out.push(path);
+        }
+    }
+    Ok(())
+}
+
 /// No Atlas composite literal may appear in `tqc-core` (the generic framework). The canonical
 /// numbers live only in `tqc-atlas` / the oracle. Comments and `#[cfg(test)]` modules are
 /// excluded; only executable generic code is scanned.
 fn no_literal_leak(root: &Path) -> Result<(), String> {
     let dir = root.join("crates/tqc-core/src");
-    let mut paths: Vec<_> = fs::read_dir(&dir)
-        .map_err(|e| format!("read tqc-core/src: {e}"))?
-        .filter_map(Result::ok)
-        .map(|e| e.path())
-        .collect();
+    let mut paths = Vec::new();
+    collect_rs_files(&dir, &mut paths)?;
     paths.sort();
     for path in paths {
-        if path.extension().and_then(|s| s.to_str()) != Some("rs") {
-            continue;
-        }
         let text = fs::read_to_string(&path).map_err(|e| e.to_string())?;
         // Drop the test module (conventionally at the file's end) and all comment lines.
         let before_tests = text.split("#[cfg(test)]").next().unwrap_or(&text);
@@ -169,9 +203,10 @@ fn contains_standalone_number(text: &str, num: &str) -> bool {
 fn inner_product_is_euclidean(root: &Path) -> Result<(), String> {
     let inner = root.join("crates/tqc-core/src/inner.rs");
     let text = fs::read_to_string(&inner).map_err(|e| format!("read inner.rs: {e}"))?;
-    if !text.contains("euclidean_norm_sq") {
+    if !text.contains("pub fn euclidean_norm_sq") {
         return Err(
-            "the inner product must be the Euclidean composition norm (euclidean_norm_sq)".into(),
+            "the inner product must define the Euclidean composition norm (pub fn euclidean_norm_sq)"
+                .into(),
         );
     }
     Ok(())

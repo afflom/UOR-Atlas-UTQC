@@ -40,6 +40,22 @@ pub fn block_eigenvalues(p: &UseCaseParams) -> [i64; 4] {
     [base, base - t, base - o, base - t - o]
 }
 
+/// The four block multiplicities of `M`, in the canonical eigenvalue order of
+/// [`block_eigenvalues`]: `[1, T−1, O−1, (T−1)(O−1)]`.
+///
+/// Derivation (parametric, not sourced): `M = (O+2)·I − T·Π_T − O·Π_O` acts on the carrier
+/// `V_T ⊗ V_O` with `Π_T = P_T ⊗ I` and `Π_O = I ⊗ P_O`, where `P_T`, `P_O` are the
+/// mean-centered projectors of ranks `T−1` and `O−1`. The joint eigenspaces have dimensions
+/// `(mean ⊗ mean) = 1`, `(centered ⊗ mean) = T−1`, `(mean ⊗ centered) = O−1`, and
+/// `(centered ⊗ centered) = (T−1)(O−1)`. For the Atlas `(T=3, O=8)` this is `[1, 2, 7, 14]`,
+/// which the `spectrum` witness cross-checks against the F1 oracle.
+#[must_use]
+pub fn block_multiplicities(p: &UseCaseParams) -> [u64; 4] {
+    let t = u64::from(p.modality);
+    let o = u64::from(p.context);
+    [1, t - 1, o - 1, (t - 1) * (o - 1)]
+}
+
 /// Reconcile parametric eigenvalues with sourced multiplicities, returning the signature.
 ///
 /// `Σ mult = carrier_dim`, `Σ eig·mult = trace = carrier_dim`, and the operator is

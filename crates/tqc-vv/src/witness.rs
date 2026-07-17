@@ -168,6 +168,12 @@ pub fn spectrum(p: &UseCaseParams, f1: &F1Constants) -> Witness {
         spectrum::block_eigenvalues(p).as_slice() == f1.spectrum.eigenvalues.as_slice(),
         "block eigenvalues != F1",
     )?;
+    // Multiplicities are derived parametrically from the projector-rank formula and must
+    // agree with the sourced F1 values (derive, then cross-check — never hand-enter).
+    check(
+        spectrum::block_multiplicities(p).as_slice() == f1.spectrum.multiplicities.as_slice(),
+        "derived block multiplicities != F1",
+    )?;
     let sig = spectrum::reconcile(p, &f1.spectrum.eigenvalues, &f1.spectrum.multiplicities)
         .map_err(|e| format!("spectrum reconciliation failed: {e:?}"))?;
     check(
@@ -432,34 +438,130 @@ pub fn complex_amplitude_encoding(p: &UseCaseParams, f1: &F1Constants) -> Witnes
     )
 }
 
-/// VV (build) — the modular S/T matrices satisfy the SL(2,ℤ) relations.
-///
-/// Constructed as the quantum double `D(Z_n)` (n = context), validated against the MTC axioms:
-/// S symmetric & unitary, T of finite order, `S⁴ = 1`, `(ST)³ = S²`, `S² = C`, and Verlinde
-/// reproduces the group-law fusion. Never asserted to be the unique Atlas category.
+/// VV (build) — the modular S/T matrices of the Atlas-native pointed category satisfy the
+/// full MTC axiom set with phase-exact comparisons: S symmetric & unitary, `S⁴ = I`,
+/// `S² = C`, twists of finite order (Vafa), `(ST)³ = p⁺S²` with the Gauss-sum anomaly `p⁺`,
+/// non-negative integer fusion, exact Verlinde, phase-exact pentagon/hexagon/balancing, and
+/// the monodromy–S relation. A `build` construction — never asserted to be F1-sourced.
 ///
 /// # Errors
-/// VV (build) — the modular S/T matrices satisfy the SL(2,ℤ) relations.
+/// Returns the first axiom that fails.
 pub fn modular_s_t(p: &UseCaseParams) -> Witness {
     let native = match tqc_mtc::native::construct_atlas_native(p) {
         Ok(n) => n,
         Err(e) => return Err(e.to_string()),
     };
-    tqc_mtc::verifier::verify_mtc_axioms(&*native, tqc_mtc::TOL)
+    tqc_mtc::verifier::verify_mtc_axioms(&*native, tqc_mtc::TOL)?;
+
+    // At the Atlas instance, pin the anomaly VALUE: three semions (c = 3) times the
+    // Z_3 anyon (c = 2) give central charge c ≡ 5 (mod 8), so the Gauss-sum anomaly
+    // must be p⁺ = e^{2πi·5/8} exactly (the generic verifier only checks |p⁺| = 1 and
+    // the (ST)³ relation).
+    if (p.modality, p.context) == (3, 8) {
+        let t = native.t_diag();
+        let dim = native.dim();
+        let mut gauss = tqc_mtc::C::new(0.0, 0.0);
+        for theta in &t {
+            gauss = gauss.plus(*theta);
+        }
+        let p_plus = gauss.scale(1.0 / (dim as f64).sqrt());
+        let want = tqc_mtc::C::phase(2.0 * core::f64::consts::PI * 5.0 / 8.0);
+        check(
+            p_plus.close(want, tqc_mtc::TOL),
+            "Gauss-sum anomaly p⁺ != e^{2πi·5/8}: the central charge is not ≡ 5 (mod 8)",
+        )?;
+    }
+    Ok(())
 }
 
-/// VV (build) — the braiding R-matrix satisfies the hexagon and Yang–Baxter.
-///
-/// Constructed as the bicharacter braiding of `D(Z_n)` (n = context), validated against the MTC
-/// axioms: unitary phases, hexagon (bimultiplicativity), and the monodromy tying R to S.
+/// The monodromy bicharacter `χ(a,b) = R(a,b)·R(b,a)` of the Atlas-native pointed category,
+/// as an exact root-of-unity exponent pair `(modality part mod T, semion parity mod 2)`.
+/// Integer arithmetic only — no floats.
+fn chi_exponents(p: &UseCaseParams, x: usize, y: usize) -> (usize, usize) {
+    let modality = p.modality as usize;
+    let context = p.context as usize;
+    let k_mod = if modality % 2 == 0 { 1 } else { 2 };
+    let (m1, c1) = (x / context, x % context);
+    let (m2, c2) = (y / context, y % context);
+    (
+        (k_mod * m1 * m2) % modality,
+        ((c1 & c2).count_ones() as usize) % 2,
+    )
+}
+
+/// VV (build) — the braiding R-matrix, decided with exact integer arithmetic on
+/// root-of-unity exponents (no floats): the monodromy bicharacter `χ(a,b) = R(a,b)R(b,a)`
+/// is symmetric, bimultiplicative, satisfies `χ(a,a) = θ_a²` (ribbon/twist consistency),
+/// and is **non-degenerate** — the modularity criterion for pointed categories. The exact
+/// integer model is tied back to the runtime R-symbols numerically, and the full
+/// hexagon / balancing / (Yang–Baxter via coherence) axioms of R are then verified
+/// phase-exactly through the generic axiom verifier.
 ///
 /// # Errors
-/// Returns the first axiom that fails.
+/// Returns the first braiding property that fails.
+#[allow(clippy::needless_range_loop)]
 pub fn braiding_r_matrix(p: &UseCaseParams) -> Witness {
     let native = match tqc_mtc::native::construct_atlas_native(p) {
         Ok(n) => n,
         Err(e) => return Err(e.to_string()),
     };
+    let dim = native.dim();
+    let modality = p.modality as usize;
+    let context = p.context as usize;
+    let chi = |x: usize, y: usize| chi_exponents(p, x, y);
+    let mul = |a: (usize, usize), b: (usize, usize)| ((a.0 + b.0) % modality, (a.1 + b.1) % 2);
+    let one = (0usize, 0usize);
+    let add = |x: usize, y: usize| -> usize {
+        let (m1, c1) = (x / context, x % context);
+        let (m2, c2) = (y / context, y % context);
+        ((m1 + m2) % modality) * context + (c1 ^ c2)
+    };
+
+    for a in 0..dim {
+        // Twist consistency: χ(a,a) = θ_a² as exact exponent pairs.
+        let (m, c) = (a / context, a % context);
+        let k_mod = if modality % 2 == 0 { 1 } else { 2 };
+        let theta_sq = ((k_mod * m * m) % modality, (c.count_ones() as usize) % 2);
+        check(
+            chi(a, a) == theta_sq,
+            format!("χ({a},{a}) != θ_{a}² (ribbon/twist consistency)"),
+        )?;
+        // Non-degeneracy (modularity for pointed categories): every non-identity label is
+        // detected by some monodromy.
+        if a != 0 {
+            check(
+                (0..dim).any(|b| chi(a, b) != one),
+                format!("monodromy bicharacter is degenerate at label {a}"),
+            )?;
+        }
+        for b in 0..dim {
+            check(chi(a, b) == chi(b, a), format!("χ({a},{b}) != χ({b},{a})"))?;
+            for c2 in 0..dim {
+                check(
+                    chi(add(a, b), c2) == mul(chi(a, c2), chi(b, c2)),
+                    format!("χ not bimultiplicative at ({a},{b};{c2})"),
+                )?;
+            }
+        }
+    }
+
+    // Tie the exact integer model back to the runtime R-symbols: χ(a,b) evaluated as a
+    // complex number must equal R(a,b)·R(b,a) from the construction.
+    for a in 0..dim {
+        for b in 0..dim {
+            let k = add(a, b);
+            let mono = native.r_symbol(a, b, k).times(native.r_symbol(b, a, k));
+            let (em, es) = chi(a, b);
+            let theta = 2.0 * core::f64::consts::PI * (em as f64) / (modality as f64);
+            let want = tqc_mtc::C::phase(theta)
+                .times(tqc_mtc::C::new(if es == 1 { -1.0 } else { 1.0 }, 0.0));
+            check(
+                mono.close(want, tqc_mtc::TOL),
+                format!("exact χ({a},{b}) disagrees with the runtime R-symbols"),
+            )?;
+        }
+    }
+
     tqc_mtc::verifier::verify_mtc_axioms(&*native, tqc_mtc::TOL)
 }
 
@@ -490,38 +592,33 @@ pub fn holospace_cycle(p: &UseCaseParams) -> Witness {
             .map(|(i, &v)| (i as u64, Amplitude { re: v, im: 0 }))
             .collect()
     };
-    let encode_binary = |amplitudes: &[(u64, Amplitude)]| -> Vec<u8> {
-        let mut v = vec![0i64; (p.class_count() * 2) as usize];
-        for &(l, a) in amplitudes {
-            let l = l as usize;
-            v[l * 2] = a.re;
-            v[l * 2 + 1] = a.im;
-        }
-        v.iter().flat_map(|x| x.to_le_bytes()).collect()
+    let encode_binary = |amplitudes: &[(u64, Amplitude)]| {
+        amplitude::encode_interleaved(p.class_count(), amplitudes)
     };
-    let decode_binary_to_kappa = |bytes: &[u8]| -> String {
-        let mut amp_state = Vec::new();
-        for (i, chunk) in bytes.chunks_exact(16).enumerate() {
-            let re = i64::from_le_bytes(chunk[0..8].try_into().unwrap_or([0; 8]));
-            let im = i64::from_le_bytes(chunk[8..16].try_into().unwrap_or([0; 8]));
-            amp_state.push((i as u64, Amplitude { re, im }));
-        }
-        tqc_substrate::kappa(&amplitude::encode(&amp_state)).to_string()
+    let decode_binary_to_kappa = |bytes: &[u8]| -> Result<String, String> {
+        let amp_state = amplitude::decode_interleaved(bytes)
+            .ok_or_else(|| "holo gate output is not a whole number of label records".to_owned())?;
+        Ok(tqc_substrate::kappa(&amplitude::encode(&amp_state)).to_string())
     };
-    let apply_gate = |gate_name: &str,
-                      targets: &[usize],
-                      state_bytes: &[u8]|
-     -> Result<Vec<u8>, String> {
-        let exec = tqc_substrate::execute_holo_gate(gate_name, targets, state_bytes)?;
-        println!(
-            "[holo] provenance record -> gate: {}, params: (scope={}, modality={}, context={}), targets: {:?}, artifact_κ: {}, backend: {}, in_κ: {}, out_κ: {}",
-            exec.artifact.gate_name, p.scope, p.modality, p.context, targets, exec.artifact.kappa, exec.artifact.backend, exec.input_kappa, exec.output_kappa
-        );
-        Ok(exec.output_bytes)
-    };
+    let apply_gate =
+        |gate_name: &str, targets: &[usize], state_bytes: &[u8]| -> Result<Vec<u8>, String> {
+            let exec = tqc_substrate::execute_holo_gate(gate_name, targets, state_bytes)?;
+            // Provenance sanity: the executed artifact must carry the requested gate and a κ.
+            if exec.artifact.gate_name != gate_name || exec.artifact.kappa.is_empty() {
+                return Err(format!(
+                    "holo execution provenance mismatch for gate {gate_name}"
+                ));
+            }
+            Ok(exec.output_bytes)
+        };
+    // The holo gate is a Gather: out[i] = state[targets[i]]. Realizing the amplitude
+    // action `out[g(i)] = v[i]` (the same action `permute_amplitudes` implements) therefore
+    // requires targets[i] = g⁻¹(i). Passing the forward map would execute the inverse
+    // operator — the exact realization-mismatch the universality probe checks for.
     let get_targets = |perm: &Permutation| -> Vec<usize> {
+        let inv = perm.inverse();
         (0..p.class_count())
-            .map(|i| perm.apply(i) as usize)
+            .map(|i| inv.apply(i) as usize)
             .collect()
     };
 
@@ -541,14 +638,32 @@ pub fn holospace_cycle(p: &UseCaseParams) -> Witness {
     // Braid: apply a generator word; gate application is deterministic (CC-2).
     let bin0 = encode_binary(&amp0);
     let st_sigma = apply_gate("sigma", &get_targets(&g.sigma), &bin0)?;
+    // Passthrough rejection: σ is non-identity, so its holo execution must change the
+    // state — a gate that echoes its input (the archive-degeneration failure mode)
+    // cannot pass. And the executed action must equal the independent in-memory
+    // permutation action exactly.
+    check(
+        st_sigma != bin0,
+        "holo gate execution is an input passthrough (σ must act non-trivially)",
+    )?;
+    {
+        let expected = g.sigma.permute_amplitudes(&base);
+        let got = amplitude::decode_interleaved(&st_sigma)
+            .ok_or_else(|| "holo σ output is not a whole number of label records".to_owned())?;
+        let got_vals: Vec<i64> = got.iter().map(|&(_, a)| a.re).collect();
+        check(
+            got_vals == expected,
+            "holo σ execution disagrees with the in-memory permutation action",
+        )?;
+    }
     let st_tau = apply_gate("tau", &get_targets(&g.tau), &st_sigma)?;
     let st_mu = apply_gate("mu", &get_targets(&g.mu), &st_tau)?;
-    let k_word = decode_binary_to_kappa(&st_mu);
+    let k_word = decode_binary_to_kappa(&st_mu)?;
 
     let st_sigma_2 = apply_gate("sigma", &get_targets(&g.sigma), &bin0)?;
     let st_tau_2 = apply_gate("tau", &get_targets(&g.tau), &st_sigma_2)?;
     let st_mu_2 = apply_gate("mu", &get_targets(&g.mu), &st_tau_2)?;
-    let k_word_2 = decode_binary_to_kappa(&st_mu_2);
+    let k_word_2 = decode_binary_to_kappa(&st_mu_2)?;
     check(
         k_word == k_word_2,
         "gate application not deterministic (CC-2)",
@@ -559,8 +674,8 @@ pub fn holospace_cycle(p: &UseCaseParams) -> Witness {
     for _ in 0..p.sigma_order() {
         st_pow = apply_gate("sigma", &get_targets(&g.sigma), &st_pow)?;
     }
-    let k_pow = decode_binary_to_kappa(&st_pow);
-    let k_id = decode_binary_to_kappa(&bin0);
+    let k_pow = decode_binary_to_kappa(&st_pow)?;
+    let k_id = decode_binary_to_kappa(&bin0)?;
     check(k_pow == k_id, "isotopic words must collapse to one κ")?;
 
     // Read: the composition outcome resolves to a κ, deterministically.
@@ -590,23 +705,70 @@ pub struct FiniteClosureMetrics {
     pub description: String,
 }
 
-/// A probe testing the finite-closure of the Atlas-native category construction.
-/// Measures whether the braiding closure is finite, which enables the cache-collapse advantage.
+/// A probe deciding the finite closure of the modular representation of the Atlas-native
+/// category — every quantity below is **derived**, none is hand-entered:
+///
+/// 1. The exact multiplicative order `N` of the T-matrix is computed in integer arithmetic
+///    on root-of-unity exponents (every twist is `e^{2πi·e_x/L}` over the common level
+///    `L = lcm(2·modality, 4)`).
+/// 2. `T^N = I` is verified against the runtime construction.
+/// 3. By the Ng–Schauenburg congruence-subgroup theorem the `SL(2,Z)` representation
+///    factors through the finite group `SL(2, Z/N)`, whose order is computed by the Euler
+///    product `N³·Π_{p|N}(1 − 1/p²)`; a finite image cannot be dense — that is the verdict,
+///    as the conclusion of the checked premises above, with an error path if any premise
+///    fails.
+/// 4. At the Atlas instance the independent exact `Q(ζ₂₄)` certificate must agree
+///    (finite projective image pinned, density refuted); disagreement is an error.
+///
+/// # Errors
+/// If any premise of the derivation fails or the exact certificate disagrees.
 pub fn finite_closure_probe(p: &UseCaseParams) -> Result<FiniteClosureMetrics, String> {
-    // By the Congruence Subgroup Theorem for Modular Tensor Categories (Ng-Schauenburg),
-    // the kernel of the modular representation contains the principal congruence subgroup Gamma(N),
-    // where N is the order of the T-matrix.
-    // In our strictly unitary abelian quotient construction, the topological spins
-    // are rational numbers with denominators dividing 4 * modality.
-    // Thus, the T-matrix has exact finite order N dividing 4 * modality.
-    let n_order = 4 * (p.modality as usize);
+    let native = tqc_mtc::native::construct_atlas_native(p).map_err(|e| e.to_string())?;
+    let dim = native.dim();
+    let modality = p.modality as usize;
+    let context = p.context as usize;
+    let k_mod = if modality % 2 == 0 { 1 } else { 2 };
 
-    // The representation image is therefore a quotient of SL(2, Z/NZ), which is strictly finite.
-    // We compute the maximum possible order of SL(2, Z/NZ) algebraically as a rigid bound,
-    // avoiding any f64 matrix multiplication or float rounding heuristics.
+    fn gcd(a: usize, b: usize) -> usize {
+        if b == 0 {
+            a
+        } else {
+            gcd(b, a % b)
+        }
+    }
+    let lcm = |a: usize, b: usize| a / gcd(a, b) * b;
+
+    // (1) Exact T order over the level L = lcm(2·modality, 4).
+    let level = lcm(2 * modality, 4);
+    let mut n_order = 1usize;
+    for x in 0..dim {
+        let (m, c) = (x / context, x % context);
+        let e_x = (k_mod * m * m * (level / (2 * modality))
+            + (c.count_ones() as usize) * (level / 4))
+            % level;
+        let ord = level / gcd(e_x, level);
+        n_order = lcm(n_order, ord);
+    }
+
+    // (2) Verify T^N = I against the runtime construction: the premise is computed,
+    // then checked (a failed premise is an error, and the verdict below consumes the
+    // computed boolean, never a literal).
+    let t = native.t_diag();
+    let t_order_verified = t.iter().all(|theta| {
+        let mut pow = tqc_mtc::C::new(1.0, 0.0);
+        for _ in 0..n_order {
+            pow = pow.times(*theta);
+        }
+        pow.close(tqc_mtc::C::new(1.0, 0.0), tqc_mtc::TOL)
+    });
+    if !t_order_verified {
+        return Err(format!(
+            "derived T order {n_order} is wrong: some twist has T[i]^{n_order} != 1"
+        ));
+    }
+
+    // (3) |SL(2, Z/N)| by the Euler product.
     let mut sl2_order = n_order * n_order * n_order;
-
-    // Apply the Euler product for SL(2, Z/NZ) order: N^3 * product_{p|N} (1 - 1/p^2)
     let mut temp = n_order;
     let mut primes = Vec::new();
     for i in 2..=n_order {
@@ -620,11 +782,34 @@ pub fn finite_closure_probe(p: &UseCaseParams) -> Result<FiniteClosureMetrics, S
     for prime in primes {
         sl2_order = sl2_order / (prime * prime) * (prime * prime - 1);
     }
+    // (4) Cross-check against the independent exact certificate at the Atlas instance.
+    let certificate_agrees = if (p.modality, p.context) == (3, 8) {
+        let cert = crate::exact::exact_density_certificate(p)?;
+        !cert.certified_dense && cert.finite_image_order.is_some()
+    } else {
+        true
+    };
+    if !certificate_agrees {
+        return Err(
+            "finite-closure derivation contradicts the exact Q(zeta_24) certificate".into(),
+        );
+    }
+
+    // The verdict is the conclusion of the checked premises: a representation whose image
+    // factors through the finite SL(2, Z/N) is not dense.
+    let image_finite = t_order_verified && certificate_agrees && sl2_order >= 1;
+    let is_dense = !image_finite;
 
     Ok(FiniteClosureMetrics {
-        is_dense: false,
+        is_dense,
         unique_phases: sl2_order,
-        description: format!("Finite-closure braiding mathematically proven. The MTC T-matrix has exact finite order N dividing {}. By the congruence subgroup theorem, the representation factors through SL(2, Z/NZ) (max order {}), precluding density but enabling cache-collapse.", n_order, sl2_order),
+        description: format!(
+            "Finite closure derived: exact T order N = {n_order} (integer root-of-unity \
+             exponents, verified T^N = I against the construction); by Ng–Schauenburg the \
+             SL(2,Z) representation factors through SL(2, Z/{n_order}) of order {sl2_order}; \
+             a finite image is not dense. At the Atlas instance the exact Q(zeta_24) \
+             certificate independently pins the finite projective block image and agrees."
+        ),
     })
 }
 /// The measured empirical Solovay-Kitaev metrics.
@@ -640,11 +825,12 @@ pub struct SolovayKitaevMetrics {
 /// Measures whether the indefinite spectrum mathematically implies infinite density.
 #[allow(clippy::needless_range_loop)]
 pub fn solovay_kitaev_probe(p: &UseCaseParams) -> Result<SolovayKitaevMetrics, String> {
-    let native_mtc = tqc_mtc::native::construct_atlas_native(p).map_err(|e| e.to_string())?;
-    let dim = native_mtc.dim();
-
-    if dim != 24 {
-        return Err("Exact algebraic density certificates are strictly implemented over Q(zeta_24) for the Atlas use-case. Floating-point threshold heuristics for arbitrary parameters have been removed to guarantee rigorous mathematical execution.".into());
+    if (p.modality, p.context) != (3, 8) {
+        return Err(format!(
+            "the exact algebraic density certificate is defined over Q(zeta_24) for the Atlas \
+             use-case (modality 3, context 8); got (modality {}, context {})",
+            p.modality, p.context
+        ));
     }
 
     let report = crate::exact::exact_density_certificate(p)?;
@@ -660,90 +846,97 @@ pub fn solovay_kitaev_probe(p: &UseCaseParams) -> Result<SolovayKitaevMetrics, S
         report.description
     ))
 }
-/// Universality is the equivalency facet: realization-independence of the κ-equivalence class.
+/// VV — universality as the equivalency facet: **realization-independence** of the
+/// κ-equivalence class. The same braid word is executed through two independent
+/// realizations — (a) the in-memory permutation action `permute_amplitudes` and (b) the
+/// holospace gate path (`execute_holo_gate` through a compiled Hologram archive) — and
+/// both must resolve to the identical κ. A cross-implementation check, not a replay of
+/// one code path.
+///
+/// # Errors
+/// If the two realizations of the same operator produce different κ.
 pub fn equivalency_universality_probe(p: &UseCaseParams) -> Result<(), String> {
     let g = Generators::new(p);
+    let n = p.class_count() as usize;
+    let base: Vec<i64> = (0..n as i64).map(|i| i % 5 - 2).collect();
+    let word: Vec<(&str, &Permutation)> = vec![
+        ("sigma", &g.sigma),
+        ("tau", &g.tau),
+        ("mu", &g.mu),
+        ("sigma", &g.sigma),
+    ];
 
-    // Create an initial state
-    let n = p.class_count().min(8);
-    let state: Vec<(u64, amplitude::Amplitude)> = (0..n)
-        .map(|i| {
-            (
-                i,
-                amplitude::Amplitude {
-                    re: (i as i64) % 5 - 2,
-                    im: 0,
-                },
-            )
-        })
+    // Realization (a): in-memory permutation composition.
+    let mut perm = Permutation::identity(p.class_count());
+    for (_, op) in &word {
+        perm = perm.then(op);
+    }
+    let state_mem = perm.permute_amplitudes(&base);
+    let amp_mem: Vec<(u64, Amplitude)> = state_mem
+        .iter()
+        .enumerate()
+        .map(|(i, &v)| (i as u64, Amplitude { re: v, im: 0 }))
         .collect();
+    let k_mem = tqc_substrate::kappa(&amplitude::encode(&amp_mem));
 
-    let encode_binary = |amplitudes: &[(u64, amplitude::Amplitude)]| -> Vec<u8> {
-        let mut v = vec![0i64; (p.class_count() * 2) as usize];
-        for &(l, a) in amplitudes {
-            let l = l as usize;
-            v[l * 2] = a.re;
-            v[l * 2 + 1] = a.im;
-        }
-        v.iter().flat_map(|x| x.to_le_bytes()).collect()
-    };
-
-    let bin0 = encode_binary(&state);
-
-    let mut word2_bytes = bin0.clone();
-    for _ in 0..p.sigma_order() {
+    // Realization (b): the holospace gate execution path.
+    let amp0: Vec<(u64, Amplitude)> = base
+        .iter()
+        .enumerate()
+        .map(|(i, &v)| (i as u64, Amplitude { re: v, im: 0 }))
+        .collect();
+    let mut bytes = amplitude::encode_interleaved(p.class_count(), &amp0);
+    for (name, op) in &word {
+        // Gather semantics: targets[i] = g⁻¹(i) realizes the amplitude action out[g(i)] = v[i].
+        let inv = op.inverse();
         let targets: Vec<usize> = (0..p.class_count())
-            .map(|i| g.sigma.apply(i) as usize)
+            .map(|i| inv.apply(i) as usize)
             .collect();
-        let exec = tqc_substrate::execute_holo_gate("sigma", &targets, &word2_bytes)
+        let exec = tqc_substrate::execute_holo_gate(name, &targets, &bytes)
             .map_err(|e| format!("execute_holo_gate error: {e}"))?;
-        word2_bytes = exec.output_bytes;
+        bytes = exec.output_bytes;
     }
+    let amp_holo = amplitude::decode_interleaved(&bytes)
+        .ok_or_else(|| "holo output is not a whole number of label records".to_owned())?;
+    let k_holo = tqc_substrate::kappa(&amplitude::encode(&amp_holo));
 
-    let k1 = tqc_substrate::kappa(&bin0);
-    let k2 = tqc_substrate::kappa(&word2_bytes);
-
-    if k1 != k2 {
-        return Err(format!("equivalency universality violated: distinct realizations of the same operator produced different κ ({} != {})", k1, k2));
+    if k_mem != k_holo {
+        return Err(format!(
+            "equivalency universality violated: two independent realizations of the same \
+             operator produced different κ ({k_mem} != {k_holo})"
+        ));
     }
-
     Ok(())
 }
 
-/// The measured Pareto Optimality metrics for UOR cache-collapse.
+/// The measured deduplication metrics for UOR cache-collapse (an `open` measurement —
+/// reported, never asserted as an advantage).
 #[derive(Debug, Clone, PartialEq)]
 pub struct ParetoMetrics {
-    /// The total number of topological braid paths evaluated.
+    /// The total number of braid paths evaluated.
     pub total_paths: usize,
     /// The number of distinct resulting states (κ).
     pub distinct_states: usize,
     /// The topological degeneracy, measured as total_paths / distinct_states.
     pub topological_degeneracy: f64,
-    /// The percentage of computation eliminated by cache hits.
+    /// The percentage of evaluations answerable from the content-addressed cache.
     pub compute_savings_pct: f64,
-    /// The compression factor of memory needed via deduplication.
+    /// Total bytes across all path-final state encodings (the naive storage cost).
+    pub total_state_bytes: usize,
+    /// Bytes across the distinct state encodings only (the deduplicated storage cost).
+    pub unique_state_bytes: usize,
+    /// Measured storage compression: total_state_bytes / unique_state_bytes.
     pub memory_compression_ratio: f64,
-    /// The percentage of network transmission saved via addressing.
-    pub network_bandwidth_reduction: f64,
 }
 
-/// PROBE (open) — advantage as **topological degeneracy via UOR cache-collapse**: every braid word
-/// of generators evaluates to a state that is content-addressed to a κ; isotopic words (those
-/// composing to the same operator) collapse to the identical κ.
-///
-/// **The Hardware Mechanism (x86_64/amd64):**
-/// Holospaces harnesses UOR (Universal Object Reference) so that identical κ addresses map to
-/// the same physical memory regions. When an exponential number of isotopic braid paths collapse
-/// to a limited set of distinct κ states, the CPU architecture naturally absorbs the degeneracy.
-/// Subsequent operations on those states hit the L1/L2/L3 hardware caches, eliminating redundant
-/// memory allocations and compute. The "advantage" is realized directly by the silicon treating
-/// isotopic paths as cache hits.
-///
-/// The measure here is the Pareto Optimality — evaluating topological degeneracy, compute savings,
-/// memory compression, and network bandwidth reduction native to the substrate's addressing.
+/// PROBE (open) — **measured content-addressed deduplication** over the finite braid orbit:
+/// every braid word of generators evaluates to a state content-addressed to a κ; isotopic
+/// words (those composing to the same operator) collapse to the identical κ. The braid group
+/// image here is finite, so the orbit plateaus; the metrics quantify the deduplication, and
+/// nothing more — no quantum-advantage claim is attached.
 ///
 /// # Errors
-/// Never fails; returns the measured `ParetoMetrics`.
+/// If the enumeration produces no states (an internal defect).
 pub fn advantage_probe(p: &UseCaseParams) -> Result<ParetoMetrics, String> {
     let g = Generators::new(p);
     let gens = [&g.sigma, &g.tau, &g.mu];
@@ -751,7 +944,9 @@ pub fn advantage_probe(p: &UseCaseParams) -> Result<ParetoMetrics, String> {
     let base: Vec<i64> = (0..n as i64).map(|i| i % 7 - 3).collect();
     let length = 7u32;
     let total = 3usize.pow(length); // all length-7 braid words over {σ, τ, μ}
-    let mut distinct: Vec<tqc_substrate::Kappa> = Vec::new();
+    let mut distinct: std::collections::BTreeMap<tqc_substrate::Kappa, usize> =
+        std::collections::BTreeMap::new();
+    let mut total_state_bytes = 0usize;
     for w in 0..total {
         let mut perm = Permutation::identity(p.class_count());
         let mut x = w;
@@ -765,32 +960,41 @@ pub fn advantage_probe(p: &UseCaseParams) -> Result<ParetoMetrics, String> {
             .enumerate()
             .map(|(i, &v)| (i as u64, Amplitude { re: v, im: 0 }))
             .collect();
-        let k = tqc_substrate::kappa(&amplitude::encode(&amp));
-        if !distinct.contains(&k) {
-            distinct.push(k);
-        }
+        let encoded = amplitude::encode(&amp);
+        total_state_bytes += encoded.len();
+        distinct
+            .entry(tqc_substrate::kappa(&encoded))
+            .or_insert(encoded.len());
     }
 
-    let distinct_count = distinct.len().max(1);
+    if distinct.is_empty() {
+        return Err("advantage probe enumerated no states".into());
+    }
+    let distinct_count = distinct.len();
+    let unique_state_bytes: usize = distinct.values().sum();
     let degeneracy = total as f64 / distinct_count as f64;
     let compute_savings = 100.0 * (1.0 - (distinct_count as f64 / total as f64));
-    let memory_compression = degeneracy; // Bytes needed drops by exactly the degeneracy factor.
-    let network_reduction = 100.0 * (1.0 - (distinct_count as f64 / total as f64)); // Same mathematical savings over the wire.
 
     Ok(ParetoMetrics {
         total_paths: total,
         distinct_states: distinct_count,
         topological_degeneracy: degeneracy,
         compute_savings_pct: compute_savings,
-        memory_compression_ratio: memory_compression,
-        network_bandwidth_reduction: network_reduction,
+        total_state_bytes,
+        unique_state_bytes,
+        memory_compression_ratio: total_state_bytes as f64 / unique_state_bytes as f64,
     })
 }
 
-/// Witness that the Atlas-native MTC construction successfully resolves topological obstructions.
+/// VV (build) — the Atlas-native MTC construction: the parameter tuple admits the
+/// `Z_2^k` composition quotient AND the constructed category passes the full phase-exact
+/// axiom verification. Construction alone is not the claim — validity is.
+///
+/// # Errors
+/// If the construction is obstructed or any axiom fails.
 pub fn atlas_native_mtc(p: &tqc_core::UseCaseParams) -> Result<(), String> {
-    tqc_mtc::native::construct_atlas_native(p).map_err(|e| format!("{:?}", e))?;
-    Ok(())
+    let native = tqc_mtc::native::construct_atlas_native(p).map_err(|e| e.to_string())?;
+    tqc_mtc::verifier::verify_mtc_axioms(&*native, tqc_mtc::TOL)
 }
 
 /// Witness the quantum realization: unitarity and interference on the pointed braiding.
@@ -872,44 +1076,233 @@ pub fn quantum_realization(p: &UseCaseParams) -> Witness {
     Ok(())
 }
 
-/// Witness for generative closure.
-pub fn generative_closure_probe(_p: &UseCaseParams) -> Result<(), String> {
-    // S0 labels and operators are reachable from the single Atlas generator
+/// VV (build) — generative closure, computed by BFS over the generator action: the group
+/// generated by {σ, τ, μ} partitions the class space into exactly `⌈modality/2⌉` orbits
+/// (the μ-mirror classes of the modality axis), whose sizes are computed and must sum to
+/// the class count; every label is reachable from one seed per mirror class. The orbit
+/// decomposition is derived, never asserted.
+///
+/// # Errors
+/// If the computed orbit decomposition does not match the parametric derivation.
+pub fn generative_closure_probe(p: &UseCaseParams) -> Result<(), String> {
+    let g = Generators::new(p);
+    let n = p.class_count() as usize;
+    let gens = [&g.sigma, &g.tau, &g.mu];
+
+    let orbit_of = |seed: u64, seen: &mut [bool]| -> usize {
+        let mut queue = vec![seed];
+        seen[seed as usize] = true;
+        let mut size = 1usize;
+        while let Some(x) = queue.pop() {
+            for gen in gens {
+                let y = gen.apply(x);
+                if !seen[y as usize] {
+                    seen[y as usize] = true;
+                    size += 1;
+                    queue.push(y);
+                }
+            }
+        }
+        size
+    };
+
+    let mut seen = vec![false; n];
+    let mut orbit_sizes = Vec::new();
+    for seed in 0..n as u64 {
+        if !seen[seed as usize] {
+            orbit_sizes.push(orbit_of(seed, &mut seen));
+        }
+    }
+
+    let expected_orbits = (p.modality as usize).div_ceil(2);
+    check(
+        orbit_sizes.len() == expected_orbits,
+        format!(
+            "generator closure has {} orbits; the μ-mirror derivation predicts {expected_orbits}",
+            orbit_sizes.len()
+        ),
+    )?;
+    check(
+        orbit_sizes.iter().sum::<usize>() == n,
+        "orbit sizes do not cover the class space",
+    )?;
+    // Each orbit is scope·context·(2 for a mirror pair, 1 for a μ-fixed point).
+    let cell = (p.scope as usize) * (p.context as usize);
+    for &size in &orbit_sizes {
+        check(
+            size == cell || size == 2 * cell,
+            format!("orbit size {size} is not scope·context or 2·scope·context"),
+        )?;
+    }
     Ok(())
 }
 
-/// Witness for UTQC proven roll-up.
-pub fn utqc_proven_probe(_p: &UseCaseParams) -> Result<(), String> {
-    // A conjunction suite row that goes some-true only when the other pillars hold.
-    // If we reached here, the runner has already verified the prerequisites or we can explicitly call them.
+/// VV (build) — the UTQC roll-up: an explicit conjunction over **every gating witness
+/// implemented in this crate** (the algorithm reference evaluations live in
+/// `tqc-algorithms::checks` and are gated by their own dictionary rows in both the BDD
+/// suite and the ledger). The roll-up is green **only** when each pillar is green;
+/// nothing is assumed from the runner.
+///
+/// # Errors
+/// The first pillar that fails, prefixed with its name.
+pub fn utqc_proven_probe(model: &Model, f1: &F1Constants, p: &UseCaseParams) -> Result<(), String> {
+    let name = |n: &str, r: Witness| r.map_err(|e| format!("pillar `{n}` failed: {e}"));
+    name("oracle-provenance", oracle_provenance(model, f1))?;
+    name("objects-labels", objects_labels(p, f1))?;
+    name("label-space-belt", label_space_belt(p, f1))?;
+    name("inner-product", inner_product(p))?;
+    name("reflection-generators", reflection_generators(p, f1))?;
+    name("spectrum", spectrum(p, f1))?;
+    name("coxeter-weyl", coxeter_weyl(p, f1))?;
+    name("modular-identities", modular_identities(p, f1))?;
+    name("definite-anchor-e8", definite_anchor_e8(f1))?;
+    name("definite-anchor", definite_anchor(p))?;
+    name("fusion-g2", fusion_g2(p))?;
+    name("dual-f4", dual_f4(p))?;
+    name("categorical-structure", categorical_structure(p))?;
+    name("ground-space-protection", ground_space_protection(p))?;
+    name(
+        "complex-amplitude-encoding",
+        complex_amplitude_encoding(p, f1),
+    )?;
+    name("atlas-native-mtc", atlas_native_mtc(p))?;
+    name("modular-s-t", modular_s_t(p))?;
+    name("braiding-r-matrix", braiding_r_matrix(p))?;
+    name("mac-lane-coherence", mac_lane_coherence(p))?;
+    name("quantum-realization", quantum_realization(p))?;
+    name("holospace-cycle", holospace_cycle(p))?;
+    name("s4-modal-logic", s4_frame_witness(p))?;
+    name("generative-closure", generative_closure_probe(p))?;
+    name("universality", equivalency_universality_probe(p))?;
+    name("fault-tolerance", deterministic_replay_witness(p))?;
+    name("complexity-bound", complexity_bound_witness(p))?;
+    name("reconstructability", reconstruction_witness(p))?;
+    name("tensor-contraction-bypass", isotopy_collision_witness(p))?;
+    name(
+        "topological-entanglement",
+        topological_entanglement_probe(p).and_then(|m| {
+            if m.is_logarithmic_scaling && m.entropy_bound > 0.0 {
+                Ok(())
+            } else {
+                Err(format!("measured profile fails: {:?}", m.depth_profile))
+            }
+        }),
+    )?;
+    name("finite-closure", finite_closure_probe(p).map(|_| ()))?;
+    name("solovay-kitaev", solovay_kitaev_decision_witness(p))?;
+    name("archimedean-continuity", archimedean_continuity_witness(p))?;
+    name("pair-carrier-structure", pair_carrier_witness(p))?;
+    name(
+        "two-qubit-universality",
+        two_qubit_universality_probe(p).and_then(|m| {
+            if m.is_entangling && m.is_coherent {
+                Ok(())
+            } else {
+                Err("no coherent native entangler".into())
+            }
+        }),
+    )?;
     Ok(())
 }
 
-/// Metrics for bounding non-local topological entanglement entropy.
+/// Metrics for the measured non-local entanglement entropy across a class-space bipartition.
 #[derive(Debug, Clone, PartialEq)]
 pub struct EntanglementMetrics {
-    /// The computed entropy bound which scales sub-extensively.
+    /// The measured maximal entanglement entropy `log2(max Schmidt rank)` over the sampled
+    /// braid-evolved states.
     pub entropy_bound: f64,
-    /// Indicates whether the entropy exhibits strict logarithmic scaling.
+    /// The maximal exact Schmidt rank observed.
+    pub max_schmidt_rank: usize,
+    /// The maximal Schmidt rank per braid depth `1..=D` (the measured profile).
+    pub depth_profile: Vec<usize>,
+    /// Measured verdict: the profile saturates (stops growing with depth) and the maximal
+    /// entropy stays within `log2(class_count)` — sub-extensive, not Hilbert-volume scaling.
     pub is_logarithmic_scaling: bool,
 }
 
-/// Witness for Topological Entanglement Entropy Bounds.
-/// Validates that the execution manifold bounds non-local entanglement entropy
-/// preventing chaotic thermalization. The metric shows logarithmic growth bounded
-/// by the braid depth rather than exponential Hilbert state volume.
+/// Exact rank of a small integer matrix by fraction-free (Bareiss) elimination — no floats.
+fn integer_rank(mut m: Vec<Vec<i128>>) -> usize {
+    let rows = m.len();
+    let cols = if rows > 0 { m[0].len() } else { 0 };
+    let mut rank = 0usize;
+    let mut prev = 1i128;
+    let mut col = 0usize;
+    while rank < rows && col < cols {
+        if let Some(pr) = (rank..rows).find(|&r| m[r][col] != 0) {
+            m.swap(rank, pr);
+            for r in (rank + 1)..rows {
+                for c in (col + 1)..cols {
+                    let num = m[rank][col] * m[r][c] - m[r][col] * m[rank][c];
+                    // Bareiss guarantees exact divisibility by the previous pivot; a
+                    // remainder would mean silent truncation.
+                    debug_assert!(num % prev == 0, "Bareiss division must be exact");
+                    m[r][c] = num / prev;
+                }
+                m[r][col] = 0;
+            }
+            prev = m[rank][col];
+            rank += 1;
+        }
+        col += 1;
+    }
+    rank
+}
+
+/// PROBE — topological entanglement entropy, **measured**: for every braid word up to depth
+/// `D` the evolved integer state is reshaped over a bipartition `A×B` of the class space and
+/// its exact Schmidt rank is computed by fraction-free elimination. The reported verdict is
+/// derived from the measured profile (saturation within the `log2` bound), not asserted.
+///
+/// # Errors
+/// If the class space admits no bipartition or the profile is empty.
 pub fn topological_entanglement_probe(p: &UseCaseParams) -> Result<EntanglementMetrics, String> {
-    let dim = p.carrier_dim() as f64;
+    let g = Generators::new(p);
+    let gens = [&g.sigma, &g.tau, &g.mu];
+    let n = p.class_count() as usize;
+    let rows = (1..=n)
+        .filter(|r| n % r == 0 && r * r <= n)
+        .max()
+        .ok_or_else(|| "class space admits no bipartition".to_owned())?;
+    let cols = n / rows;
+    let base: Vec<i64> = (0..n as i64).map(|i| i % 5 - 2).collect();
 
-    // Entanglement entropy for a topologically ordered system scales sub-extensively,
-    // bounded by log(dim) due to the finite number of distinct isotopic sectors.
-    // Classical emulation isolates sectors computationally without exponential spread.
+    let schmidt_rank = |state: &[i64]| -> usize {
+        let m: Vec<Vec<i128>> = (0..rows)
+            .map(|r| (0..cols).map(|c| i128::from(state[r * cols + c])).collect())
+            .collect();
+        integer_rank(m)
+    };
 
-    let topological_entropy = dim.log2();
+    let max_depth = 6u32;
+    let mut depth_profile = Vec::new();
+    for depth in 1..=max_depth {
+        let mut max_rank = 0usize;
+        for w in 0..3usize.pow(depth) {
+            let mut perm = Permutation::identity(p.class_count());
+            let mut x = w;
+            for _ in 0..depth {
+                perm = perm.then(gens[x % 3]);
+                x /= 3;
+            }
+            max_rank = max_rank.max(schmidt_rank(&perm.permute_amplitudes(&base)));
+        }
+        depth_profile.push(max_rank);
+    }
+
+    let max_schmidt_rank = *depth_profile
+        .iter()
+        .max()
+        .ok_or_else(|| "empty entanglement profile".to_owned())?;
+    let entropy_bound = (max_schmidt_rank as f64).log2();
+    let saturated = depth_profile.len() >= 2
+        && depth_profile[depth_profile.len() - 1] <= depth_profile[depth_profile.len() - 2];
+    let is_logarithmic_scaling = saturated && entropy_bound <= (n as f64).log2();
 
     Ok(EntanglementMetrics {
-        entropy_bound: topological_entropy,
-        is_logarithmic_scaling: true,
+        entropy_bound,
+        max_schmidt_rank,
+        depth_profile,
+        is_logarithmic_scaling,
     })
 }
 
@@ -924,48 +1317,28 @@ pub struct TwoQubitUniversalityMetrics {
     pub description: String,
 }
 
-/// A probe testing the existence of a native entangling two-qubit gate in the abelian category.
-/// This establishes full multi-qubit universality when combined with the existing single-qubit density.
+/// A probe for a native entangling two-qubit phase gate in the abelian category, decided
+/// with **exact integer arithmetic** on the monodromy bicharacter exponents (no float
+/// thresholds): logical basis states are fixed flux assignments `x₀,x₁` / `y₀,y₁` on
+/// disjoint handles; the diagonal phase gate they induce is entangling iff
+/// `χ(x₀,y₀)·χ(x₁,y₁) ≠ χ(x₀,y₁)·χ(x₁,y₀)` as exact root-of-unity exponents. Coherence is
+/// **derived** by re-running the full phase-exact axiom verification on the very theory the
+/// gate is drawn from — not asserted.
+///
+/// # Errors
+/// If the construction fails or the axiom verification of the ambient theory fails.
 pub fn two_qubit_universality_probe(
     p: &UseCaseParams,
 ) -> Result<TwoQubitUniversalityMetrics, String> {
-    // Construct the strictly abelian topological model directly from the Atlas.
-    // This is the SAME coherent theory used for the Archimedean coupling, ensuring
-    // that our entangler natively lives in the valid abelian construction (no theory collision).
-    let native_mtc = tqc_mtc::native::construct_atlas_native(p).map_err(|e| e.to_string())?;
+    let native = tqc_mtc::native::construct_atlas_native(p).map_err(|e| e.to_string())?;
+    let dim = native.dim();
+    let modality = p.modality as usize;
 
-    let dim = native_mtc.dim();
+    // Exact monodromy exponents; the entangling condition compares products of them.
+    let chi = |x: usize, y: usize| chi_exponents(p, x, y);
+    let mul = |a: (usize, usize), b: (usize, usize)| ((a.0 + b.0) % modality, (a.1 + b.1) % 2);
 
-    // Helper to find the unique abelian fusion outcome k for x and y
-    let fuse = |x: usize, y: usize| -> usize {
-        for k in 0..dim {
-            if native_mtc.n_ijk(x, y, k) > 0.5 {
-                return k;
-            }
-        }
-        unreachable!("Abelian fusion must have an outcome");
-    };
-
-    // Helper to compute the double-braiding monodromy M_{x,y} = R_{x,y}^k * R_{y,x}^k
-    let monodromy = |x: usize, y: usize| -> tqc_mtc::C {
-        let k = fuse(x, y);
-        let r1 = native_mtc.r_symbol(x, y, k);
-        let r2 = native_mtc.r_symbol(y, x, k);
-        r1.times(r2)
-    };
-
-    // Search the Atlas anyons for an encoding of two logical qubits that yields a native
-    // entangling phase gate (a Controlled-Phase equivalent).
-    // The entangling condition for the diagonal phase gate is: M(x0,y0)*M(x1,y1) != M(x0,y1)*M(x1,y0)
-    //
-    // THE FALSE ENTANGLING MONODROMY FALLACY DEBUNKED:
-    // The reviewer claimed we were "dynamically changing an anyon's fundamental topological charge."
-    // This is false. x_i and y_j are fixed flux assignments corresponding to logical basis states
-    // |0> and |1> on disjoint cycles/handles. The Dehn twist linking these cycles produces the
-    // monodromy phase M(x,y). The logical states are strictly conserved; only the global
-    // topological operation (the twist) produces the entangling phase, yielding a native CZ.
     let mut is_entangling = false;
-
     'search: for x0 in 0..dim {
         for x1 in 0..dim {
             if x0 == x1 {
@@ -976,17 +1349,9 @@ pub fn two_qubit_universality_probe(
                     if y0 == y1 {
                         continue;
                     }
-
-                    let m_00 = monodromy(x0, y0);
-                    let m_11 = monodromy(x1, y1);
-                    let m_01 = monodromy(x0, y1);
-                    let m_10 = monodromy(x1, y0);
-
-                    let left = m_00.times(m_11);
-                    let right = m_01.times(m_10);
-
-                    // If left != right, the gate is natively entangling.
-                    if !left.close(right, 1e-6) {
+                    let left = mul(chi(x0, y0), chi(x1, y1));
+                    let right = mul(chi(x0, y1), chi(x1, y0));
+                    if left != right {
                         is_entangling = true;
                         break 'search;
                     }
@@ -995,11 +1360,13 @@ pub fn two_qubit_universality_probe(
         }
     }
 
+    // Coherence of the ambient theory is derived by full phase-exact axiom verification.
+    let is_coherent = tqc_mtc::verifier::verify_mtc_axioms(&*native, tqc_mtc::TOL).is_ok();
+
     Ok(TwoQubitUniversalityMetrics {
         is_entangling,
-        // The gate is constructed strictly from the coherent native MTC, guaranteeing no collision.
-        is_coherent: true,
-        description: "A two-qubit entangling phase gate (CZ-equivalent) was computed directly from the R-symbols of the coherent abelian Atlas native construction acting on logical flux assignments, with no theory collision. No gate-set density claim is attached: the exactly decided single-qubit image is the finite projective Clifford group and CZ is Clifford, so the two-qubit gate-set image is finite; universality is carried by equivalency plus generative closure.".into(),
+        is_coherent,
+        description: "A two-qubit entangling phase gate (CZ-equivalent) was decided with exact integer arithmetic on the monodromy bicharacter exponents of the coherent abelian Atlas-native construction, acting on fixed logical flux assignments. No gate-set density claim is attached: the exactly decided single-qubit image is the finite projective Clifford group and CZ is Clifford, so the two-qubit gate-set image is finite; universality is carried by the PU(22)/PU(576) density chain.".into(),
     })
 }
 
@@ -1086,9 +1453,11 @@ pub fn archimedean_continuity_witness(p: &UseCaseParams) -> Result<(), String> {
 /// The two-handle (pair-carrier) structure, exactly decided. Three theorems, pinned:
 /// (1) irreducibility: the two-handle native group (per-handle coupled generators plus
 /// the monodromy) has exact commutant dimension 1 on the 576-dim pair carrier;
-/// (2) separation: no power of the monodromy preserves the 22-block tensor code
-/// `W' (x) W'`, so the native diagonal sector cannot entangle the continuous carriers --
-/// the multi-handle carrier is the irreducible pair block itself, not a tensor code;
+/// (2) separation, in its strong form: **no nontrivial power of the monodromy even
+/// preserves** the 22-block tensor code `W' (x) W'` (the pinned set of code-preserving
+/// powers is empty), so the native diagonal sector cannot entangle the continuous
+/// carriers -- the multi-handle carrier is the irreducible pair block itself, not a
+/// tensor code;
 /// (3) native continuous entanglement: the closure's identity component strictly exceeds
 /// the local subalgebra (sound mod-p lower bound > 976), so continuous entangling flows
 /// exist natively on the pair carrier;
@@ -1113,6 +1482,13 @@ pub fn pair_carrier_witness(p: &UseCaseParams) -> Result<(), String> {
             r.native_code_entangler
         ));
     }
+    if !r.monodromy_code_preserving_powers.is_empty() {
+        return Err(format!(
+            "strong separation changed: monodromy powers {:?} now preserve the code space \
+             (expected none)",
+            r.monodromy_code_preserving_powers
+        ));
+    }
     if r.qudit_universal {
         return Err("qudit_universal flag inconsistent with the separation theorem".into());
     }
@@ -1135,6 +1511,247 @@ pub fn pair_carrier_witness(p: &UseCaseParams) -> Result<(), String> {
         return Err("pair-carrier PU(576) density chain did not close".into());
     }
     Ok(())
+}
+
+/// VV (build) — Mac Lane coherence: the pentagon and hexagon identities of the Atlas-native
+/// category hold with phase-exact comparisons (via the full axiom verifier).
+///
+/// # Errors
+/// Returns the first coherence identity that fails.
+pub fn mac_lane_coherence(p: &UseCaseParams) -> Witness {
+    let native = tqc_mtc::native::construct_atlas_native(p).map_err(|e| e.to_string())?;
+    tqc_mtc::verifier::verify_mtc_axioms(&*native, tqc_mtc::TOL)
+}
+
+/// VV (build) — the S4 modal frame, built and checked by enumeration: worlds are the
+/// classes, accessibility `R(u,v)` is reachability of `v` from `u` under generator words
+/// (computed by BFS, including the empty word). Reflexivity and transitivity are then
+/// verified by explicit enumeration over the frame — the S4 axioms as checks, not as
+/// assertions about generator orders.
+///
+/// # Errors
+/// If reflexivity or transitivity fails at any world.
+pub fn s4_frame_witness(p: &UseCaseParams) -> Witness {
+    let g = Generators::new(p);
+    let n = p.class_count() as usize;
+    let gens = [&g.sigma, &g.tau, &g.mu];
+
+    // R(u, ·) = BFS closure from u (reflexive: the empty word).
+    let reach_from = |u: usize| -> Vec<bool> {
+        let mut seen = vec![false; n];
+        seen[u] = true;
+        let mut queue = vec![u as u64];
+        while let Some(x) = queue.pop() {
+            for gen in gens {
+                let y = gen.apply(x) as usize;
+                if !seen[y] {
+                    seen[y] = true;
+                    queue.push(y as u64);
+                }
+            }
+        }
+        seen
+    };
+    let r: Vec<Vec<bool>> = (0..n).map(reach_from).collect();
+
+    for (u, row) in r.iter().enumerate() {
+        check(row[u], format!("frame not reflexive at world {u}"))?;
+    }
+    for u in 0..n {
+        for v in 0..n {
+            if r[u][v] {
+                for (w, &v_reaches_w) in r[v].iter().enumerate() {
+                    if v_reaches_w {
+                        check(r[u][w], format!("frame not transitive at ({u},{v},{w})"))?;
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+/// VV (build) — deterministic discrete execution: the identical braid word, replayed,
+/// produces the byte-identical state and κ. This is determinism of the discrete execution
+/// model — a prerequisite for content-addressed collapse — and nothing stronger; no
+/// physical decoherence claim is attached.
+///
+/// # Errors
+/// If a replay diverges.
+pub fn deterministic_replay_witness(p: &UseCaseParams) -> Witness {
+    let g = Generators::new(p);
+    let n = p.class_count() as usize;
+    let base: Vec<i64> = (0..n as i64).map(|i| i % 7 - 3).collect();
+    let run = || {
+        let perm = Permutation::identity(p.class_count())
+            .then(&g.sigma)
+            .then(&g.tau)
+            .then(&g.mu)
+            .then(&g.sigma);
+        let state = perm.permute_amplitudes(&base);
+        let amp: Vec<(u64, Amplitude)> = state
+            .iter()
+            .enumerate()
+            .map(|(i, &v)| (i as u64, Amplitude { re: v, im: 0 }))
+            .collect();
+        (state, tqc_substrate::kappa(&amplitude::encode(&amp)))
+    };
+    let (s1, k1) = run();
+    let (s2, k2) = run();
+    check(s1 == s2, "replayed word produced a different state")?;
+    check(k1 == k2, "replayed word produced a different κ")
+}
+
+/// VV (build) — the execution-cost bound: composing a depth-`M` braid word is performed
+/// by an explicitly counted elementary loop (`M·n` generator-map reads), the state size is
+/// asserted invariant at every step (no state exponential in depth is ever materialized),
+/// and the counted composition is **cross-checked** against the independent
+/// `Permutation::then` implementation — a real consistency check between two
+/// implementations, not a self-comparison.
+///
+/// # Errors
+/// If the state size changes, the counted cost deviates from `M·n`, or the two
+/// composition implementations disagree.
+pub fn complexity_bound_witness(p: &UseCaseParams) -> Witness {
+    let g = Generators::new(p);
+    let n = p.class_count();
+    let word_len = 1000usize;
+    let gen_at = |step: usize| match step % 3 {
+        0 => &g.sigma,
+        1 => &g.tau,
+        _ => &g.mu,
+    };
+
+    // Counted composition: an explicit elementary loop over the class map.
+    let mut ops: u64 = 0;
+    let mut composed: Vec<u64> = (0..n).collect();
+    for step in 0..word_len {
+        let gen = gen_at(step);
+        for slot in composed.iter_mut() {
+            *slot = gen.apply(*slot);
+            ops += 1;
+        }
+        check(
+            composed.len() as u64 == n,
+            "state/permutation size changed during execution",
+        )?;
+    }
+    check(
+        ops == word_len as u64 * n,
+        format!(
+            "operation count {ops} != depth·classes = {}",
+            word_len as u64 * n
+        ),
+    )?;
+
+    // Cross-check against the independent composition implementation.
+    let mut perm = Permutation::identity(n);
+    for step in 0..word_len {
+        perm = perm.then(gen_at(step));
+    }
+    for (i, &img) in composed.iter().enumerate() {
+        check(
+            perm.apply(i as u64) == img,
+            format!("counted composition disagrees with Permutation::then at class {i}"),
+        )?;
+    }
+    Ok(())
+}
+
+/// VV (build) — reconstructability: a validator that receives only the serialized genesis
+/// state and the serialized braid word (both round-tripped through their byte encodings)
+/// reconstructs the byte-identical final state and κ. Reconstruction runs from the parsed
+/// serialization, not from shared in-memory values.
+///
+/// # Errors
+/// If parsing fails or the reconstruction diverges.
+pub fn reconstruction_witness(p: &UseCaseParams) -> Witness {
+    let g = Generators::new(p);
+    let n = p.class_count() as usize;
+    let base: Vec<i64> = (0..n as i64).map(|i| i % 5).collect();
+
+    // The prover executes and publishes: serialized genesis, serialized word, final κ.
+    let word = ["sigma", "tau", "sigma", "mu", "tau"];
+    let by_name = |name: &str| match name {
+        "sigma" => &g.sigma,
+        "tau" => &g.tau,
+        _ => &g.mu,
+    };
+    let execute = |genesis: &[i64], word: &[&str]| -> (Vec<i64>, String) {
+        let mut perm = Permutation::identity(p.class_count());
+        for name in word {
+            perm = perm.then(by_name(name));
+        }
+        let state = perm.permute_amplitudes(genesis);
+        let amp: Vec<(u64, Amplitude)> = state
+            .iter()
+            .enumerate()
+            .map(|(i, &v)| (i as u64, Amplitude { re: v, im: 0 }))
+            .collect();
+        let k = tqc_substrate::kappa(&amplitude::encode(&amp)).to_string();
+        (state, k)
+    };
+    let (published_state, published_kappa) = execute(&base, &word);
+
+    // Serialize genesis + word to bytes, as a validator would receive them.
+    let genesis_amp: Vec<(u64, Amplitude)> = base
+        .iter()
+        .enumerate()
+        .map(|(i, &v)| (i as u64, Amplitude { re: v, im: 0 }))
+        .collect();
+    let genesis_bytes = amplitude::encode(&genesis_amp);
+    let word_bytes = word.join(",").into_bytes();
+
+    // The validator parses the serializations and independently reconstructs.
+    let parsed_genesis: Vec<i64> = amplitude::decode(&genesis_bytes)
+        .ok_or_else(|| "validator failed to parse the genesis serialization".to_owned())?
+        .iter()
+        .map(|&(_, a)| a.re)
+        .collect();
+    let word_str = String::from_utf8(word_bytes)
+        .map_err(|_| "validator failed to parse the word serialization".to_owned())?;
+    let parsed_word: Vec<&str> = word_str.split(',').collect();
+    let (validator_state, validator_kappa) = execute(&parsed_genesis, &parsed_word);
+
+    check(
+        validator_state == published_state,
+        "validator reconstruction produced a different state",
+    )?;
+    check(
+        validator_kappa == published_kappa,
+        "validator reconstruction produced a different κ",
+    )
+}
+
+/// VV (build) — isotopy collision: two computationally distinct braid words that compose
+/// to the same operator (`σ^order` vs the empty word) must content-address to the identical
+/// κ. This is the decision-by-equivalence mechanism (κ-collision on isotopic words); no
+/// claim about #P-hard contraction is attached.
+///
+/// # Errors
+/// If the isotopic words resolve to different κ.
+pub fn isotopy_collision_witness(p: &UseCaseParams) -> Witness {
+    let g = Generators::new(p);
+    let n = p.class_count() as usize;
+    let base: Vec<i64> = (0..n as i64).collect();
+    let kappa_of = |perm: &Permutation| {
+        let state = perm.permute_amplitudes(&base);
+        let amp: Vec<(u64, Amplitude)> = state
+            .iter()
+            .enumerate()
+            .map(|(i, &v)| (i as u64, Amplitude { re: v, im: 0 }))
+            .collect();
+        tqc_substrate::kappa(&amplitude::encode(&amp))
+    };
+    let id = Permutation::identity(p.class_count());
+    let mut pow = Permutation::identity(p.class_count());
+    for _ in 0..p.sigma_order() {
+        pow = pow.then(&g.sigma);
+    }
+    check(
+        kappa_of(&id) == kappa_of(&pow),
+        "isotopic words (identity vs σ^order) resolved to different κ",
+    )
 }
 
 #[cfg(test)]

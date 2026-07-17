@@ -6,4 +6,4 @@ Feature: Universality (equivalency facet)
 
   Scenario: realization-independence is witnessed across realizations
     Given the UOR Atlas use-case
-    Then the same topological operator resolves to identical κ across all realizations
+    Then the same topological operator resolves to identical κ across the two independent realizations

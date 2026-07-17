@@ -1,4 +1,4 @@
-@row:quantum-realization @stage:S2 @status:some-true @oracle:mtc-axioms
+@row:quantum-realization @stage:S2 @status:build @oracle:mtc-axioms
 Feature: Quantum realization
   The composition operators and the braiding act on C^d.
   They are unitary on C^d and exhibit destructive interference.

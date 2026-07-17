@@ -1,4 +1,4 @@
-@row:complex-amplitude-encoding @stage:S0 @status:some-true @oracle:holospaces-cc
+@row:complex-amplitude-encoding @stage:S0 @status:build @oracle:holospaces-cc
 Feature: Complex amplitude encoding
   The substrate stores bytes, not amplitudes; this is the defined content-addressed encoding.
   An amplitude-space vector { label -> complex amplitude } encodes to canonical bytes, round-trips

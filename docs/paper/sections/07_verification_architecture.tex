@@ -10,10 +10,10 @@ The evaluation environment enforces these constraints through a continuous param
 \begin{enumerate}
     \item \textbf{Executable Mathematical Assertions:} The structural constraints are mapped directly into programmatic test suites. For instance, the topological requirement that braiding operations obey the Yang-Baxter equations is verified exhaustively across the combinatorial representation space.
     \item \textbf{Oracle Bounding:} The numerical constants and matrix coefficients utilized by the system are continuously checked against immutable external mathematical ground truths. The validation pipeline ensures the algebraic evaluation strictly matches these theoretical oracles.
-    \item \textbf{Proof Completeness:} The system strictly prohibits unfulfilled logic. Every declared topological rule in the formal schema must be continuously verified by an accompanying, deterministic mathematical execution in the validation suite.
+    \item \textbf{Status-Ledger Honesty:} Every row of the V\&V dictionary carries one of exactly three statuses, enforced by an honesty meta-gate: \textit{some-true} marks an externally sourced established fact (an F1 theorem, a realized uor-addr operation, or a holospaces-substrate fact) that the implementation must reproduce; \textit{build} marks a precisely scoped in-repo construction, validated against the universal MTC axioms and exact in-repo certificates; and \textit{open} marks a genuine unknown, measured and reported but never asserted true. Unfulfilled logic is therefore not prohibited by fiat but rendered unassertable: a claim without a fulfilling deterministic execution can only carry the \textit{open} status, whose contract is measurement-only.
 \end{enumerate}
 
-This verification regimen guarantees that the academic claims presented in this document are not merely theoretical speculation, but represent a fully verified, algebraically constrained topological framework.
+This verification regimen constrains the academic claims presented in this document to their recorded statuses: exactly certified facts, axiom-validated constructions, and measured observations are distinguished explicitly and never conflated.
 
 \begin{figure}[h]
 \centering

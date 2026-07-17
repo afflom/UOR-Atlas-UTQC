@@ -1,14 +1,18 @@
-//! The MTC builds: an explicit modular datum (`S`, `T`) and braiding (`R`), validated against
-//! the universal MTC axioms.
+//! The MTC builds: explicit modular data (`S`, `T`), fusion, associators (`F`), and braiding
+//! (`R`), validated against the universal MTC axioms with phase-exact comparisons.
 //!
-//! The anyons are modelled as the **quantum double `D(Z_n)`** — a genuine, anomaly-free
-//! (`c = 0`) pointed modular tensor category, with `n` taken from the use-case. Its modular
-//! data satisfies the full SL(2,ℤ) relations *exactly* and its bicharacter braiding satisfies
-//! hexagon + Yang–Baxter; the Verlinde formula reproduces the group-law fusion. These are
-//! `build` constructions validated against the axioms — **not** a claim that `D(Z_n)` is the
-//! unique modular category of the Atlas.
+//! Two categories are constructed:
 //!
-//! `n` is generic over the use-case; nothing here is Atlas-specific.
+//! - [`DoubleZn`] — the **quantum double `D(Z_n)`**, a genuine anomaly-free (`c = 0`) pointed
+//!   modular tensor category with `n` taken from the use-case. It serves as the generic
+//!   reference theory: trivial associator, bicharacter braiding, `(ST)³ = S²` exactly.
+//! - [`native::AtlasNative`] — the Atlas-native pointed category `C(Z_modality × Z_2^3, q)`
+//!   built from the structural quotient of the Atlas class space, with the Eilenberg–MacLane
+//!   abelian 3-cocycle as its `F`/`R` data and non-trivial central charge.
+//!
+//! Both pass [`verifier::verify_mtc_axioms`]. These are `build` constructions validated
+//! against the axioms — **not** a claim that either is F1-sourced. `n` and the parameters
+//! are generic over the use-case; nothing here hardcodes Atlas quantities.
 
 #![forbid(unsafe_code)]
 
@@ -348,8 +352,7 @@ pub fn verify_verlinde(n: usize, tol: f64) -> Result<(), String> {
                     acc = acc.plus(term.scale(1.0 / s0[l].re));
                 }
                 let want = if k == expected { 1.0 } else { 0.0 };
-                if (acc.re - want).abs() > 1e-6 || acc.im.abs() > 1e-6 {
-                    let _ = tol;
+                if (acc.re - want).abs() > tol || acc.im.abs() > tol {
                     return Err(format!(
                         "Verlinde N_{i},{j}^{k} = {:.3}+{:.3}i, want {want}",
                         acc.re, acc.im

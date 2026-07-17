@@ -55,7 +55,8 @@ atlas-pin-check:
 report:
     cargo run -p xtask -- report
 
-# Build + test the substrate facade (excluded crate; real holospaces/hologram/uor-addr).
+# Build + test the substrate facade (workspace member wrapping the pinned real
+# holospaces/hologram/uor-addr graph).
 substrate:
     cargo test --manifest-path crates/tqc-substrate/Cargo.toml
 
@@ -77,9 +78,11 @@ paper:
     cd docs/paper && latexmk -pdf -Werror -interaction=nonstopmode main.tex
     cd docs/paper && chktex main.tex -q -n 1 -n 18 -n 22 -n 24 -n 30 -n 46
 
-# Forbid hardcoding of critical proof metrics
+# Forbid hardcoded verdicts and constant assertions anywhere in the crates: every verdict
+# field must be a derived variable, never a struct-literal constant, and no test may assert
+# a constant true.
 anti-hardcode:
-    @! grep -q "is_dense: true" crates/tqc-vv/src/witness.rs || (echo "ERROR: Hardcoded 'is_dense: true' found in witness! Must be derived parametrically." && exit 1)
+    @! grep -rnE "is_dense: (true|false)|is_coherent: (true|false)|is_logarithmic_scaling: (true|false)|is_entangling: (true|false)|certified_dense: (true|false)|assert!\(true|SkWeaver::new\(true" crates xtask --include="*.rs" || (echo "ERROR: hardcoded verdict or constant assertion found; verdicts must be derived, not literal." && exit 1)
 
 # The full local gate (what CI runs).
 vv: fmt lint doc test bdd honesty oracles report atlas-pin-check portability msrv substrate deny paper anti-hardcode

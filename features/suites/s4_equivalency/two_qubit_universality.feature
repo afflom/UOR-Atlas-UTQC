@@ -1,4 +1,4 @@
-@row:two-qubit-universality @stage:S4 @status:some-true @oracle:mtc-axioms
+@row:two-qubit-universality @stage:S4 @status:build @oracle:exact-algebra
 Feature: Native Two-Qubit Entangler (CZ)
 
   @row:two-qubit-universality

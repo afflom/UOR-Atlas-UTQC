@@ -1,5 +1,5 @@
-@row:topological-entanglement @stage:S4 @status:some-true @oracle:mtc-axioms
-Feature: Topological Entanglement Entropy Bounds
-  Scenario: entanglement entropy scales logarithmically avoiding thermalization
+@row:topological-entanglement @stage:S4 @status:build @oracle:exact-algebra
+Feature: Measured Topological Entanglement Entropy Bounds
+  Scenario: the measured Schmidt-rank profile saturates within the logarithmic bound
     Given the UOR Atlas use-case
     Then the topological execution manifold bounds non-local entanglement entropy

@@ -1,7 +1,7 @@
-@row:utqc-proven @stage:S4 @status:some-true @oracle:mtc-axioms
-Feature: UTQC proven roll-up
-  The UTQC proven roll-up goes some-true only when the other four pillars hold.
+@row:utqc-proven @stage:S4 @status:build @oracle:exact-algebra
+Feature: UTQC roll-up conjunction
+  The roll-up invokes every pillar witness explicitly and fails when any pillar fails.
 
   Scenario: Roll-up
     Given the UOR Atlas use-case
-    Then the UTQC is proven
+    Then every UTQC pillar witness passes in the roll-up conjunction

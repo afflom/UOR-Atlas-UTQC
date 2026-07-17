@@ -40,7 +40,7 @@ fn main() {
     println!("Parsed Logical Circuit: {:?}", logic_gates);
 
     let compiler = Compiler::new(&p);
-    let braid_word = compiler.compile(&logic_gates).unwrap();
+    let braid_word = compiler.compile(&logic_gates, 0.5).unwrap();
 
     println!(
         "Synthesized Topological Braid Word Length: {}",

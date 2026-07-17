@@ -32,5 +32,6 @@ git. Never in a prose "status" paragraph that can drift.
 
 ## Before you commit
 
-`just vv` must be green: `fmt`, `lint` (clippy `-D warnings`), `test`, `doc`, `bdd`,
-`honesty`, `oracles`.
+`just vv` must be green: `fmt`, `lint` (clippy `-D warnings`), `doc`, `test`, `bdd`,
+`honesty`, `oracles`, `report`, `atlas-pin-check`, `portability`, `msrv`, `substrate`,
+`deny`, `paper`, `anti-hardcode`.

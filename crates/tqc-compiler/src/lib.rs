@@ -1,7 +1,13 @@
-//! Classical to Topological Compiler
+//! Classical-gate front-end: schedules logical gate sequences (H, X, CNOT, T, rotations)
+//! onto fixed generator-word templates over the Atlas class space.
 //!
-//! Synthesizes arbitrary linear sequences of classical quantum gates (H, X, CNOT, T)
-//! into equivalent topological Braid Words running natively over the Atlas class space.
+//! **Scope, precisely:** this crate emits braid words; it does **not** establish unitary
+//! equivalence between a logical gate and its emitted word, and no such claim is made
+//! anywhere in the V&V dictionary. Rotations are admitted only as *exact discrete phases*
+//! of the generator set: the exact `Q(ζ₂₄)` certificate in `tqc-vv` refutes gate-set
+//! density for the single-handle group (finite projective Clifford image, order 24), so
+//! Solovay–Kitaev approximation of arbitrary angles is mathematically unavailable and the
+//! weaver is constructed non-dense, matching the theorem.
 
 pub mod qasm;
 pub mod sk;
@@ -92,15 +98,20 @@ impl<'a> Compiler<'a> {
     pub fn new(params: &'a UseCaseParams) -> Self {
         Self {
             params,
-            weaver: SkWeaver::new(true, params), // Universality has been proven, enable dense SK weaving
+            // The weaver admits only exact discrete phases: single-handle gate-set density
+            // is exactly refuted (finite projective Clifford image), so no approximation
+            // path exists. See `tqc-vv::exact::exact_density_certificate`.
+            weaver: SkWeaver::new(params),
         }
     }
 
-    /// Synthesizes a logical circuit into a contiguous Braid Word.
+    /// Schedules a logical circuit onto a contiguous braid word. `epsilon` is the phase
+    /// tolerance for rotation gates: a rotation is admitted only if an exact discrete
+    /// generator phase lies within `epsilon` of it (no dense approximation exists).
     ///
     /// # Errors
-    /// Returns an error if an underlying Solovay-Kitaev synthesis fails.
-    pub fn compile(&self, circuit: &[LogicGate]) -> Result<BraidWord, String> {
+    /// Returns an error if a rotation has no exact discrete phase within `epsilon`.
+    pub fn compile(&self, circuit: &[LogicGate], epsilon: f64) -> Result<BraidWord, String> {
         let mut word = BraidWord::new();
 
         for gate in circuit {
@@ -130,7 +141,7 @@ impl<'a> Compiler<'a> {
                     word.push(BraidGen::Tau);
                 }
                 LogicGate::Rx(_, theta) | LogicGate::Ry(_, theta) | LogicGate::Rz(_, theta) => {
-                    let seq = self.weaver.synthesize_rotation(*theta, 0.5)?; // Lower precision for tests
+                    let seq = self.weaver.synthesize_rotation(*theta, epsilon)?;
                     for gen in seq {
                         word.push(gen);
                     }

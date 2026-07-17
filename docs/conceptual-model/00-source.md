@@ -8,9 +8,9 @@ Status: living document; surgical edits.
 
 What this defines: the realization, on the holospaces substrate, of the topological-quantum
 (anyonic / modular-tensor-category) structure the UOR Atlas carries. A TQC in the
-structural / execution sense that yields a **proven topological quantum advantage**, directly
-inherited by Hologram Holospaces, by replacing exponential state vector tracking with 
-polynomially bounded combinatorial braid mapping. 
+structural / execution sense whose **content-addressed deduplication (topological degeneracy)
+over the finite modular sector is measured and reported** — directly inherited by Hologram
+Holospaces — never asserted as a proven quantum advantage.
 The MTC data splits into what the sources supply (objects, a genuine inner product,
 Atlas composition data, conjugation, the spectrum, the coherence laws) and what is a defined build on top
 (the braiding R-matrix, the modular S/T matrices, the complex amplitude encoding). Both are
@@ -22,9 +22,10 @@ Sources: the [F1] Lean formalization of the UOR Atlas (`F1Square/Square/Atlas*`)
 decisions, marked as such.
 
 Status vocabulary: `some-true` = a sourced fact reproduced (an F1 theorem, a realized
-uor-addr operation, or a holospaces `vv` witness); `build` = a construction on sourced pieces,
-validated against the universal MTC axioms; `open` = a genuine unknown, measured and reported,
-never asserted true.
+uor-addr operation, or a holospaces `vv` witness — always with an external source anchor);
+`build` = a construction on sourced pieces, validated against the universal MTC axioms or an
+exact in-repo certificate; `open` = a genuine unknown (tier `target`, non-gating), measured
+and reported, never asserted true.
 
 ## Unitarity from orthogonality
 
@@ -62,10 +63,10 @@ with no further assumption.
 | Spectrum / superselection | `M` spectrum `{10,7,2,−1}`, mults `{1,2,7,14}`, the `−1`/G2 reflection (dim 14) | `AtlasSpectrum` `blockEig_spectrum`, `atlasMult` | some-true |
 | Definite anchor (PSD seed) | E8 root lattice, Gram `= 4×` Cartan, PSD as SOS | `E8Seed` `e8_weilPSD`, `e8_is_cartan` | some-true |
 | Ground space / protection | zero-state coherence: round-trip `π∘ι=id`, no-loss, scale-invariance | `AtlasCoherence` `atlas_coherent`; `vv` CC-1/2/29/30 | some-true |
-| Braiding R-matrix | the braid datum (R/F satisfying hexagon / Yang–Baxter); built as the braiding of a representative pointed MTC (see Scope) | uor-addr / MTC axioms | build |
-| Modular S/T matrices | the SL(2,ℤ) representation; built as the modular data of a representative pointed MTC (see Scope) | MTC axioms | build |
+| Braiding R-matrix | the braid datum (R/F satisfying the phase-exact hexagon and balancing identities); built as the Eilenberg–MacLane braiding of the Atlas-native pointed category | uor-addr / MTC axioms | build |
+| Modular S/T matrices | the SL(2,ℤ) representation with Gauss-sum anomaly; built as the modular data of the Atlas-native pointed category | MTC axioms | build |
 | Complex amplitude encoding | a content-addressed representation of ℂ-coefficients over the label index | — (the substrate stores bytes, not amplitudes) | build |
-| Two-Qubit Universality Proof | A native entangling phase gate derived from the coherent abelian double braiding without theory collision. | (future proof) | some-true |
+| Two-Qubit Universality | A native entangling phase gate derived from the coherent abelian double braiding without theory collision; no gate-set density claim on the 2-dim block (the exactly decided gate image there is finite Clifford). | MTC axioms / exact in-repo certificate | build |
 
 ## Substrate realization (how each row runs on holospaces)
 
@@ -90,7 +91,7 @@ with no further assumption.
 - **The whole TQC is a holospace** — a content-addressed compute artifact booted on the same
   peer that runs OS guests and (planned) the LLM, on one fabric.
 
-## The Atlas-native structure, and the one layered build
+## The Atlas-native structure and the layered builds
 
 This TQC is **Atlas-native**, not a category bolted onto an unrelated substrate. The UOR Atlas
 is a single `{T,O}=(3,8)` object with many facets, formalized in F1 (stage G), and it **already
@@ -118,7 +119,7 @@ The Atlas supplies the *native data* relevant to a possible MTC construction —
 2. **$\mathbb{Z}_q$-Equivariant Gauging**: The 96 class labels strictly outnumber the 24-dim $V_T \otimes V_O$ carrier. The 96 labels are recognized as a $\mathbb{Z}_q$-graded extension ($q = scope = 4$). By gauging (condensing) the cyclic symmetry, the base topological sector collapses to exactly 24 classes, reconciling the dimension.
 3. **Pseudo-Unitary Metric Relaxation**: The balanced spectral operator yields negative eigenvalues (an indefinite signature). By shifting to a Non-Unitary / Pseudo-Unitary topological field theory framework (where indefinite metrics are native), the trace precisely evaluates to 24 (the carrier dimension), completely resolving the spectral signature gap.
 
-**The representative MTC build.** With the topological base resolved, the explicit `S`/`T`/`R` matrices are modeled over the generic quantum double `D(Z_n)`. Validated against the universal MTC axioms (SL(2,ℤ): `S` symmetric & unitary, `S⁴=1`, `(ST)³=S²`, `S²=C`; hexagon; Yang–Baxter; Verlinde). `D(Z_n)` serves as the formal category build reflecting the structural quotient resolutions (with `D(Z_O)` as the Atlas-parameterized representation).
+**The Atlas-native MTC build.** With the topological base resolved, the explicit `S`/`T`/`F`/`R` data is the pointed modular category `C(Z_modality × Z_2^k, q)` built from the structural quotient (for the Atlas: `C(Z_3 × Z_2^3, q)`, `q(m,c) = ζ_3^{m²}·i^{|c|}`, central charge `c ≡ 5 (mod 8)`), with the Eilenberg–MacLane abelian 3-cocycle as its associator/braiding. Validated phase-exactly against the universal MTC axioms (S symmetric & unitary, `S⁴=I`, `S²=C`, `(ST)³=p⁺S²` with the Gauss-sum anomaly, non-negative integer fusion, exact Verlinde, pentagon/hexagon/balancing, monodromy–S). The generic quantum double `D(Z_n)` is retained as the anomaly-free reference theory that independently exercises the same verifier.
 
 
 The Atlas's §9 is explicit that its definite composition norm is a *different object* from the
@@ -127,21 +128,30 @@ composition / addressing structure; it never touches that crux.
 
 ## Status ledger
 
-- **some-true** (sourced — F1 theorem, realized uor-addr operation, or `vv` witness):
+- **some-true** (sourced — F1 theorem, realized uor-addr operation, or `vv` witness; every
+  row carries an external source anchor):
   objects/labels, the belt and `A_∞` address space, the Euclidean inner product, Atlas composition
   (`g2`), conjugation (`f4`), the categorical operations (`e6/e7/e8`), the reflection
   generators (orthogonal/unitary), the Coxeter/Weyl group, the modular identities, the
-  spectrum, the E8 PSD seed, the coherence/ground-space laws, **universality** (the realization-independence of the κ-equivalence class), **advantage** (UOR Pareto optimization via cache-collapse), **Two-Qubit Universality Proof** (native entangling phase gate derived from the coherent abelian double braiding without theory collision).
-- **build** (construction on sourced pieces, validated against the universal MTC axioms only):
+  spectrum, the E8 PSD seed, the coherence/ground-space laws, **universality** (the
+  realization-independence of the κ-equivalence class, anchored to holospaces CC-1/CC-2).
+- **build** (construction on sourced pieces, validated against the universal MTC axioms or an
+  exact in-repo certificate):
   - the **braiding R-matrix** — the braid datum satisfying hexagon / Yang–Baxter. The Atlas composition
     (`g2`) is commutative, so braiding is extra data, not one of the composition operations.
   - the **modular S/T matrices** — the SL(2,ℤ) representation; the sources carry the modular
     identities, the build supplies the matrices.
   - the **complex amplitude encoding** — a content-addressed representation of ℂ-coefficients
     over the label index (the substrate stores bytes).
-  See Scope for the representative-MTC framing of the first two.
-- **open** (genuine unknowns, measured and reported, never asserted true):
-  - Currently no active open claims; historically included universality and advantage before their resolution.
+  - the **two-qubit universality** construction — a native entangling phase gate from the
+    coherent abelian double braiding, certified exactly; density is *refuted* on the 2-dim
+    SU(2) block (finite projective Clifford image of order 24, decided over Q(ζ₂₄)) and
+    *established* on the 22-dim block (PU(22)) and the 576-dim pair carrier (PU(576)).
+- **open** (genuine unknowns, tier `target`, non-gating; measured via `just report`, never
+  asserted true):
+  - **advantage** — content-addressed deduplication (cache-collapse) over a finite braid
+    orbit (plateauing at 32 distinct operators). The metrics are measured and reported;
+    proven quantum advantage is never asserted.
 
 ## Build stages
 
@@ -157,15 +167,17 @@ Exit: gate determinism witnessed (`CC-2` idiom); `Σxᵢ²` invariant under each
 Atlas composition/dual reduce to the uor-addr operations.
 
 **S2 (the MTC builds).** Construct the braiding R-matrix and the modular S/T matrices, and
-validate them against the MTC axioms (hexagon / Yang–Baxter; SL(2,ℤ) / Verlinde) — see Scope.
-Exit: the braiding satisfies hexagon and Yang–Baxter; S/T satisfy the SL(2,ℤ) relations.
+validate them phase-exactly against the full MTC axiom set (pentagon/hexagon/balancing;
+SL(2,ℤ) with the Gauss-sum anomaly; exact Verlinde; monodromy–S).
+Exit: the Atlas-native pointed category passes every axiom check.
 
 **S3 (measurement + protection).** Composition readout = κ-resolution; demonstrate
 no-loss/round-trip (`CC-29`/`CC-30` idiom) as the topological-protection witness.
 Exit: content-addressing round-trips with no loss.
 
-**S4 (proven capabilities, equivalency facet).** Demonstrate universality (the equivalency facet) and
-topological degeneracy (advantage).
-Exit: theorems recorded; universality and advantage stay `some-true`.
+**S4 (equivalency facet + measured degeneracy).** Demonstrate universality (the equivalency
+facet, anchored to holospaces CC-1/CC-2) and *measure* topological degeneracy (advantage).
+Exit: equivalency witnesses green; the advantage metrics are measured and reported —
+`advantage` stays `open`.
 
 [F1]: https://github.com/afflom/F1

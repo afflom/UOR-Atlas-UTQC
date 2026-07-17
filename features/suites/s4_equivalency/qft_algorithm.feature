@@ -1,5 +1,5 @@
-@row:qft-algorithm @stage:S4 @status:some-true @oracle:mtc-axioms
-Feature: Quantum Fourier Transform Rollup
-  Scenario: QFT is executed with exponential topological speedup over the algebraic manifold
+@row:qft-algorithm @stage:S4 @status:build @oracle:exact-algebra
+Feature: Quantum Fourier Transform (scheduling and class-space execution)
+  Scenario: the QFT circuit schedules onto a bounded braid word
     Given the UOR Atlas use-case
-    Then the QFT algorithmic rollup is executed with exponential topological speedup over the algebraic manifold
+    Then the QFT circuit schedules onto a bounded braid word and executes on the class space

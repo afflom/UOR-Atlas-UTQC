@@ -1,5 +1,5 @@
-@row:qpe-algorithm @stage:S4 @status:some-true @oracle:mtc-axioms
-Feature: Quantum Phase Estimation Rollup
-  Scenario: QPE is executed with exponential topological speedup over the algebraic manifold
+@row:qpe-algorithm @stage:S4 @status:build @oracle:exact-algebra
+Feature: Quantum Phase Estimation (exact readout)
+  Scenario: the QPE readout is computed by exact integer minimization
     Given the UOR Atlas use-case
-    Then the QPE algorithmic rollup is executed with exponential topological speedup over the algebraic manifold
+    Then the QPE readout peak is computed by exact integer minimization and meets the exact guarantee

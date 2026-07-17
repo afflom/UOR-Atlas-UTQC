@@ -60,7 +60,18 @@ impl Permutation {
         self.map[i as usize]
     }
 
-    /// Compose: `(self ∘ other)(i) = self(other(i))`.
+    /// The inverse permutation: `self.inverse().apply(self.apply(i)) == i`.
+    #[must_use]
+    pub fn inverse(&self) -> Self {
+        let mut map = alloc::vec![0u64; self.map.len()];
+        for (i, &img) in self.map.iter().enumerate() {
+            map[img as usize] = i as u64;
+        }
+        Self { map }
+    }
+
+    /// Compose left-to-right: `(self.then(other))(i) = other(self(i))` — apply `self`
+    /// first, then `other`.
     #[must_use]
     pub fn then(&self, other: &Self) -> Self {
         Self {
@@ -107,22 +118,37 @@ pub struct Generators {
 
 impl Generators {
     /// Build the generators for the given parameters.
+    ///
+    /// # Panics
+    /// If the `class_coords`/`class_index` bijection is broken. That is a defect in the
+    /// parametric label space, never a runtime condition; failing loudly here is required —
+    /// a silent identity fallback would corrupt every downstream witness.
     #[must_use]
+    #[allow(clippy::panic)] // invariant violation = defect; silent fallback is worse
     pub fn new(p: &UseCaseParams) -> Self {
         let n = p.class_count();
-        let build = |f: &dyn Fn(u32, u32, u32) -> (u32, u32, u32)| -> Permutation {
+        let build = |name: &str, f: &dyn Fn(u32, u32, u32) -> (u32, u32, u32)| -> Permutation {
             let map = (0..n)
                 .map(|i| {
-                    let (h2, d, l) = p.class_coords(i).unwrap_or((0, 0, 0));
+                    // `u64::MAX` is out of range, so `from_map` rejects any broken coordinate.
+                    let Some((h2, d, l)) = p.class_coords(i) else {
+                        return u64::MAX;
+                    };
                     let (h2b, db, lb) = f(h2, d, l);
-                    p.class_index(h2b, db, lb).unwrap_or(i)
+                    p.class_index(h2b, db, lb).unwrap_or(u64::MAX)
                 })
                 .collect();
-            Permutation { map }
+            match Permutation::from_map(map) {
+                Some(perm) => perm,
+                None => panic!(
+                    "generator {name} is not a permutation of the class space: \
+                     the class_coords/class_index bijection is broken"
+                ),
+            }
         };
-        let sigma = build(&|h2, d, l| ((h2 + 1) % p.scope, d, l));
-        let tau = build(&|h2, d, l| (h2, d, (l + 1) % p.context));
-        let mu = build(&|h2, d, l| (h2, (p.modality - 1) - d, l));
+        let sigma = build("sigma", &|h2, d, l| ((h2 + 1) % p.scope, d, l));
+        let tau = build("tau", &|h2, d, l| (h2, d, (l + 1) % p.context));
+        let mu = build("mu", &|h2, d, l| (h2, (p.modality - 1) - d, l));
         Self { sigma, tau, mu }
     }
 }
@@ -148,6 +174,19 @@ mod tests {
             assert!(
                 Permutation::from_map((0..perm.len()).map(|i| perm.apply(i)).collect()).is_some()
             );
+        }
+    }
+
+    #[test]
+    fn inverse_composes_to_identity() {
+        let p = UseCaseParams::new(4, 3, 8);
+        let g = Generators::new(&p);
+        for perm in [&g.sigma, &g.tau, &g.mu] {
+            assert_eq!(
+                perm.then(&perm.inverse()),
+                Permutation::identity(perm.len())
+            );
+            assert_eq!(perm.inverse().then(perm), Permutation::identity(perm.len()));
         }
     }
 

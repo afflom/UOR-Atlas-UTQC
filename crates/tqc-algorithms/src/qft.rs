@@ -1,8 +1,9 @@
-//! Topological Quantum Fourier Transform (QFT)
+//! Quantum Fourier Transform circuit template.
 //!
-//! Provides a framework for synthesizing the QFT directly over the
-//! combinatorial manifold using Atlas-native logic gates. This proves
-//! polynomial compilation of phase estimation components.
+//! Builds the textbook QFT gate sequence (Hadamards + controlled-phase decompositions)
+//! for scheduling onto braid-word templates by `tqc-compiler`. Scheduling establishes a
+//! bounded word count only — no unitary-equivalence or speedup claim is made (see the
+//! compiler crate docs for the precise scope).
 
 use std::f64::consts::PI;
 use tqc_compiler::LogicGate;
@@ -76,7 +77,7 @@ mod tests {
         let p = UseCaseParams::new(4, 3, 8);
         let compiler = Compiler::new(&p);
 
-        let braid_word = compiler.compile(&circuit).unwrap();
+        let braid_word = compiler.compile(&circuit, 0.5).unwrap();
         assert!(
             !braid_word.sequence.is_empty(),
             "QFT should compile into a topological braid word"

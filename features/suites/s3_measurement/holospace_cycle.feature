@@ -1,4 +1,4 @@
-@row:holospace-cycle @stage:S3 @status:some-true @oracle:holospaces-cc
+@row:holospace-cycle @stage:S3 @status:build @oracle:holospaces-cc
 Feature: Braid -> fuse -> read holospace cycle
   The UTQC runs as one holospace on the content-addressing substrate: an amplitude-space state is
   encoded to a kappa (CC-1), a generator braid word re-addresses deterministically (CC-2),

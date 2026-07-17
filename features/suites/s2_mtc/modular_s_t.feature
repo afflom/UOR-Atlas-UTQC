@@ -1,9 +1,10 @@
-@row:modular-s-t @stage:S2 @status:some-true @oracle:mtc-axioms
+@row:modular-s-t @stage:S2 @status:build @oracle:mtc-axioms
 Feature: Modular S/T matrices
-  Constructed as the generic representative quantum double D(Z_n) (n = context) — an anomaly-free pointed modular
-  category — and validated against the MTC axioms only: S symmetric and unitary, T of finite
-  order, S^4 = 1, (ST)^3 = S^2, S^2 = C (charge conjugation), and Verlinde reproduces the
-  group-law fusion. (status: some-true; D(Z_O) is the Atlas-parameterized stand-in, not the Atlas-native category.)
+  Constructed as the Atlas-native pointed category C(Z_modality x Z_2^k, q) and validated
+  phase-exactly against the full MTC axiom set: S symmetric and unitary, S^4 = I, S^2 = C
+  (charge conjugation), twists of finite order, (ST)^3 = p+ S^2 with the Gauss-sum anomaly
+  p+, non-negative integer fusion, exact Verlinde, phase-exact pentagon/hexagon/balancing,
+  and the monodromy-S relation. A build construction validated against the axioms.
 
   Scenario: S and T satisfy the SL(2,Z) relations for the Atlas
     Given the UOR Atlas use-case

@@ -26,13 +26,10 @@ Cargo.lock.bak
 *.tmp
 *.xref
 *.dvi
-*.pdf
 
-# Exception: keep the final paper pdf if explicitly checked in, but usually it shouldn't be
-# wait, actually the CI builds it, so we ignore local pdfs
-# Let's not ignore .pdf just in case we have images, only the main.pdf generated file
-docs/paper/main.pdf
-docs/paper/UOR_Atlas_Whitepaper.pdf
+# Built paper PDFs (CI builds these; only paper PDFs are ignored, not repo-wide *.pdf)
+docs/paper/*.pdf
+docs/paper/**/*.pdf
 
 # Pandoc / HTML outputs
 public/

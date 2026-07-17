@@ -10,7 +10,8 @@
 //! Solovay–Kitaev density witness is decided exactly over the cyclotomic field
 //! `F = Q(zeta_24)`, not witnessed in `f64` against a threshold.
 //!
-//! Mathematical basis (every step exact; the single analytic input is Lindemann's theorem):
+//! Mathematical basis (every step exact; the only analytic inputs are Lindemann's
+//! theorem for `t = e^i` and the irrationality of `pi` for the Kronecker-Weyl step):
 //!
 //! 1. At the atlas use-case (modality 3, context 8, carrier 24) every entry of
 //!    `S~ = sqrt(24) * S` and of `T` lies in `F = Q(zeta_24)` (which contains `zeta_3`, `i`,
@@ -331,7 +332,7 @@ fn build_t_diag(modality: usize, context: usize) -> Vec<Cyc> {
 }
 
 /// Report of the exact certificate. Every boolean below is decided over `Q(zeta_24)`.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ExactDensityReport {
     /// Exact dimension of the commutant of the generated group (2 = two irreps, mult 1).
     pub commutant_dim: usize,
@@ -382,6 +383,10 @@ pub struct ExactDensityReport {
     /// imprimitive gate on it, if any; `None` is the exact separation theorem for the
     /// native diagonal sector.
     pub native_code_entangler: Option<u32>,
+    /// The exact set of nontrivial monodromy powers `k ∈ 1..=5` whose diagonal preserves
+    /// the code space at all (component-constant). Empty pins the strong separation:
+    /// no nontrivial power even preserves the code.
+    pub monodromy_code_preserving_powers: Vec<u32>,
     /// Exact commutant dimension of the two-handle native group (locals + monodromy).
     pub pair_commutant_dim: usize,
     /// Multi-qudit tensor universality on 22-dim carriers: PU(22)-density per carrier plus
@@ -416,17 +421,43 @@ pub struct ExactDensityReport {
 /// Run the exact certificate for the atlas use-case (modality 3, context 8, carrier 24).
 ///
 /// Cross-checks the exact matrices against the runtime `tqc_mtc::native` construction
-/// entrywise before deciding anything.
-#[allow(clippy::too_many_lines)]
+/// entrywise before deciding anything. The result is memoized per parameter tuple: the
+/// certificate is a deterministic pure function of the parameters, and several witnesses
+/// consume it in one suite run.
+///
+/// # Errors
+/// Returns the first exact check that fails, or a parameter-scope error.
 pub fn exact_density_certificate(
+    p: &tqc_core::UseCaseParams,
+) -> Result<ExactDensityReport, String> {
+    use std::collections::BTreeMap;
+    use std::sync::{Mutex, OnceLock};
+    type Cache = Mutex<BTreeMap<(u32, u32, u32), Result<ExactDensityReport, String>>>;
+    static CACHE: OnceLock<Cache> = OnceLock::new();
+    let cache = CACHE.get_or_init(|| Mutex::new(BTreeMap::new()));
+    let key = (p.scope, p.modality, p.context);
+    let mut guard = cache
+        .lock()
+        .map_err(|_| "certificate cache poisoned".to_owned())?;
+    if let Some(hit) = guard.get(&key) {
+        return hit.clone();
+    }
+    let result = exact_density_certificate_uncached(p);
+    guard.insert(key, result.clone());
+    result
+}
+
+#[allow(clippy::too_many_lines)]
+fn exact_density_certificate_uncached(
     p: &tqc_core::UseCaseParams,
 ) -> Result<ExactDensityReport, String> {
     let native = tqc_mtc::native::construct_atlas_native(p).map_err(|e| e.to_string())?;
     let dim = native.dim();
-    let (modality, context) = (3usize, 8usize);
-    if dim != modality * context {
+    let (modality, context) = (p.modality as usize, p.context as usize);
+    if (modality, context) != (3, 8) || dim != modality * context {
         return Err(format!(
-            "exact certificate is defined for the atlas use-case (dim 24); got dim {dim}"
+            "exact certificate is defined for the atlas use-case (modality 3, context 8, \
+             carrier 24); got (modality {modality}, context {context}, dim {dim})"
         ));
     }
 
@@ -455,7 +486,11 @@ pub fn exact_density_certificate(
 
     // ---- spectral blocks: eigenvalues {10,7,2,-1}, mults {1,2,7,14}, contiguous ----
     let evals = tqc_core::spectrum::block_eigenvalues(p); // [10,7,2,-1]
-    let mults = [1usize, 2, 7, 14];
+                                                          // Multiplicities derived parametrically ([1, T-1, O-1, (T-1)(O-1)]), never hand-entered.
+    let mults: Vec<usize> = tqc_core::spectrum::block_multiplicities(p)
+        .iter()
+        .map(|&m| m as usize)
+        .collect();
     let mut block_of = vec![0usize; dim];
     let mut ranges: Vec<(usize, usize)> = Vec::new();
     {
@@ -529,8 +564,7 @@ pub fn exact_density_certificate(
                 r[j] = r[j].mul(&inv);
             }
             // back-eliminate into existing rows
-            for (pi, prow) in pivots.iter().zip(reduced.iter_mut()) {
-                let _ = pi;
+            for prow in reduced.iter_mut() {
                 if !prow[pcol].is_zero() {
                     let f = prow[pcol].clone();
                     for j in 0..u {
@@ -546,36 +580,12 @@ pub fn exact_density_certificate(
     let commutant_dim = u - rank;
 
     if commutant_dim != 2 {
-        return Ok(ExactDensityReport {
-            commutant_dim,
-            block_dim: 0,
-            beta_s_nonzero: vec![],
-            beta_t_nonzero: vec![],
-            noncommuting_grade: None,
-            proj_infinite: vec![],
-            proj_pair: None,
-            block_support: vec![],
-            finite_image_order: None,
-            block22_infinite: vec![],
-            block22_pair: None,
-            beyond_finite: false,
-            lie_dim_lower_22: 0,
-            pu22_dense: false,
-            code_components: 0,
-            native_code_entangler: None,
-            pair_commutant_dim: 0,
-            qudit_universal: false,
-            pair_lie_dim_lower: 0,
-            pair_entangling_flow: false,
-            pair_adj_component: false,
-            pair_reach_rank: 0,
-            pu576_dense: false,
-            gate_level_universal: false,
-            certified_dense: false,
-            description: format!(
-                "exact commutant dimension is {commutant_dim}, not 2; density on a 2-dim block is not certified"
-            ),
-        });
+        // Premise failure is an error, never a degenerate "not certified" report: every
+        // consumer pins the exact decided values, so a changed commutant must fail loudly.
+        return Err(format!(
+            "exact commutant dimension is {commutant_dim}, not 2; the two-irrep premise of \
+             the density decision failed"
+        ));
     }
 
     // nullspace basis: free columns
@@ -696,34 +706,11 @@ pub fn exact_density_certificate(
         }
         mat_scale(&m, &l2.sub(&l1).inv()?)
     } else {
-        return Ok(ExactDensityReport {
-            commutant_dim,
-            block_dim: 0,
-            beta_s_nonzero: vec![],
-            beta_t_nonzero: vec![],
-            noncommuting_grade: None,
-            proj_infinite: vec![],
-            proj_pair: None,
-            block_support: vec![],
-            finite_image_order: None,
-            block22_infinite: vec![],
-            block22_pair: None,
-            beyond_finite: false,
-            lie_dim_lower_22: 0,
-            pu22_dense: false,
-            code_components: 0,
-            native_code_entangler: None,
-            pair_commutant_dim: 0,
-            qudit_universal: false,
-            pair_lie_dim_lower: 0,
-            pair_entangling_flow: false,
-            pair_adj_component: false,
-            pair_reach_rank: 0,
-            pu576_dense: false,
-            gate_level_universal: false,
-            certified_dense: false,
-            description: "exact isotypic dimensions are not {2,22}".into(),
-        });
+        return Err(
+            "exact isotypic dimensions are not {2,22}; the block-projector premise \
+             of the density decision failed"
+                .into(),
+        );
     };
     // verify projector identities exactly
     if !mat_eq(&mat_mul(&p1, &p1), &p1) || !mat_eq(&mat_adjoint(&p1), &p1) {
@@ -776,8 +763,6 @@ pub fn exact_density_certificate(
             beta_t_nonzero.push(evals[bidx]);
         }
     }
-    let s_infinite = !beta_s_nonzero.is_empty();
-    let t_infinite = !beta_t_nonzero.is_empty();
 
     // ---- non-commuting on the block: graded commutator coefficients ----
     // G_S G_T = sum_p (S T Pi_p) t^{2p};  G_T G_S grades by m_i + m_j on entries of (T S).
@@ -843,7 +828,6 @@ pub fn exact_density_certificate(
             break;
         }
     }
-    let noncommuting = noncommuting_grade.is_some();
 
     // ---- exact support of the block across the spectral eigenspaces ----
     // tr(P1 Pi_p) = sum of the (nonnegative) diagonal of P1 over block p: zero iff the
@@ -862,9 +846,6 @@ pub fn exact_density_certificate(
         }
         block_support.push((evals[bidx], tr.to_c64().0));
     }
-
-    // suppress unused warnings for diagnostics retained in the report
-    let _ = (s_infinite, t_infinite, noncommuting);
 
     // ---- projective certificate on the block ----
     // tr(u_s) = 0 exactly (found above when beta_s_nonzero is empty): a traceless 2x2
@@ -1036,6 +1017,7 @@ pub fn exact_density_certificate(
     let ent = entangler_decision(&p1, modality, context, dim)?;
     let code_components = ent.code_components;
     let native_code_entangler = ent.native_code_entangler;
+    let monodromy_code_preserving_powers = ent.code_preserving_powers.clone();
     let pair_commutant_dim = ent.pair_commutant_dim;
     let qudit_universal = pu22_dense && native_code_entangler.is_some();
     let (pair_lie_dim_lower, pair_entangling_flow) =
@@ -1107,6 +1089,27 @@ pub fn exact_density_certificate(
         if overflow {
             None
         } else {
+            // Group identification: among the order-24 subgroups of PU(2) = SO(3)
+            // (octahedral S4, dihedral D12, cyclic C24), the number of solutions of
+            // g² = 1 separates them: S4 has 10 (identity + 9 involutions), D12 has 14,
+            // C24 has 2. Pinning the involution count machine-checks the "projective
+            // Clifford group ≅ S4" identification.
+            if elems.len() == 24 {
+                let identity_elem = &elems[0];
+                let mut involutions = 0usize;
+                for e in &elems {
+                    let sq = normalize(&mat_mul(e, e))?;
+                    if mat_eq(&sq, identity_elem) {
+                        involutions += 1;
+                    }
+                }
+                if involutions != 10 {
+                    return Err(format!(
+                        "finite image has order 24 but {involutions} solutions of g² = 1 \
+                         (S4 requires 10): the image is not the projective Clifford group"
+                    ));
+                }
+            }
             Some(elems.len())
         }
     };
@@ -1149,8 +1152,9 @@ pub fn exact_density_certificate(
          lies in the closure (Kronecker-Weyl; pi irrational), seeding a division-free Lie \
          closure whose mod-p rank on the block is {lie_dim_lower_22} (sound lower bound on \
          dim Lie(H)); saturation at >= 483 forces su(22), so PU(22)-density on the block is \
-         {pu22_dense}. The one \
-         analytic input is Lindemann (t = e^i transcendental); every other step is decided over \
+         {pu22_dense}. The only \
+         analytic inputs are Lindemann (t = e^i transcendental) and the irrationality of pi \
+         (Kronecker-Weyl); every other step is decided over \
          Q(zeta_24). No f64 value participates in any decision."
     );
 
@@ -1171,6 +1175,7 @@ pub fn exact_density_certificate(
         pu22_dense,
         code_components,
         native_code_entangler,
+        monodromy_code_preserving_powers,
         pair_commutant_dim,
         qudit_universal,
         pair_lie_dim_lower,
@@ -1522,7 +1527,7 @@ fn primitive_24th_root() -> Result<u64, String> {
         let w = modpow(g, (p - 1) / 24, p);
         // primitive iff w^12 != 1 and w^8 != 1 (proper divisors via maximal ones 12, 8)
         if modpow(w, 12, p) != 1 && modpow(w, 8, p) != 1 {
-            return Err(String::new()).or(Ok(w));
+            return Ok(w);
         }
     }
     Err("no primitive 24th root found".into())
@@ -1799,6 +1804,9 @@ fn chi_exact(x: usize, y: usize, modality: usize, context: usize) -> Cyc {
 
 /// Decision data for the inter-carrier entangler question.
 pub struct EntanglerDecision {
+    /// The exact set of nontrivial monodromy powers `k ∈ 1..=5` whose diagonal preserves
+    /// the code space (is component-constant). Empty = no nontrivial power preserves it.
+    pub code_preserving_powers: Vec<u32>,
     /// Number of P2-support components per handle carrying nonzero 22-block content.
     pub code_components: usize,
     /// The monodromy power `k` for which `diag(chi^k)` preserves the code space AND induces
@@ -1886,7 +1894,12 @@ fn entangler_decision(
     // native diagonal sector: chi^k constant on every component pair?
     // (product components of the P2 (x) P2 support graph are exactly C_i x C_j, since
     // every node has a self-loop: P2 diagonal nonzero, verified above)
+    //
+    // k runs over 1..=5: chi has exact order 6 (lcm of the Z_3 part and the semion part),
+    // so k = 6 is the identity power (trivially code-preserving and factoring) and every
+    // nontrivial power is covered.
     let mut native_code_entangler: Option<u32> = None;
+    let mut code_preserving_powers: Vec<u32> = Vec::new();
     'kloop: for k in 1..=5u32 {
         // chi^k per label pair, via repeated exact multiplication
         let chi_k = |x: usize, y: usize| -> Cyc {
@@ -1899,7 +1912,8 @@ fn entangler_decision(
         };
         // constancy per component pair, recording the value matrix
         let mut vbar: Vec<Vec<Option<Cyc>>> = vec![vec![None; ncomp]; ncomp];
-        for x in 0..dim {
+        let mut constant = true;
+        'scan: for x in 0..dim {
             for y in 0..dim {
                 let v = chi_k(x, y);
                 let (ci, cj) = (comp_of[x], comp_of[y]);
@@ -1907,12 +1921,19 @@ fn entangler_decision(
                     None => vbar[ci][cj] = Some(v),
                     Some(w) => {
                         if *w != v {
-                            continue 'kloop; // not code-preserving
+                            constant = false;
+                            break 'scan; // not code-preserving
                         }
                     }
                 }
             }
         }
+        if !constant {
+            continue 'kloop;
+        }
+        // This power preserves the code: record it (the separation theorem pins the
+        // exact set of code-preserving powers, not merely the entangler verdict).
+        code_preserving_powers.push(k);
         // imprimitivity on the code: rank >= 2 of the value matrix over content components
         let idx: Vec<usize> = (0..ncomp).filter(|&c| content[c]).collect();
         for a in 0..idx.len() {
@@ -1920,10 +1941,13 @@ fn entangler_decision(
                 for c in 0..idx.len() {
                     for d in (c + 1)..idx.len() {
                         let (i1, i2, j1, j2) = (idx[a], idx[b], idx[c], idx[d]);
-                        let m11 = vbar[i1][j1].clone().unwrap();
-                        let m12 = vbar[i1][j2].clone().unwrap();
-                        let m21 = vbar[i2][j1].clone().unwrap();
-                        let m22 = vbar[i2][j2].clone().unwrap();
+                        let (m11, m12, m21, m22) =
+                            match (&vbar[i1][j1], &vbar[i1][j2], &vbar[i2][j1], &vbar[i2][j2]) {
+                                (Some(a_), Some(b_), Some(c_), Some(d_)) => {
+                                    (a_.clone(), b_.clone(), c_.clone(), d_.clone())
+                                }
+                                _ => return Err("component pair unobserved in vbar".into()),
+                            };
                         if m11.mul(&m22) != m12.mul(&m21) {
                             native_code_entangler = Some(k);
                             break 'kloop;
@@ -1987,6 +2011,7 @@ fn entangler_decision(
     let pair_commutant_dim = 1 + (3 - basis.len());
 
     Ok(EntanglerDecision {
+        code_preserving_powers,
         code_components,
         native_code_entangler,
         pair_commutant_dim,
@@ -2095,6 +2120,14 @@ fn pair_lie_lower_bound(
 
     // non-local candidates: Ad(U)(A (x) 1) and Ad(U)(1 (x) A)
     let target = 977usize;
+    // Vacuity guard: the locals alone must NOT already meet the target, otherwise the
+    // "non-local direction" certificate below would be trivially satisfied.
+    if local_rank >= target {
+        return Err(format!(
+            "local subalgebra rank {local_rank} already >= target {target}: \
+             the non-local certificate would be vacuous"
+        ));
+    }
     for a in handle_basis {
         if rank.rank() >= target + 8 {
             break;
@@ -2125,7 +2158,6 @@ fn pair_lie_lower_bound(
         rank.insert(project(&cand_r));
     }
     let r = rank.rank();
-    let _ = local_rank;
     Ok((r, r >= target))
 }
 

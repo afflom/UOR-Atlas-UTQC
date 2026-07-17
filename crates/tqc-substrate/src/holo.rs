@@ -90,7 +90,15 @@ pub fn execute_holo_gate(
         output_shape: shape_indices,
     });
     g.set_gather_attrs(gather_node, GatherAttrs { axis: 0 });
-    g.add_named_output(gather_node, "output");
+    // The archive contract requires a dedicated `Output` node wrapping the result; naming
+    // the gather node itself as an output degenerates to an input passthrough.
+    let out_node = g.add_node(Node {
+        op: GraphOp::Output,
+        inputs: smallvec::smallvec![InputSource::Node(gather_node)],
+        output_dtype: dtype_i64,
+        output_shape: shape_indices,
+    });
+    g.add_named_output(out_node, "output");
 
     let compiled = compile(g, BackendKind::Cpu, WittLevel::W32).map_err(|e| format!("{:?}", e))?;
     let backend = CpuBackend::<BufferArena>::new();

@@ -1,10 +1,12 @@
-//! Topological Period Finding (Shor's Algorithm Core)
+//! Period finding (Shor's algorithm core), evaluated exactly at fixed instances.
 //!
-//! Synthesizes the core period finding routine of Shor's Algorithm natively
-//! into the topological combinatorial space. Demonstrates the capacity
-//! to execute exponential unitary operators exactly over the UOR Atlas,
-//! proving that the machine provably runs Shor, end to end, as a certified
-//! execution witness.
+//! An exact-arithmetic *reference evaluation*: the counting-register amplitudes are built
+//! as exact cyclotomic sums over `Q(ζ_M)` (power-of-two `M`, `Φ_M(x) = x^{M/2} + 1`),
+//! candidate peaks are ordered by a deterministic fixed-point ranking (a heuristic
+//! ordering only — exactness is carried by the final check), continued fractions extract
+//! period candidates exactly, and the recovered period is verified exactly against the
+//! modular-exponentiation orbit. A classical exact computation at small fixed instances;
+//! no speedup claim is made.
 
 use num_bigint::BigInt;
 use num_integer::Integer;
@@ -160,11 +162,13 @@ pub struct ExactShorReport {
     pub base: usize,
     /// The modulus.
     pub modulus: usize,
-    /// The exact period found.
+    /// The exact period, derived independently as the orbit length of 1 under the
+    /// modular-exponentiation permutation.
     pub period: usize,
     /// The exact rational eigenphase c * s / r.
     pub exact_phase: BigRational,
-    /// The period recovered via continued-fraction expansion.
+    /// The period recovered via the QPE peak and continued-fraction expansion; verified
+    /// to equal `period` exactly.
     pub recovered_period: usize,
 }
 
@@ -179,9 +183,20 @@ impl ShorSolver {
         }
     }
 
+    /// The modeled state register must be able to hold residues mod `modulus`.
+    fn check_state_capacity(&self, modulus: usize) -> Result<(), String> {
+        if (1usize << self.state_qubits) < modulus {
+            return Err(format!(
+                "state register of {} qubits cannot hold residues mod {modulus}",
+                self.state_qubits
+            ));
+        }
+        Ok(())
+    }
+
     /// Executes the certified exact Shor witness natively without state vectors.
     ///
-    /// Modeling the substrate's tractable-execution engine, the modular exponentiation
+    /// The modular exponentiation
     /// is executed as an exact permutation on Z/N, extracting the period via orbit length,
     /// determining the exact rational eigenphase, and performing continued-fractions recovery
     /// without f64 loss.
@@ -193,9 +208,26 @@ impl ShorSolver {
         if base.gcd(&modulus) != 1 {
             return Err("Base and modulus must be coprime".into());
         }
+        self.check_state_capacity(modulus)?;
 
         // 1. Modular exponentiation as an exact permutation on Z/N
         let perm: Vec<usize> = (0..modulus).map(|i| (i * base) % modulus).collect();
+
+        // The true period, derived independently of the QPE readout: the orbit length of 1
+        // under the permutation. The QPE + continued-fraction recovery below must reproduce
+        // exactly this value or the witness fails.
+        let period = {
+            let mut state = perm[1];
+            let mut len = 1usize;
+            while state != 1 {
+                state = perm[state];
+                len += 1;
+                if len > modulus {
+                    return Err("orbit of 1 did not close within the modulus".into());
+                }
+            }
+            len
+        };
 
         // 2. Evaluate the quantum state evolution and QPE interference.
         // We authentically execute the QPE interference pattern by evaluating the Fourier amplitudes
@@ -240,41 +272,38 @@ impl ShorSolver {
         let mut recovered_period = 0;
         let mut exact_phase = BigRational::new(BigInt::from(0), BigInt::from(1));
 
-        for k in k_candidates {
+        'outer: for k in k_candidates {
             if probabilities[k].to_scaled_int() <= 0 {
                 continue; // Ignore negligible or zero background probabilities exactly
             }
 
-            // k / M is the authentic measured rational phase
-            exact_phase = BigRational::new(BigInt::from(k), BigInt::from(m_states));
+            // k / M is the measured rational phase.
+            let phase = BigRational::new(BigInt::from(k), BigInt::from(m_states));
 
-            // 4. Continued-fractions recovery of candidate r
-            let p_candidate = match Self::continued_fraction_recovery(&exact_phase) {
-                Ok(p) => p,
-                Err(_) => continue,
-            };
-
-            if p_candidate == 0 {
-                continue;
-            }
-
-            // Verify if the candidate period successfully closes the orbit
-            let mut check_state = 1;
-            for _ in 0..p_candidate {
-                check_state = perm[check_state];
-            }
-            if check_state == 1 {
-                recovered_period = p_candidate;
-                break;
+            // 4. Continued-fractions recovery: EVERY convergent denominator is a period
+            // candidate (the final convergent alone is just the reduced denominator of
+            // k/M, a divisor of M — it misses every period not dividing 2^m).
+            for q in Self::convergent_denominators(&phase) {
+                if q == 0 || q > modulus {
+                    continue;
+                }
+                // The candidate must close the orbit AND equal the independently derived
+                // period exactly (a proper divisor multiple would close the orbit too).
+                let mut check_state = 1;
+                for _ in 0..q {
+                    check_state = perm[check_state];
+                }
+                if check_state == 1 && q == period {
+                    recovered_period = q;
+                    exact_phase = phase;
+                    break 'outer;
+                }
             }
         }
 
         if recovered_period == 0 {
             return Err("Failed to recover the full period from the spectral eigenphases".into());
         }
-
-        // The period emerges strictly from the machine's QPE interference primitives.
-        let period = recovered_period;
 
         Ok(ExactShorReport {
             base,
@@ -285,37 +314,33 @@ impl ShorSolver {
         })
     }
 
-    fn continued_fraction_recovery(phase: &BigRational) -> Result<usize, String> {
+    /// All convergent denominators of the continued-fraction expansion of `phase`,
+    /// in increasing order. Denominators that exceed `usize` are skipped (they cannot
+    /// be periods of a `usize` modulus).
+    fn convergent_denominators(phase: &BigRational) -> Vec<usize> {
         let mut num = phase.numer().clone();
         let mut den = phase.denom().clone();
 
-        let mut p_prev = BigInt::from(0);
         let mut q_prev = BigInt::from(1);
-        let mut p_curr = BigInt::from(1);
         let mut q_curr = BigInt::from(0);
+        let mut out = Vec::new();
 
-        loop {
-            if den.is_zero() {
-                break;
-            }
+        while !den.is_zero() {
             let a = num.clone() / den.clone();
             let rem = num.clone() % den.clone();
 
-            let p_next = a.clone() * p_curr.clone() + p_prev;
             let q_next = a * q_curr.clone() + q_prev;
-
-            p_prev = p_curr;
             q_prev = q_curr;
-            p_curr = p_next;
             q_curr = q_next;
+
+            if let Some(q) = q_curr.to_usize() {
+                out.push(q);
+            }
 
             num = den;
             den = rem;
         }
-
-        q_curr
-            .to_usize()
-            .ok_or_else(|| "Period exceeds usize capacity".into())
+        out
     }
 }
 
@@ -325,7 +350,7 @@ mod tests {
 
     #[test]
     fn test_shor_exact_witness() {
-        let solver = ShorSolver::new(4, 2);
+        let solver = ShorSolver::new(4, 4);
         // Base 2, Modulus 15 (Shor's classic example)
         let report = solver
             .execute_exact_witness(2, 15)
@@ -333,5 +358,24 @@ mod tests {
 
         assert_eq!(report.period, 4);
         assert_eq!(report.recovered_period, 4);
+    }
+
+    #[test]
+    fn test_shor_recovers_period_not_dividing_two_power() {
+        // Base 2 mod 7 has period 3, which does not divide M = 16: recovery must come
+        // from an intermediate continued-fraction convergent (1/3 of 5/16), which the
+        // final-convergent-only expansion can never produce.
+        let solver = ShorSolver::new(4, 3);
+        let report = solver
+            .execute_exact_witness(2, 7)
+            .expect("Exact witness failed");
+        assert_eq!(report.period, 3);
+        assert_eq!(report.recovered_period, 3);
+    }
+
+    #[test]
+    fn test_shor_rejects_undersized_state_register() {
+        let solver = ShorSolver::new(4, 2);
+        assert!(solver.execute_exact_witness(2, 15).is_err());
     }
 }

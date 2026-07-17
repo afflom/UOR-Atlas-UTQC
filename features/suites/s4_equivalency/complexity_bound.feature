@@ -1,5 +1,5 @@
-@row:complexity-bound @stage:S4 @status:some-true @oracle:mtc-axioms
-Feature: Polynomial Execution Complexity Bound
-  Scenario: execution entirely circumvents exponential vector expansion
+@row:complexity-bound @stage:S4 @status:build @oracle:exact-algebra
+Feature: Linear Execution Cost Bound (exact operation count)
+  Scenario: execution cost is counted exactly and is linear in braid depth
     Given the UOR Atlas use-case
-    Then execution time scales linearly with braid depth avoiding exponential vector expansion
+    Then the execution cost is exactly the operation count linear in braid depth with no exponential state

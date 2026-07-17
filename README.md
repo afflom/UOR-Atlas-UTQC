@@ -3,8 +3,12 @@
 A **parametric, BDD-driven, V&V-gated** realization of The UOR Atlas UTQC. This repository is the formalization, implementation, and analysis of The UOR Atlas UTQC, which is the basis of the entire UOR ecosystem of tooling including Hologram Holospaces.
 
 > The UOR Atlas UTQC here means the **structural / simulation** sense — a modular-tensor-category (MTC)
-> realized on a content-addressed substrate. It provides a **proven topological quantum advantage** 
-> by subverting exponential vector expansion via cache collapse, a capability natively inherited by Hologram Holospaces. 
+> realized on a content-addressed substrate. It provides an **exactly-decided density/universality
+> certificate chain** — density is *refuted* on the 2-dim SU(2) block (the gate image there is a finite
+> projective Clifford group of order 24, decided over Q(ζ₂₄)) and *established* on the 22-dim block
+> (PU(22)) and the 576-dim pair carrier (PU(576)) — plus **measured content-addressed deduplication
+> (cache-collapse) metrics**, a capability natively inherited by Hologram Holospaces. The deduplication
+> numbers are engineering measurements, not a proven quantum advantage.
 > Every claim is tracked against an authoritative source and never asserted beyond what that source shows.
 
 ## What this repository is
@@ -43,6 +47,8 @@ framework. See [`docs/architecture/ARCHITECTURE.md`].
 | `crates/tqc-core` | the **parametric** MTC framework (DRY core, `no_std`) |
 | `crates/tqc-atlas` | the UOR Atlas use-case instance (F1-validated) |
 | `crates/tqc-mtc` | the MTC builds: modular `S`/`T` and braiding `R` (axiom-validated) |
+| `crates/tqc-algorithms` | exact-arithmetic reference evaluations of Grover / QFT / QPE / Shor instances |
+| `crates/tqc-compiler` | gate-word scheduling front-end: QASM parsing + braid-word emission (no gate-semantics equivalence claim) |
 | `crates/tqc-substrate` | the sole facade over holospaces / hologram / uor-addr |
 | `crates/tqc-vv` | V&V witnesses + external-oracle loaders |
 | `crates/tqc-conformance` | the BDD (cucumber) runner + the honesty meta-gate |
@@ -54,16 +60,20 @@ framework. See [`docs/architecture/ARCHITECTURE.md`].
 
 ```sh
 just            # list tasks
-just vv         # run the full local gate (fmt, lint, test, doc, bdd, honesty, oracles)
+just vv         # the full local gate: fmt, lint, doc, test, bdd, honesty, oracles, report,
+                # pin-check, portability, msrv, substrate, deny, paper, anti-hardcode
 just bdd        # run the Gherkin BDD suite
 ```
 
 ## Status
 
-Every row of the dictionary carries one of three honesty levels — `some-true` (sourced fact
-reproduced), `build` (constructed and axiom-validated), `open` (measured and reported). See
-[`docs/conceptual-model/03-status-discipline.md`] and the live conformance ledger produced by
-`just report`.
+Every row of the dictionary carries one of three honesty levels — `some-true` (an externally
+sourced fact reproduced: an F1 theorem, a realized uor-addr operation, or a holospaces `vv`
+witness — every `some-true` row carries an external source anchor), `build` (a construction
+validated against the universal MTC axioms or an exact in-repo certificate), `open` (a genuine
+unknown, tier `target`, non-gating: measured and reported via `just report`, never asserted
+true). See [`docs/conceptual-model/03-status-discipline.md`] and the live conformance ledger
+produced by `just report`.
 
 [holospaces]: https://github.com/Hologram-Technologies/holospaces
 [F1]: https://github.com/afflom/F1

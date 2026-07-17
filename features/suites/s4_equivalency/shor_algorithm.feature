@@ -1,5 +1,5 @@
-@row:shor-algorithm @stage:S4 @status:some-true @oracle:mtc-axioms
-Feature: Shor's Algorithm (Period Finding) Rollup
-  Scenario: Shor's algorithm is executed with exponential topological speedup over the algebraic manifold
+@row:shor-algorithm @stage:S4 @status:build @oracle:exact-algebra
+Feature: Shor's Algorithm (exact period finding at a fixed instance)
+  Scenario: the period is recovered by exact cyclotomic evaluation
     Given the UOR Atlas use-case
-    Then the Shor's period finding algorithmic rollup is executed with exponential topological speedup over the algebraic manifold
+    Then the Shor period is recovered by exact cyclotomic evaluation and verified against the orbit

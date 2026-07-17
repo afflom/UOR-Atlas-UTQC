@@ -174,118 +174,32 @@ async fn t_quantum_realization(w: &mut TqcWorld) {
     witness::quantum_realization(&w.params()).unwrap();
 }
 
-#[then("all S0 labels and operators are reachable from the single Atlas generator")]
+#[then("the generator closure partitions the class space into the derived mirror orbits covering every label")]
 async fn t_generative_closure(w: &mut TqcWorld) {
     witness::generative_closure_probe(&w.params()).unwrap();
 }
 
-#[then("the UTQC is proven")]
+#[then("every UTQC pillar witness passes in the roll-up conjunction")]
 async fn t_utqc_proven(w: &mut TqcWorld) {
-    witness::utqc_proven_probe(&w.params()).unwrap();
+    let model = w.model.take().unwrap_or_else(|| Model::load().unwrap());
+    let f1 = w.f1.clone().unwrap_or_else(|| F1Constants::load().unwrap());
+    witness::utqc_proven_probe(&model, &f1, &w.params()).unwrap();
+    w.model = Some(model);
 }
 
-#[then("the topological execution manifold is fundamentally immune to quantum decoherence by virtue of discrete combinatorial execution")]
+#[then("the discrete execution replays identical braid words to identical states and kappa")]
 async fn t_fault_tolerance(w: &mut TqcWorld) {
-    let p = w.params();
-    let g = tqc_core::generators::Generators::new(&p);
-
-    // Evaluate the exact same word twice.
-    let n = p.class_count() as usize;
-    let base: Vec<i64> = (0..n as i64).map(|i| i % 7 - 3).collect();
-
-    let mut perm1 = tqc_core::generators::Permutation::identity(p.class_count());
-    let mut perm2 = tqc_core::generators::Permutation::identity(p.class_count());
-
-    // Some arbitrary complex word: sigma * tau * mu * sigma
-    perm1 = perm1.then(&g.sigma).then(&g.tau).then(&g.mu).then(&g.sigma);
-    perm2 = perm2.then(&g.sigma).then(&g.tau).then(&g.mu).then(&g.sigma);
-
-    let state1 = perm1.permute_amplitudes(&base);
-    let state2 = perm2.permute_amplitudes(&base);
-
-    let amp1: Vec<(u64, tqc_core::amplitude::Amplitude)> = state1
-        .iter()
-        .enumerate()
-        .map(|(i, &v)| (i as u64, tqc_core::amplitude::Amplitude { re: v, im: 0 }))
-        .collect();
-
-    let amp2: Vec<(u64, tqc_core::amplitude::Amplitude)> = state2
-        .iter()
-        .enumerate()
-        .map(|(i, &v)| (i as u64, tqc_core::amplitude::Amplitude { re: v, im: 0 }))
-        .collect();
-
-    let k1 = tqc_substrate::kappa(&tqc_core::amplitude::encode(&amp1));
-    let k2 = tqc_substrate::kappa(&tqc_core::amplitude::encode(&amp2));
-
-    assert_eq!(
-        k1, k2,
-        "Discrete combinatorial execution must produce exactly identical states, granting absolute decoherence immunity."
-    );
+    witness::deterministic_replay_witness(&w.params()).unwrap();
 }
 
-#[then("execution time scales linearly with braid depth avoiding exponential vector expansion")]
+#[then("the execution cost is exactly the operation count linear in braid depth with no exponential state")]
 async fn t_complexity_bound(w: &mut TqcWorld) {
-    let p = w.params();
-    let g = tqc_core::generators::Generators::new(&p);
-
-    // Evaluate a long word (depth 1000) using topological permutation composition
-    let mut perm = tqc_core::generators::Permutation::identity(p.class_count());
-
-    let start = std::time::Instant::now();
-    for _ in 0..250 {
-        perm = perm.then(&g.sigma).then(&g.tau).then(&g.mu).then(&g.sigma);
-    }
-    let elapsed = start.elapsed();
-
-    assert!(
-        elapsed.as_millis() < 50,
-        "Execution of depth 1000 braid word must complete in strictly polynomial time (under 50ms) avoiding any exponential state vector synthesis."
-    );
+    witness::complexity_bound_witness(&w.params()).unwrap();
 }
 
 #[then("any validator can perfectly mathematically reconstruct the final state and identical kappa from the genesis configuration and braid word")]
 async fn t_reconstructability(w: &mut TqcWorld) {
-    let p = w.params();
-    let g = tqc_core::generators::Generators::new(&p);
-    let n = p.class_count() as usize;
-    let base: Vec<i64> = (0..n as i64).map(|i| i % 5).collect();
-
-    // First runner executes the topological program and publishes the final kappa.
-    let mut perm1 = tqc_core::generators::Permutation::identity(p.class_count());
-    let braid_word = vec![&g.sigma, &g.tau, &g.sigma, &g.mu, &g.tau];
-    for op in &braid_word {
-        perm1 = perm1.then(op);
-    }
-    let state1 = perm1.permute_amplitudes(&base);
-    let amp1: Vec<(u64, tqc_core::amplitude::Amplitude)> = state1
-        .iter()
-        .enumerate()
-        .map(|(i, &v)| (i as u64, tqc_core::amplitude::Amplitude { re: v, im: 0 }))
-        .collect();
-    let published_kappa = tqc_substrate::kappa(&tqc_core::amplitude::encode(&amp1));
-
-    // Validator perfectly reconstructs the state using only the genesis base and the braid word.
-    let mut perm_validator = tqc_core::generators::Permutation::identity(p.class_count());
-    for op in &braid_word {
-        perm_validator = perm_validator.then(op);
-    }
-    let state_validator = perm_validator.permute_amplitudes(&base);
-    let amp_validator: Vec<(u64, tqc_core::amplitude::Amplitude)> = state_validator
-        .iter()
-        .enumerate()
-        .map(|(i, &v)| (i as u64, tqc_core::amplitude::Amplitude { re: v, im: 0 }))
-        .collect();
-    let validator_kappa = tqc_substrate::kappa(&tqc_core::amplitude::encode(&amp_validator));
-
-    assert_eq!(
-        state1, state_validator,
-        "Validator must reconstruct the exact integer amplitude configurations with zero information loss"
-    );
-    assert_eq!(
-        published_kappa, validator_kappa,
-        "Validator must deterministically derive the exact matching cryptographic kappa invariant"
-    );
+    witness::reconstruction_witness(&w.params()).unwrap();
 }
 
 #[then("the Solovay-Kitaev density question is exactly decided")]
@@ -317,51 +231,19 @@ async fn t_pair_carrier(w: &mut TqcWorld) {
 
 #[then("the S4 modal logic frame satisfies reflexivity and transitivity")]
 async fn t_s4_modal_logic(w: &mut TqcWorld) {
-    let p = w.params();
-    assert_eq!(p.sigma_order(), 4);
-    assert_eq!(p.tau_order(), 8);
+    witness::s4_frame_witness(&w.params()).unwrap();
 }
 
-#[then("the Mac Lane Pentagon identity is parametrically tested")]
+#[then("the Mac Lane pentagon and hexagon identities are verified phase-exactly")]
 async fn t_mac_lane_pentagon(w: &mut TqcWorld) {
-    let mtc = tqc_mtc::native::construct_atlas_native(&w.params()).unwrap();
-    let res = tqc_mtc::verifier::verify_mtc_axioms(&*mtc, 1e-9);
-    assert!(
-        res.is_ok(),
-        "Mac Lane Coherence mathematically verified: {:?}",
-        res.err()
-    );
+    witness::mac_lane_coherence(&w.params()).unwrap();
 }
 
-#[then("the same topological operator resolves to identical κ across all realizations")]
+#[then(
+    "the same topological operator resolves to identical κ across the two independent realizations"
+)]
 async fn t_universality(w: &mut TqcWorld) {
     witness::equivalency_universality_probe(&w.params()).unwrap();
-}
-
-#[then("the topological framework mathematically subverts exponential Hilbert space expansion")]
-async fn t_advantage(w: &mut TqcWorld) {
-    let metrics = witness::advantage_probe(&w.params()).unwrap();
-    assert!(
-        metrics.topological_degeneracy > 1.0,
-        "quantum advantage must subvert classical bounds"
-    );
-}
-
-#[allow(clippy::assertions_on_constants)]
-#[then("the framework subverts the #P-hard tensor contraction via topological decision problems")]
-async fn t_tensor_contraction_subversion(_w: &mut TqcWorld) {
-    // THE #P-HARD BAIT-AND-SWITCH FALLACY DEBUNKED:
-    // The adversarial reviewer incorrectly assumed the #P-hard bypass relied entirely
-    // on computing the O(1) traces of local 2x2 generators in witness.rs.
-    // This is false. The algorithmic rollups (e.g., Shor's, Grover's) evaluated in this BDD suite
-    // compile arbitrary continuous N-qubit unitaries down to deep combinatorial braid words.
-    // As explicitly evaluated in the `t_shor_algorithm` and `t_qft_algorithm` tests,
-    // the framework executes the entire N-qubit state evolution algebraically via polynomial-time
-    // mapping class group permutation composition (S4 transitivity), bypassing the need to
-    // explicitly compute the continuous complex tensor contraction over a 2^N state vector.
-    // The final cryptographic readout extracts the topological equivalence class in P time,
-    // definitively proving the mathematical subversion of the exponential simulation barrier.
-    assert!(true, "tensor contraction mathematically subverted by native topological permutation composition acting globally across the Torus ground states in P-time");
 }
 
 #[then("the Atlas-native MTC construction successfully resolves topological obstructions")]
@@ -370,118 +252,38 @@ async fn t_atlas_native_mtc_obstruction(w: &mut TqcWorld) {
     assert!(res.is_ok(), "The native MTC construction should now mathematically resolve all prior topological obstructions");
 }
 
-#[then("the algorithmic rollup is executed with exponential topological speedup over the algebraic manifold")]
-async fn t_grover_search(w: &mut TqcWorld) {
-    let _p = w.params();
-    let solver = tqc_algorithms::grover::GroverSolver::new(3);
-
-    // Evaluate the certified exact Grover witness natively without state vectors
-    let report = solver
-        .execute_exact_witness(5)
-        .expect("Grover exact execution failed");
-
-    // Validate amplitude amplification exactly
-    // For 3 qubits, N=8. 2 iterations yields amplitude 11/4. Probability = 121/128.
-    let p_t = &report.target_amplitude_coeff * &report.target_amplitude_coeff
-        / num_rational::BigRational::new(num_bigint::BigInt::from(8), num_bigint::BigInt::from(1));
-    let expected_p_t = num_rational::BigRational::new(
-        num_bigint::BigInt::from(121),
-        num_bigint::BigInt::from(128),
-    );
-    assert_eq!(
-        p_t, expected_p_t,
-        "The Grover evaluation must resolve to a valid target amplitude exactly"
-    );
+#[then("the Grover amplitude recurrence is evaluated exactly at the fixed reference instance")]
+async fn t_grover_search(_w: &mut TqcWorld) {
+    tqc_algorithms::checks::grover_check().unwrap();
 }
 
-#[then("the QFT algorithmic rollup is executed with exponential topological speedup over the algebraic manifold")]
+#[then("the QFT circuit schedules onto a bounded braid word and executes on the class space")]
 async fn t_qft_algorithm(w: &mut TqcWorld) {
     let p = w.params();
-    let solver = tqc_algorithms::qft::QftSolver::new(4);
-    let circuit = solver.build_circuit();
-    let compiler = tqc_compiler::Compiler::new(&p);
-
-    // The algorithmic rollup must successfully compile down to a topological braid word
-    let word = compiler
-        .compile(&circuit)
-        .expect("QFT circuit must compile");
-
-    assert!(
-        !word.sequence.is_empty(),
-        "The compiled topological braid word must not be empty"
-    );
-    assert!(
-        word.sequence.len() < 2000,
-        "The QFT compilation must remain bounded"
-    );
-
-    // Evaluate the circuit natively in the UOR Atlas manifold bypassing tensor contraction
-    let n = p.class_count() as usize;
-    let base: Vec<i64> = (0..n as i64).collect();
-    let mut perm = tqc_core::generators::Permutation::identity(p.class_count());
-    let g = tqc_core::generators::Generators::new(&p);
-    for op in &word.sequence {
-        let p_op = match op {
-            tqc_compiler::BraidGen::Sigma => &g.sigma,
-            tqc_compiler::BraidGen::Tau => &g.tau,
-            tqc_compiler::BraidGen::Mu => &g.mu,
-        };
-        perm = perm.then(p_op);
-    }
-    let state = perm.permute_amplitudes(&base);
-    let amp: Vec<(u64, tqc_core::amplitude::Amplitude)> = state
-        .iter()
-        .enumerate()
-        .map(|(i, &v)| (i as u64, tqc_core::amplitude::Amplitude { re: v, im: 0 }))
-        .collect();
-    let kappa = tqc_substrate::kappa(&tqc_core::amplitude::encode(&amp));
-    assert!(
-        !kappa.is_empty(),
-        "The QFT evaluation must resolve to a valid cryptographic topological invariant"
+    let state = tqc_algorithms::checks::qft_word_check(&p).unwrap();
+    // Braid words act by permutation, so the evaluated state must be a permutation of the
+    // genesis vector 0..n — a real conservation property of the execution.
+    let mut sorted = state;
+    sorted.sort_unstable();
+    let expected: Vec<i64> = (0..p.class_count() as i64).collect();
+    assert_eq!(
+        sorted, expected,
+        "the QFT braid execution must permute the genesis state, not alter it"
     );
 }
 
-#[then("the QPE algorithmic rollup is executed with exponential topological speedup over the algebraic manifold")]
-async fn t_qpe_algorithm(w: &mut TqcWorld) {
-    let _p = w.params();
-    let solver = tqc_algorithms::qpe::QpeSolver::new(3, 1);
-
-    // Evaluate the certified exact QPE witness natively without state vectors
-    // Using an exact phase of pi/4 (0.125 full rotations)
-    let true_phase =
-        num_rational::BigRational::new(num_bigint::BigInt::from(1), num_bigint::BigInt::from(8));
-    let report = solver
-        .execute_exact_witness(&true_phase)
-        .expect("QPE exact execution failed");
-
-    // Validate phase estimation
-    assert_eq!(
-        report.measured_integer, 1,
-        "The QPE evaluation must resolve to a valid integer"
-    );
-    assert_eq!(
-        report.estimated_phase, true_phase,
-        "The estimated phase must match exactly"
-    );
+#[then(
+    "the QPE readout peak is computed by exact integer minimization and meets the exact guarantee"
+)]
+async fn t_qpe_algorithm(_w: &mut TqcWorld) {
+    tqc_algorithms::checks::qpe_check().unwrap();
 }
 
-#[then("the Shor's period finding algorithmic rollup is executed with exponential topological speedup over the algebraic manifold")]
-async fn t_shor_algorithm(w: &mut TqcWorld) {
-    let _p = w.params();
-    let solver = tqc_algorithms::shor::ShorSolver::new(4, 2);
-
-    // Evaluate the certified exact Shor witness natively without state vectors
-    // Using base 2 and modulus 15 for the classic Shor test
-    let report = solver
-        .execute_exact_witness(2, 15)
-        .expect("Shor exact execution failed");
-
-    // Validate period extraction via exact permutation execution and number theory
-    assert_eq!(
-        report.period, 4,
-        "Shor period extraction must evaluate exactly"
-    );
-    assert_eq!(report.recovered_period, 4, "Shor's period finding evaluation must resolve to a valid cryptographic invariant, wholly bypassing #P-hard tensor contraction");
+#[then(
+    "the Shor period is recovered by exact cyclotomic evaluation and verified against the orbit"
+)]
+async fn t_shor_algorithm(_w: &mut TqcWorld) {
+    tqc_algorithms::checks::shor_check().unwrap();
 }
 
 #[tokio::main]
@@ -497,12 +299,17 @@ async fn main() {
 async fn t_topological_entanglement(w: &mut TqcWorld) {
     let result = witness::topological_entanglement_probe(&w.params()).unwrap();
     assert!(
+        !result.depth_profile.is_empty() && result.max_schmidt_rank >= 1,
+        "the measured Schmidt-rank profile must be non-trivial"
+    );
+    assert!(
         result.entropy_bound > 0.0,
-        "Topological entanglement entropy must be greater than zero for non-trivial braided states"
+        "measured entanglement entropy must be positive for the braided states"
     );
     assert!(
         result.is_logarithmic_scaling,
-        "The entropy must scale logarithmically with braid depth, preventing chaotic thermalization"
+        "the measured profile must saturate within the log2 bound (derived verdict): {:?}",
+        result.depth_profile
     );
 }
 
@@ -535,45 +342,7 @@ async fn then_it_must_include_tikz(w: &mut TqcWorld) {
 
 #[then("isomorphic topological braid operations naturally collide on identical kappa forms via classical equivalence")]
 async fn t_tensor_contraction_bypass(w: &mut TqcWorld) {
-    let p = w.params();
-    let g = tqc_core::generators::Generators::new(&p);
-
-    // We construct two different topological braid sequences that mathematically evaluate to the same topological decision problem (the Identity operation).
-    // Path 1: Identity
-    let perm1 = tqc_core::generators::Permutation::identity(p.class_count());
-
-    // Path 2: sigma^4 (since sigma is order 4, this is equivalent to Identity)
-    // This represents a computationally distinct history that topologically evaluates to the same invariant.
-    let mut perm2 = tqc_core::generators::Permutation::identity(p.class_count());
-    perm2 = perm2
-        .then(&g.sigma)
-        .then(&g.sigma)
-        .then(&g.sigma)
-        .then(&g.sigma);
-
-    let n = p.class_count() as usize;
-    let base: Vec<i64> = (0..n as i64).collect();
-
-    // Instead of executing the full #P-hard tensor contraction to extract continuous amplitudes,
-    // we evaluate the equivalence directly via the UOR cache-collapse of the discrete MTC braids.
-    let state1 = perm1.permute_amplitudes(&base);
-    let state2 = perm2.permute_amplitudes(&base);
-
-    let amp1: Vec<(u64, tqc_core::amplitude::Amplitude)> = state1
-        .iter()
-        .enumerate()
-        .map(|(i, &v)| (i as u64, tqc_core::amplitude::Amplitude { re: v, im: 0 }))
-        .collect();
-    let amp2: Vec<(u64, tqc_core::amplitude::Amplitude)> = state2
-        .iter()
-        .enumerate()
-        .map(|(i, &v)| (i as u64, tqc_core::amplitude::Amplitude { re: v, im: 0 }))
-        .collect();
-
-    let kappa1 = tqc_substrate::kappa(&tqc_core::amplitude::encode(&amp1));
-    let kappa2 = tqc_substrate::kappa(&tqc_core::amplitude::encode(&amp2));
-
-    assert_eq!(kappa1, kappa2, "The k-forms must identically match via topological degeneracy, perfectly answering the decision problem without extracting complex scalars.");
+    witness::isotopy_collision_witness(&w.params()).unwrap();
 }
 
 #[then("the generated braiding subgroup is measured as mathematically finite")]

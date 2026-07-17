@@ -1,4 +1,4 @@
-@row:whitepaper-formatting
+@row:whitepaper-formatting @stage:S4 @status:build @oracle:revtex-spec
 Feature: Whitepaper Formatting Standard
 
   Scenario: The academic paper conforms to the APS RevTeX standard

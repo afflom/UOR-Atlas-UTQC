@@ -1,4 +1,4 @@
-@row:atlas-native-mtc @stage:S2 @status:some-true @oracle:mtc-axioms
+@row:atlas-native-mtc @stage:S2 @status:build @oracle:mtc-axioms
 Feature: Atlas-native MTC construction
   Scenario: the Atlas-native construction resolves obstructions
     Given the UOR Atlas use-case

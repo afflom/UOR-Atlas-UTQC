@@ -1,9 +1,12 @@
-//! Topological Variational Quantum Eigensolver (VQE)
+//! Algorithm reference evaluations over the Atlas class space.
 //!
-//! Provides an end-to-end framework for hybrid classical-topological optimization.
-//! Synthesizes parameterized classical quantum ansatz circuits into Atlas-native
-//! Braid Words, executes them on the Holospaces emulator, and minimizes the energy.
+//! **Scope, precisely:** these modules are exact-arithmetic *reference evaluations* of
+//! algorithm mathematics at fixed instances (Grover amplitude recurrences, QPE readout,
+//! Shor period finding) plus a scheduling demo (`VqeSolver`) that exercises the
+//! compile → execute → measure loop. No quantum-speedup claim is made or implied by any
+//! of them; the dictionary records them at `build` level.
 
+pub mod checks;
 pub mod grover;
 pub mod qft;
 pub mod qpe;
@@ -81,7 +84,7 @@ impl<'a> VqeSolver<'a> {
 
         // 2. Classical-to-Topological Compilation
         let compiler = Compiler::new(self.params);
-        let word = compiler.compile(&circuit)?;
+        let word = compiler.compile(&circuit, 0.5)?;
 
         // 3. Topological Execution
         let mut perm = Permutation::identity(self.params.class_count());
@@ -102,7 +105,9 @@ impl<'a> VqeSolver<'a> {
         // 4. State collapse and measurement
         let state = perm.permute_amplitudes(&base);
 
-        // Synthetic Hamiltonian expectation: sum of squares weighted by class index
+        // A classical diagnostic objective (index-weighted sum of squares over the
+        // permuted state). This is a scheduling demo of the compile/execute/measure loop,
+        // NOT a physical Hamiltonian expectation — see the module docs.
         let energy: f64 = state
             .iter()
             .enumerate()

@@ -41,7 +41,7 @@ fn main() {
         }
 
         // Compile the circuit to a topological braid word
-        let word = compiler.compile(&circuit).unwrap();
+        let word = compiler.compile(&circuit, 0.5).unwrap();
         let braid_depth = word.sequence.len();
 
         let mut perm = Permutation::identity(p.class_count());
@@ -82,13 +82,16 @@ fn main() {
         let unique = distinct_states.len().max(1);
         let elision_ratio = total_paths as f64 / unique as f64;
 
-        let classical_mem = if qubits <= 30 {
+        // For context only: what a naive 2^n statevector would cost. The braid execution
+        // below does NOT simulate such a state (the compiler makes no unitary-equivalence
+        // claim), so this is not a like-for-like comparison.
+        let naive_statevector_mem = if qubits <= 30 {
             format!(
                 "{:.2} GB",
                 ((1u64 << qubits) as f64 * 16.0) / 1024.0 / 1024.0 / 1024.0
             )
         } else {
-            "UNREPRESENTABLE (Exceeds Earth's Silicon)".to_string()
+            format!("2^{qubits} amplitudes (not materialized here; see note above)")
         };
 
         println!(
@@ -100,13 +103,16 @@ fn main() {
             depth
         );
         println!(
-            "  ├─ Elision Ratio:       {:.2}x ({} evaluated / {} unique)",
+            "  ├─ Prefix-state elision: {:.2}x ({} word prefixes / {} distinct κ states)",
             elision_ratio, total_paths, unique
         );
         println!("  ├─ Final State UOR (κ): {}", k);
-        println!("  ├─ Classical Memory:    {}", classical_mem);
         println!(
-            "  ├─ Holospace Memory:    {:.2} KB (O(1) Invariant)",
+            "  ├─ Naive 2^n statevec:  {} (context only; not simulated)",
+            naive_statevector_mem
+        );
+        println!(
+            "  ├─ Braid-state memory:  {:.2} KB (n class amplitudes, constant in depth)",
             (base.len() * 8) as f64 / 1024.0
         );
         println!(

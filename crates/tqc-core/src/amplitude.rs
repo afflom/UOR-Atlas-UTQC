@@ -51,6 +51,44 @@ pub fn decode(bytes: &[u8]) -> Option<Vec<(u64, Amplitude)>> {
     Some(out)
 }
 
+/// Fixed-width interleaved binary encoding of a dense state over `n` labels:
+/// `[re₀, im₀, re₁, im₁, …]` as little-endian `i64`s (16 bytes per label). This is the wire
+/// format the holospace gate path executes on; [`decode_interleaved`] is its exact inverse.
+#[must_use]
+pub fn encode_interleaved(n: u64, state: &[(u64, Amplitude)]) -> Vec<u8> {
+    let mut v = alloc::vec![0i64; (n * 2) as usize];
+    for &(l, a) in state {
+        let l = l as usize;
+        v[l * 2] = a.re;
+        v[l * 2 + 1] = a.im;
+    }
+    v.iter().flat_map(|x| x.to_le_bytes()).collect()
+}
+
+/// Decode the fixed-width interleaved binary encoding. Trailing bytes that do not fill a
+/// full 16-byte label record are rejected (never silently zeroed).
+#[must_use]
+pub fn decode_interleaved(bytes: &[u8]) -> Option<Vec<(u64, Amplitude)>> {
+    if bytes.len() % 16 != 0 {
+        return None;
+    }
+    let mut out = Vec::with_capacity(bytes.len() / 16);
+    for (i, chunk) in bytes.chunks_exact(16).enumerate() {
+        let mut re_b = [0u8; 8];
+        let mut im_b = [0u8; 8];
+        re_b.copy_from_slice(&chunk[0..8]);
+        im_b.copy_from_slice(&chunk[8..16]);
+        out.push((
+            i as u64,
+            Amplitude {
+                re: i64::from_le_bytes(re_b),
+                im: i64::from_le_bytes(im_b),
+            },
+        ));
+    }
+    Some(out)
+}
+
 /// The Euclidean composition norm `Σ|cᵢ|² = Σ(reᵢ² + imᵢ²)`.
 #[must_use]
 pub fn norm_sq(state: &[(u64, Amplitude)]) -> u128 {

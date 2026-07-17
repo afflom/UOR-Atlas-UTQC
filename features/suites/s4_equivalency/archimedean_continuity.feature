@@ -1,4 +1,4 @@
-@row:archimedean-continuity @stage:S4 @status:some-true @oracle:mtc-axioms
+@row:archimedean-continuity @stage:S4 @status:build @oracle:exact-algebra
 Feature: Archimedean Continuity (PU(22)-Dense)
   @row:archimedean-continuity
   Scenario: the coupled generators are dense in PU(22) on the 22-dim block
