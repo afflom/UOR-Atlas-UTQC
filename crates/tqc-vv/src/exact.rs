@@ -2979,9 +2979,11 @@ fn strip_string_literals(line: &str) -> String {
 //   * Multiplicity (decided negative -- no kappa-collapse of the universal sector): all 2^L
 //     words of length L over {G_S, G_T} act distinctly on a fixed probe vector, up to the
 //     measured length L0; since distinct action implies distinct operator, there are >= 2^L
-//     distinct operators at every length L <= L0. (All-lengths free-monoid growth follows by
-//     the Tits alternative, the closure being dense in a non-virtually-solvable PU group;
-//     cited, not machine-checked, like the other classical lemmas in the chain.)
+//     distinct operators at every length L <= L0. The ALL-lengths statement is exponential
+//     GROWTH of the generated group <G_S, G_T>, backed (C1) by an EXPLICIT machine-checked
+//     free sub-monoid -- the proximal, transverse pair a = G_T, b = G_S a G_S^{-1} whose
+//     ping-pong hypotheses [`explicit_free_monoid_certificate`] are verified exactly over
+//     Q(zeta_24); only the forward proximal ping-pong lemma is cited, not its hypotheses.
 //   * Representation cost (decided positive -- poly per word): the exact Q(zeta_24) graded
 //     coefficient bit-size of a length-L product is bounded linearly in L, so the exact
 //     representation of any compiled word costs poly(|W|). Measured slope confirms linearity.
@@ -3281,6 +3283,133 @@ fn canonical_form_selfcheck(gs: &MatS, gt: &MatS, probe: &[u64]) -> Result<(), S
     .to_string();
     if kop(&left) != kop(&right) || kop(&left) != kvec {
         return Err("factorization paths disagree on kappa".into());
+    }
+    Ok(())
+}
+
+/// Explicit free-monoid (ping-pong) certificate for the universal sector (C1).
+///
+/// This replaces the earlier *non-constructive* Tits-alternative appeal for all-lengths growth
+/// with an EXPLICIT pair of elements of `Gamma = <G_S, G_T>` whose proximal ping-pong
+/// hypotheses are verified exactly over `Q(zeta_24)`. Only the ping-pong lemma itself is a
+/// cited classical fact; every one of its hypotheses is machine-checked here.
+///
+/// The pair (over the valued field `K = Q(zeta_24)((s))`, `s = 1/t`, so a large `t`-degree is a
+/// large `K`-norm -- the grades `m_j` of `E = diag(t^{m_j})` are the negatives of the
+/// valuations):
+///
+///   * `a = G_T` (the diagonal certified generator, `G_T = T E`) is **graded-proximal**: the
+///     spectral grades attain a UNIQUE maximum `g_max = O+2 = 10` at coordinate `0` (block
+///     multiplicity `1`), with a positive gap to the next grade `O+2-T = 7`, and every diagonal
+///     entry of `T` is verified nonzero (so the eigenvalue is nonzero and `a` is invertible).
+///     Its dominant eigenvalue `T_0 t^{10}` is therefore simple, so `a` has attracting point
+///     `p_a = e_0` and repelling hyperplane `H_a = {x_0 = 0}` -- read off the grades, with no
+///     eigenvalue computation.
+///   * `b = G_S a G_S^{-1}` is proximal by conjugation-invariance, with attracting point
+///     `p_b = G_S e_0` (projectively column `0` of `S~`, since `E` is a unit) and repelling
+///     hyperplane `H_b = G_S {x_0 = 0}` (covector normal `n_b = row 0 of S~^{-1}`).
+///
+/// The tensor identity `S~ = DFT_3 (x) Walsh_8` gives `S~ S~^dagger = (dim) I` exactly, hence
+/// `S~^{-1} = (1/dim) S~^dagger`; column `0` of `S~` is the all-ones vector and row `0` of
+/// `S~^{-1}` is `(1/dim) 1^T`. The general-position hypotheses of the forward proximal
+/// ping-pong lemma then reduce to exact nonvanishing checks:
+///
+///   * (T1) `p_a = e_0 not in H_b`   <=>  `(S~^{-1})_{00} != 0`;
+///   * (T2) `p_b not in H_a={x_0=0}` <=>  `(S~)_{00}    != 0`;
+///   * (T3) `p_a != p_b` projectively <=> column `0` of `S~` has a nonzero entry off coord `0`;
+///
+/// with `p_a not in H_a` immediate and `p_b not in H_b` verified as `(S~^{-1} S~)_{00} = 1`.
+/// By the classical forward proximal ping-pong lemma (cited), some power `<a^N, b^N>` is a free
+/// monoid of rank `2`, so `Gamma` contains a free sub-monoid of rank `2` and has exponential
+/// growth at every word length -- an explicit, machine-checked certificate in place of the
+/// non-constructive Tits appeal. (Only forward proximality is available -- `G_T^{-1}` is not
+/// proximal, its minimal grade having multiplicity 14 -- so this yields a free monoid, which
+/// already forces exponential growth, not a free subgroup.)
+///
+/// # Errors
+/// If any proximality or general-position hypothesis fails over `Q(zeta_24)`.
+pub fn explicit_free_monoid_certificate(p: &tqc_core::UseCaseParams) -> Result<(), String> {
+    let modality = p.modality as usize;
+    let context = p.context as usize;
+    let dim = modality * context;
+    if (modality, context) != (3, 8) {
+        return Err("free-monoid certificate is defined at the Atlas instance (3,8)".into());
+    }
+
+    // (P1) graded-proximality of a = G_T: the spectral grades (block eigenvalues, the t-degrees
+    // of E) attain a unique maximum at coordinate 0, with a positive gap to the next grade.
+    let evals = tqc_core::spectrum::block_eigenvalues(p);
+    let mults: Vec<usize> = tqc_core::spectrum::block_multiplicities(p)
+        .iter()
+        .map(|&m| m as usize)
+        .collect();
+    let mut grade = vec![0i64; dim];
+    {
+        let mut start = 0usize;
+        for (b, &m) in mults.iter().enumerate() {
+            for x in start..start + m {
+                grade[x] = evals[b];
+            }
+            start += m;
+        }
+    }
+    let gmax = *grade.iter().max().ok_or("empty grade vector")?;
+    let argmax: Vec<usize> = (0..dim).filter(|&x| grade[x] == gmax).collect();
+    if argmax.len() != 1 || argmax[0] != 0 {
+        return Err(format!(
+            "G_T not graded-proximal: maximal grade {gmax} not unique at coordinate 0 (at {argmax:?})"
+        ));
+    }
+    let second = grade
+        .iter()
+        .copied()
+        .filter(|&g| g < gmax)
+        .max()
+        .ok_or("no second grade")?;
+    if gmax - second < 1 {
+        return Err(format!("nonpositive proximality gap {}", gmax - second));
+    }
+    // a = G_T = T E is proximal only if its dominant eigenvalue T_0 t^{g_max} is nonzero, and
+    // it is invertible only if every diagonal entry is nonzero. Check T directly (do not rely
+    // on T_j being a root of unity as an un-verified structural fact).
+    let t_diag = build_t_diag(modality, context);
+    if let Some(x) = (0..dim).find(|&x| t_diag[x].is_zero()) {
+        return Err(format!(
+            "G_T diagonal entry T_{x} = 0: not proximal/invertible"
+        ));
+    }
+
+    // Tensor unitarity S~ S~^dagger = (dim) I, so S~^{-1} = (1/dim) S~^dagger.
+    let s = build_s_tilde(modality, context);
+    let adj = mat_adjoint(&s);
+    let prod = mat_mul(&s, &adj);
+    let scaled_id = mat_scale(&mat_id(dim), &Cyc::from_int(dim as i64));
+    if !mat_eq(&prod, &scaled_id) {
+        return Err("S~ S~^dagger != (dim) I: tensor unitarity fails".into());
+    }
+    let inv_dim = Cyc::from_int(dim as i64).inv()?;
+    let s_inv = mat_scale(&adj, &inv_dim); // = S~^{-1}
+
+    // General-position hypotheses (exact nonvanishing).
+    // (T2) attracting point of b off H_a: (S~)_00 = 0-coordinate of column 0 of S~.
+    if s[0][0].is_zero() {
+        return Err("(T2) attracting point of b lies in H_a: (S~)_00 = 0".into());
+    }
+    // (T3) distinct attractors: column 0 of S~ is not supported on e_0 alone.
+    if (1..dim).all(|k| s[k][0].is_zero()) {
+        return Err("(T3) attracting points coincide: column 0 of S~ is supported on e_0".into());
+    }
+    // (T1) e_0 off H_b: n_b . e_0 = (S~^{-1})_00.
+    if s_inv[0][0].is_zero() {
+        return Err("(T1) attracting point e_0 lies in H_b: (S~^{-1})_00 = 0".into());
+    }
+    // p_b off H_b and inverse consistency: (S~^{-1} S~)_00 = 1.
+    let mut corner = Cyc::zero();
+    for j in 0..dim {
+        corner = corner.add(&s_inv[0][j].mul(&s[j][0]));
+    }
+    if corner != Cyc::one() {
+        return Err("(S~^{-1} S~)_00 != 1: inverse/general-position consistency fails".into());
     }
     Ok(())
 }

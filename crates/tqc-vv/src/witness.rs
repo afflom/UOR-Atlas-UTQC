@@ -1837,12 +1837,20 @@ pub fn canonical_kappa_witness(p: &UseCaseParams) -> Result<(), String> {
 ///   length (polynomial representation cost per word).
 ///
 /// The W4b invariants are enforced: cumulative distinct-kappa is monotone non-decreasing and
-/// the per-length distinct count is exactly `2^L` below `L0`. The all-lengths free-monoid
-/// growth is the cited Tits-alternative consequence, not machine-checked here.
+/// the per-length distinct count is exactly `2^L` below `L0`. The all-lengths statement is
+/// **exponential growth** of the generated group, and it is now backed by an EXPLICIT
+/// machine-checked certificate (C1) rather than a non-constructive citation: an explicit
+/// proximal, transverse pair `a = G_T`, `b = G_S a G_S^{-1}` whose ping-pong hypotheses are
+/// verified exactly over `Q(zeta_24)` ([`crate::exact::explicit_free_monoid_certificate`]).
+/// Only the forward proximal ping-pong lemma (freeness of some `<a^N, b^N>`) is cited; every
+/// one of its hypotheses is checked here. The coupled generators are therefore NOT claimed to
+/// form a free monoid themselves; the explicit free sub-monoid gives all-lengths exponential
+/// growth, and the exhaustive `2^L`-per-length count is the sharper machine-checked bound below
+/// `L0`.
 ///
 /// # Errors
-/// If a control fails, the multiplicity is not exponential, or the coefficient growth is not
-/// linearly bounded.
+/// If a control fails, the multiplicity is not exponential, the coefficient growth is not
+/// linearly bounded, or the explicit ping-pong hypotheses fail.
 pub fn reduction_crux_witness(p: &UseCaseParams) -> Result<(), String> {
     // W4b positive control: the diagonal sector plateaus at the finite closure.
     let diag = crate::exact::diagonal_sector_crux_measure(p)?;
@@ -1887,7 +1895,11 @@ pub fn reduction_crux_witness(p: &UseCaseParams) -> Result<(), String> {
     check(
         full.coeff_growth_linear,
         "exact graded coefficient bit-size is not linearly bounded",
-    )
+    )?;
+
+    // C1: the all-lengths statement rests on an EXPLICIT machine-checked free sub-monoid, not a
+    // non-constructive citation. Verify the proximal ping-pong hypotheses exactly.
+    crate::exact::explicit_free_monoid_certificate(p)
 }
 
 #[cfg(test)]
@@ -1947,5 +1959,17 @@ mod tests {
         holospace_cycle(&p).unwrap();
         quantum_realization(&p).unwrap();
         topological_entanglement_probe(&p).unwrap();
+    }
+
+    #[test]
+    fn explicit_free_monoid_pingpong_hypotheses_hold_on_the_atlas() {
+        let (_, _, p) = atlas();
+        crate::exact::explicit_free_monoid_certificate(&p).unwrap();
+    }
+
+    #[test]
+    fn reduction_crux_decided_on_the_atlas() {
+        let (_, _, p) = atlas();
+        reduction_crux_witness(&p).unwrap();
     }
 }
