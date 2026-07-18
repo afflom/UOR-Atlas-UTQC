@@ -12,6 +12,7 @@ tqc-core = { workspace = true }
 tqc-compiler = { workspace = true }
 tqc-atlas = { workspace = true }
 tqc-vv = { workspace = true }
+tqc-substrate = { workspace = true }
 num-integer = "0.1"
 num-rational = "0.4"
 num-bigint = "0.4"

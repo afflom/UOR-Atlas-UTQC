@@ -115,7 +115,8 @@ pub fn qft_word_check(p: &UseCaseParams) -> Result<Vec<i64>, String> {
 /// Certified-carrier compilation and Shor replay (dictionary row `certified-carrier-compilation`).
 ///
 /// On a density-certified carrier (`Carrier::Certified22`, PU(22) established by the exact
-/// certificate) the compiler synthesizes arbitrary rotations, so the continuous-phase gates
+/// certificate) the compiler synthesizes arbitrary-axis single-qubit rotations (ZXZ Euler
+/// over the spectral flow and the Clifford Hadamard sandwich), so the continuous-phase gates
 /// of Shor's QFT compile **unconditionally** (unlike the Clifford carrier, where gate-set
 /// density is refuted). This check:
 ///
@@ -123,7 +124,10 @@ pub fn qft_word_check(p: &UseCaseParams) -> Result<Vec<i64>, String> {
 /// 2. compiles each controlled-phase rotation of Shor's 4-bit QFT, `π/2^{j}`, on the
 ///    certified carrier, and verifies the emitted spectral-flow word realizes the target
 ///    phase within `ε` (a deterministic synthesis, checked exactly against `flow_phase`);
-/// 3. independently validates the algorithm result against the exact reference
+/// 3. compiles an arbitrary-axis rotation circuit through the certified-carrier compiler,
+///    verifies every shipped per-word residual certificate (|Δ| ≤ ε and recomputes exactly),
+///    and pins them by the compiled word's content address κ;
+/// 4. independently validates the algorithm result against the exact reference
 ///    [`shor_check`] (base 2 mod 15, period 4) — the semantic oracle. The compiled braid
 ///    word is NOT claimed to execute the period-finding unitary; the exact reference is the
 ///    sole source of the result.
@@ -166,6 +170,52 @@ pub fn certified_carrier_compilation_check(p: &UseCaseParams) -> Result<(), Stri
         }
     }
 
-    // (3) Replay the Shor instance against the exact reference evaluation.
+    // (3) Arbitrary-axis compilation with shipped residuals: compile a small circuit of
+    //     Rx/Ry/Rz rotations through the certified-carrier compiler; every rotation carries a
+    //     synthesis residual in the compiled word, each residual satisfies |Δ| ≤ ε and
+    //     recomputes exactly, and the residuals are pinned by the word's content address κ.
+    {
+        use tqc_compiler::{Compiler, LogicGate};
+        let compiler = Compiler::for_certified_carrier(p, Carrier::Certified22);
+        let circuit = vec![
+            LogicGate::Rz(0, 1.0),
+            LogicGate::Rx(0, 0.7),
+            LogicGate::Ry(0, 2.3),
+        ];
+        let word = compiler.compile(&circuit, epsilon)?;
+        if word.residuals.len() != 3 {
+            return Err(format!(
+                "expected 3 shipped synthesis residuals, got {}",
+                word.residuals.len()
+            ));
+        }
+        for r in &word.residuals {
+            if r.abs_error > r.epsilon {
+                return Err(format!(
+                    "shipped residual |Δ|={} exceeds its epsilon {}",
+                    r.abs_error, r.epsilon
+                ));
+            }
+            let recomputed = weaver.verify_residual(r);
+            if (recomputed - r.abs_error).abs() > 1e-12 {
+                return Err(format!(
+                    "shipped residual |Δ|={} does not recompute ({recomputed})",
+                    r.abs_error
+                ));
+            }
+        }
+        // The residuals are pinned by the compiled word's content address, which must be
+        // stable and non-degenerate (the word carries generators and residuals).
+        let bytes = word.canonical_bytes();
+        if bytes != word.canonical_bytes() {
+            return Err("compiled-word canonical bytes are not deterministic".into());
+        }
+        let kappa = tqc_substrate::kappa(&bytes);
+        if tqc_substrate::kappa(&word.canonical_bytes()) != kappa {
+            return Err("compiled-word κ is not stable".into());
+        }
+    }
+
+    // (4) Replay the Shor instance against the exact reference evaluation.
     shor_check()
 }

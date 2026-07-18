@@ -60,18 +60,21 @@ row = "encoded-qubit-universality"
 claim = "certified-carrier compilation: Shor's QFT rotations compile unconditionally and replay against the exact reference"
 row = "certified-carrier-compilation"
 
+[[assert]]
+claim = "the exact certifier verdict path is epsilon-free (witnessed by source scan)"
+row = "eps-free-decision-path"
+
+[[assert]]
+claim = "canonical-form kappa validity (roundtrip, two-path equality, shared substrate producer)"
+row = "canonical-kappa-form"
+
+[[assert]]
+claim = "two-sided evaluation boundary: finite-sector plateau, universal-sector exponential operator multiplicity, linear coefficient cost"
+row = "reduction-crux"
+
 # --- Open-row claims the paper must NOT affirm. Every `open` model row must appear here.
 #     The listed phrases are affirmative assertion forms; the gate scans for them with a
 #     negation window, so disclaimed mentions ("not a proven ... advantage") are permitted. ---
-
-[[forbid]]
-row = "reduction-crux"
-phrases = [
-    "polynomial reduction crux",
-    "proven reduction crux",
-    "the reduction crux holds",
-    "polynomial graded growth",
-]
 
 [[forbid]]
 row = "advantage"

@@ -11,7 +11,7 @@ Having established a coherent, albeit finite, gate set, the UOR Atlas is equippe
 ]
     \node[block] (algo) {Quantum Algorithm (e.g., QPE, Shor's)};
     \node[block, right=2cm of algo] (compiler) {UOR Atlas Topological Compiler};
-    \node[block, right=2cm of compiler, fill=green!10] (braid) {Combinatorial Braid Word ($\sigma, \tau, \mu$)};
+    \node[block, right=2cm of compiler, fill=green!10] (braid) {Braid Word over $\mathcal{G}$ (Clifford $\sigma,\tau,\mu$; flow $\Phi$)};
     \node[block, below=1cm of braid, fill=red!10] (eval) {Topological Readout (Polynomial-time measurement)};
 
     \draw[arrow] (algo) -- (compiler) node[midway, above] {Decomposition};
@@ -38,7 +38,7 @@ Let $\mathcal{C}$ be the free monoid of admissible circuits over $\mathcal{A}$ a
 
 \begin{definition}[Codomain semantics]
 \label{def:semantics}
-The codomain carries the projective unitary action $\rho:\mathcal{B}\to PU(\dim\mathcal{K})$ of $\mathcal{G}$ on the chosen carrier $\mathcal{K}$, content-addressed by $\kappa$. On the Clifford sub-alphabet this action is exact with finite image (order 24); on a density-certified carrier the current synthesis realizes a \emph{relative phase} ($Z$-type) rotation between two eigenspaces of the balanced operator to within $\epsilon$ (the deterministic spectral-flow search of Definition~\ref{def:alphabet})---which is exactly the phase-rotation class the QFT and Shor schedules require. Arbitrary $PU(\dim\mathcal{K})$ elements are approximable in principle because the carrier is dense (Theorem~\ref{thm:density}); a full $SU(2)$-axis synthesis routine is future work.
+The codomain carries the projective unitary action $\rho:\mathcal{B}\to PU(\dim\mathcal{K})$ of $\mathcal{G}$ on the chosen carrier $\mathcal{K}$, content-addressed by $\kappa$. On the Clifford sub-alphabet this action is exact with finite image (order 24). On a density-certified carrier the synthesis realizes an \emph{arbitrary-axis} single-qubit rotation $R_\alpha(\theta)$ ($\alpha\in\{x,y,z\}$) to within $\epsilon$: the relative-phase flow $\Phi$ provides $Z$-rotations, and the $ZXZ$ Euler decomposition $R_z(a)R_x(b)R_z(c)$ realizes any axis, with $R_x$ obtained by the Clifford Hadamard sandwich $H\,\Phi\,H$; each Euler factor is synthesized to $\epsilon/3$ as a budget, and the composite residual is then \emph{measured directly} and gated (no norm sub-additivity is assumed). Every such rotation carries a \emph{residual certificate}---the Euler flow powers and the exact (floating-point) upper bound $\lvert\Delta\rvert\ge\lVert\rho(t(R_\alpha(\theta)))-R_\alpha(\theta)\rVert_{PU}$ with $\lvert\Delta\rvert\le\epsilon$ (evaluated at the Frobenius-optimal global phase)---which is pinned by the compiled word's content address $\kappa$ and re-verified at check time, so the compilation claim and its residual are inseparable.
 \end{definition}
 
 We keep two cost measures strictly separate: \emph{compilation cost}, the work of producing $\mathcal{F}(C)$, and \emph{evaluation cost}, the work of applying $\rho(\mathcal{F}(C))$ and reading its $\kappa$-invariant. The theorem below concerns compilation cost only.

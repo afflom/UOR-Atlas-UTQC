@@ -1493,6 +1493,7 @@ dependencies = [
  "tqc-atlas",
  "tqc-compiler",
  "tqc-core",
+ "tqc-substrate",
  "tqc-vv",
 ]
 

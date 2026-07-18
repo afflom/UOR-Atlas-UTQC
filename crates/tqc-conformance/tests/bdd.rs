@@ -219,6 +219,21 @@ async fn t_archimedean_continuity(w: &mut TqcWorld) {
     witness::archimedean_continuity_witness(&w.params()).unwrap();
 }
 
+#[then("the finite sector plateaus and the universal operator orbit grows exponentially with linear coefficient cost")]
+async fn t_reduction_crux(w: &mut TqcWorld) {
+    witness::reduction_crux_witness(&w.params()).unwrap();
+}
+
+#[then("the canonical-form kappa serialization roundtrips and two factorization paths agree")]
+async fn t_canonical_kappa(w: &mut TqcWorld) {
+    witness::canonical_kappa_witness(&w.params()).unwrap();
+}
+
+#[then("the exact certifier verdict path carries no floating-point value or external entropy")]
+async fn t_eps_free_decision_path(w: &mut TqcWorld) {
+    witness::eps_free_decision_path_witness(&w.params()).unwrap();
+}
+
 #[then("the certified carrier compiles Shor's rotations and the instance replays against the exact reference")]
 async fn t_certified_carrier_compilation(w: &mut TqcWorld) {
     tqc_algorithms::checks::certified_carrier_compilation_check(&w.params()).unwrap();

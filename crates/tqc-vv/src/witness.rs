@@ -1800,6 +1800,96 @@ pub fn encoded_qubit_universality_witness(p: &UseCaseParams) -> Result<(), Strin
     )
 }
 
+/// VV (build) — the exact certifier's verdict path is epsilon-free, witnessed by source
+/// scan: no floating-point value or external entropy participates in any verdict (the
+/// numerical cross-checks and the report-tier f64 trace are explicitly delimited
+/// instrumentation; the projection PRNGs are deterministic fixed-seed and sound). See
+/// [`crate::exact::scan_verdict_path_is_eps_free`].
+///
+/// # Errors
+/// If a float token appears on the verdict path or a nondeterminism source is found.
+pub fn eps_free_decision_path_witness(_p: &UseCaseParams) -> Result<(), String> {
+    crate::exact::scan_verdict_path_is_eps_free()
+}
+
+/// VV (build) — W4a canonical-form kappa certificate (prerequisite of the crux
+/// measurement): the shared canonical serialization roundtrips byte-identically, one
+/// operator reached by two factorizations lands on the identical kappa, and the harness's
+/// kappa producer is the substrate content addresser. See
+/// [`crate::exact::canonical_kappa_certificate`].
+///
+/// # Errors
+/// If any canonical-form invariant fails.
+pub fn canonical_kappa_witness(p: &UseCaseParams) -> Result<(), String> {
+    crate::exact::canonical_kappa_certificate(p)
+}
+
+/// VV (build) — the graded reduction crux, DECIDED (W4/W4b). The two-sided evaluation
+/// boundary is exhibited by measurement plus exact certificates:
+///
+/// * finite (diagonal) sector: the graded diagonal-sector kappa orbit **plateaus** at the
+///   finite closure (36 distinct kappa) — the W4b positive control that the apparatus
+///   detects finite closure where it exists;
+/// * universal (full-alphabet) sector: the certified coupled generators exhibit
+///   **exponentially many distinct operators per length** (`>= 2^L` for every measured
+///   `L <= L0`, machine-checked mod p at a sound specialization — no kappa-collapse), while
+///   the exact `Q(zeta_24)` graded coefficient bit-size is bounded **linearly** in word
+///   length (polynomial representation cost per word).
+///
+/// The W4b invariants are enforced: cumulative distinct-kappa is monotone non-decreasing and
+/// the per-length distinct count is exactly `2^L` below `L0`. The all-lengths free-monoid
+/// growth is the cited Tits-alternative consequence, not machine-checked here.
+///
+/// # Errors
+/// If a control fails, the multiplicity is not exponential, or the coefficient growth is not
+/// linearly bounded.
+pub fn reduction_crux_witness(p: &UseCaseParams) -> Result<(), String> {
+    // W4b positive control: the diagonal sector plateaus at the finite closure.
+    let diag = crate::exact::diagonal_sector_crux_measure(p)?;
+    check(
+        diag.total_distinct_kappa == 36,
+        format!(
+            "diagonal control: plateau {} != 36",
+            diag.total_distinct_kappa
+        ),
+    )?;
+    check(
+        diag.plateau_len.is_some(),
+        "diagonal control: no finite-closure plateau detected",
+    )?;
+
+    // Universal sector: exponential multiplicity + linear coefficient growth.
+    let full = crate::exact::full_alphabet_crux_measure(p)?;
+    check(
+        full.monotone,
+        "cumulative distinct-kappa is not monotone (W4b)",
+    )?;
+    // Pinned to the measured value (the harness caps at length 14 and reaches it): all 2^L
+    // words act distinctly for every L <= 14, so there are >= 2^14 = 16384 distinct operators.
+    check(
+        full.full_binary_len == 14,
+        format!(
+            "exponential-multiplicity certificate: all-distinct length {} != pinned 14",
+            full.full_binary_len
+        ),
+    )?;
+    for (i, &d) in full
+        .distinct_by_len
+        .iter()
+        .enumerate()
+        .take(full.full_binary_len)
+    {
+        check(
+            d == 1usize << (i + 1),
+            format!("distinct-by-length {d} != 2^{} below L0 (W4b)", i + 1),
+        )?;
+    }
+    check(
+        full.coeff_growth_linear,
+        "exact graded coefficient bit-size is not linearly bounded",
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

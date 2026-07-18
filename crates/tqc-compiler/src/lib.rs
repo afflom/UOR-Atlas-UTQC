@@ -52,11 +52,15 @@ impl BraidGen {
     }
 }
 
-/// The synthesized topological operator block.
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// The synthesized topological operator block: the generator sequence plus, for each
+/// certified-carrier rotation, the per-word synthesis residual certificate it carries.
+#[derive(Debug, Clone, PartialEq)]
 pub struct BraidWord {
     /// The linear sequence of generators.
     pub sequence: Vec<BraidGen>,
+    /// The synthesis residual certificates for the certified-carrier rotations in this word,
+    /// in emission order. Empty on the Clifford path (no continuous synthesis).
+    pub residuals: Vec<sk::SynthesisResidual>,
 }
 
 impl BraidWord {
@@ -65,12 +69,41 @@ impl BraidWord {
     pub fn new() -> Self {
         Self {
             sequence: Vec::new(),
+            residuals: Vec::new(),
         }
     }
 
     /// Appends a generator.
     pub fn push(&mut self, gen: BraidGen) {
         self.sequence.push(gen);
+    }
+
+    /// Canonical, deterministic bytes for the compiled word: the generator sequence followed
+    /// by each residual as fixed-point integers (micro-radian angles, nano-unit errors), so a
+    /// `κ` address over these bytes pins both the word and its residual certificates together.
+    #[must_use]
+    pub fn canonical_bytes(&self) -> Vec<u8> {
+        let mut out = Vec::new();
+        for g in &self.sequence {
+            out.push(match g {
+                BraidGen::Sigma => 1u8,
+                BraidGen::Tau => 2,
+                BraidGen::Mu => 3,
+                BraidGen::Flow => 4,
+            });
+        }
+        out.push(0); // separator
+        let fix = |x: f64, scale: f64| (x * scale).round() as i64;
+        for r in &self.residuals {
+            out.push(r.axis as u8);
+            out.extend_from_slice(&fix(r.target_angle, 1_000_000.0).to_le_bytes());
+            for k in r.euler_powers {
+                out.extend_from_slice(&(k as u64).to_le_bytes());
+            }
+            out.extend_from_slice(&fix(r.abs_error, 1_000_000_000.0).to_le_bytes());
+            out.extend_from_slice(&fix(r.epsilon, 1_000_000_000.0).to_le_bytes());
+        }
+        out
     }
 }
 
@@ -166,9 +199,26 @@ impl<'a> Compiler<'a> {
                     word.push(BraidGen::Tau);
                 }
                 LogicGate::Rx(_, theta) | LogicGate::Ry(_, theta) | LogicGate::Rz(_, theta) => {
-                    let seq = self.weaver.synthesize_rotation(*theta, epsilon)?;
-                    for gen in seq {
-                        word.push(gen);
+                    let axis = match gate {
+                        LogicGate::Rx(..) => 'x',
+                        LogicGate::Ry(..) => 'y',
+                        _ => 'z',
+                    };
+                    if self.weaver.is_certified() {
+                        // Certified carrier: arbitrary-axis synthesis with a shipped residual.
+                        let (seq, residual) = self
+                            .weaver
+                            .synthesize_axis_rotation(axis, *theta, epsilon)?;
+                        for gen in seq {
+                            word.push(gen);
+                        }
+                        word.residuals.push(residual);
+                    } else {
+                        // Clifford carrier: only exact discrete (Z-type) phases are admitted.
+                        let seq = self.weaver.synthesize_rotation(*theta, epsilon)?;
+                        for gen in seq {
+                            word.push(gen);
+                        }
                     }
                 }
             }

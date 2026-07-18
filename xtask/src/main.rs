@@ -336,18 +336,6 @@ fn report() -> Result<()> {
                     ),
                     Err(e) => format!("MEASUREMENT FAILED (non-gating): {e}"),
                 },
-                "reduction-crux" => match tqc_vv::exact::diagonal_sector_crux_measure(&p) {
-                    Ok(m) => format!(
-                        "MEASURED (non-gating): graded diagonal-sector κ by word length {:?}; \
-                         total distinct κ {}; plateau at length {:?}; max graded degree {} \
-                         (a plateau is finite closure on the diagonal sector; not asserted)",
-                        m.distinct_kappa_by_len,
-                        m.total_distinct_kappa,
-                        m.plateau_len,
-                        m.max_graded_degree
-                    ),
-                    Err(e) => format!("MEASUREMENT FAILED (non-gating): {e}"),
-                },
                 _ => "target (expected-RED, non-gating)".to_owned(),
             },
         };
@@ -417,6 +405,9 @@ fn run_suite_witness(
         "certified-carrier-compilation" => {
             tqc_algorithms::checks::certified_carrier_compilation_check(p)
         }
+        "eps-free-decision-path" => witness::eps_free_decision_path_witness(p),
+        "canonical-kappa-form" => witness::canonical_kappa_witness(p),
+        "reduction-crux" => witness::reduction_crux_witness(p),
         "finite-closure" => witness::finite_closure_probe(p).map(|_| ()),
         "s4-modal-logic" => witness::s4_frame_witness(p),
         "mac-lane-coherence" => witness::mac_lane_coherence(p),
