@@ -422,13 +422,15 @@ pub struct ExactDensityReport {
     /// subalgebra `u(24) (x) 1 + 1 (x) u(24)`, with no dimension-threshold argument. Set iff
     /// `pair_nonlocal_witness` is present.
     pub pair_entangling_flow: bool,
-    /// The direct non-local witness `(x, x', y, y'')`: for a per-handle generator `A` (so
-    /// `A (x) 1` lies in `Lie(H_2)`) with `A[x][x'] != 0`, the element `Ad(U)(A (x) 1)` has
-    /// `x`-blocks `M_y = D_y A D_y^dagger` (`D_y = diag_x chi(x,y)`) that differ between `y`
-    /// and `y''` at coordinate `(x, x')` -- so `Ad(U)(A (x) 1)` is not of the form
-    /// `B (x) 1 + 1 (x) C` and is a genuine entangling direction. The inequality
+    /// The direct non-local witness `(x, x', y, y'')`. The searched element is `B = Ad(G_S)(iM)`,
+    /// so `B (x) 1 = Ad(G_S (x) 1)(iM (x) 1)` lies in `Lie(H_2)` by MACHINE-COMPUTED conjugation
+    /// of the spectral-flow seed `iM (x) 1` (in `Lie(H_2)` by Kronecker-Weyl) with the actual
+    /// generator `G_S (x) 1`. With `B[x][x'] != 0`, the element `Ad(U)(B (x) 1)` has `x`-blocks
+    /// `M_y = D_y B D_y^dagger` (`D_y = diag_x chi(x,y)`) that differ between `y` and `y''` at
+    /// coordinate `(x, x')` -- so `Ad(U)(B (x) 1)` is not of the form `A' (x) 1 + 1 (x) C'` and is
+    /// a genuine entangling direction of `Lie(H_2)`. The inequality
     /// `chi(x,y) conj(chi(x',y)) != chi(x,y'') conj(chi(x',y''))` is decided exactly over
-    /// `Q(zeta_24)`; `A[x][x'] != 0 mod p` implies it exactly (the sound direction).
+    /// `Q(zeta_24)`; `B[x][x'] != 0 mod p` implies it exactly (the sound direction).
     pub pair_nonlocal_witness: Option<(usize, usize, usize, usize)>,
     /// T1: an element of `Lie(H_2)` has nonzero `adj (x) adj` component (multiplicity-one
     /// isotypic, certified nonzero mod p), forcing `su(484)` on the corner `W' (x) W'`.
@@ -1066,8 +1068,16 @@ fn exact_density_certificate_uncached(
     let (pair_lie_dim_lower, _pair_lie_exceeds_perhandle) =
         pair_lie_lower_bound(&handle_basis, dim, modality, context)?;
     // DIRECT entangling-flow certificate: an explicit element of Lie(H_2) outside the local
-    // subalgebra u(24)(x)1 + 1(x)u(24), threshold-free.
-    let pair_nonlocal_witness = native_nonlocal_direction(&handle_basis, dim, modality, context);
+    // subalgebra u(24)(x)1 + 1(x)u(24), threshold-free. Membership is MACHINE-COMPUTED, not
+    // assumed: the searched element is B = Ad(G_S)(iM) (conjugation of the spectral-flow seed
+    // iM by the actual generator G_S), so B(x)1 = Ad(G_S(x)1)(iM(x)1) is in Lie(H_2), and the
+    // witnessed non-local element Ad(U)(B(x)1) = Ad(U (G_S(x)1))(iM(x)1) rests only on the
+    // density chain's cited Kronecker-Weyl seed iM(x)1 in Lie(H_2) -- no K(x)1 subset Lie(H_2)
+    // assumption.
+    let evals_vec: Vec<i64> = evals.iter().copied().collect();
+    let entangling_seed = spectral_flow_adjoint_seed(&s_tilde, &evals_vec, &block_of, dim)?;
+    let pair_nonlocal_witness =
+        native_nonlocal_direction(&[entangling_seed], dim, modality, context);
     let pair_entangling_flow = pair_nonlocal_witness.is_some();
     let (pair_adj_component, pair_reach_rank) = pair_density_certificates(
         &s_tilde,
@@ -2246,26 +2256,83 @@ fn pair_lie_lower_bound(
     Ok((r, r >= target))
 }
 
+/// The explicit spectral-flow adjoint seed `B = Ad(G_S)(iM) = S~ (iM) S~^{-1}` mod p. It is the
+/// off-diagonal element of the single-handle Lie algebra reached from the spectral-flow seed
+/// `iM` by conjugation with the actual generator `G_S`. Its purpose is to make membership in
+/// `Lie(H_2)` MACHINE-COMPUTED rather than assumed: `iM (x) 1 in Lie(H_2)` is the Kronecker-Weyl
+/// spectral-flow seed of the density chain, and `B (x) 1 = Ad(G_S (x) 1)(iM (x) 1)` is
+/// conjugation by the actual two-handle generator `G_S (x) 1 in H_2`. (`Ad(G_S)(iM) = Ad(S~)(iM)`
+/// because `G_S = S~ E` and `E`, the diagonal spectral flow, commutes with the diagonal `iM`;
+/// and `S~^{-1} = (1/24) S~^dagger` from `S~ S~^dagger = 24 I`.)
+fn spectral_flow_adjoint_seed(
+    s_tilde: &Mat,
+    evals: &[i64],
+    block_of: &[usize],
+    dim: usize,
+) -> Result<MatS, String> {
+    let w = primitive_24th_root()?;
+    let mut wpows = [1u64; 8];
+    for k in 1..8 {
+        wpows[k] = wpows[k - 1].wrapping_mul(w) % LIE_P;
+    }
+    let i_unit = wpows[6]; // zeta^6 = i
+    let ev = |m: &Mat| -> Result<MatS, String> {
+        m.iter()
+            .map(|row| {
+                row.iter()
+                    .map(|c| eval_cyc(c, &wpows))
+                    .collect::<Result<Vec<_>, _>>()
+            })
+            .collect::<Result<Vec<_>, _>>()
+    };
+    let sp = ev(s_tilde)?;
+    let sp_adj = ev(&mat_adjoint(s_tilde))?;
+    // seed = iM (diagonal, integer eigenvalues).
+    let mut seed = vec![vec![0u64; dim]; dim];
+    for x in 0..dim {
+        let m = evals[block_of[x]];
+        let mm = if m >= 0 {
+            (m as u64) % LIE_P
+        } else {
+            LIE_P - ((-m) as u64 % LIE_P)
+        };
+        seed[x][x] = i_unit.wrapping_mul(mm) % LIE_P;
+    }
+    // B = S~ (iM) S~^{-1} = (1/24) S~ (iM) S~^dagger.
+    let inv24 = modpow(24 % LIE_P, LIE_P - 2, LIE_P);
+    let sms = mats_mul(&mats_mul(&sp, &seed), &sp_adj);
+    let mut b = vec![vec![0u64; dim]; dim];
+    for i in 0..dim {
+        for j in 0..dim {
+            b[i][j] = sms[i][j].wrapping_mul(inv24) % LIE_P;
+        }
+    }
+    Ok(b)
+}
+
 /// DIRECT certificate of a native entangling direction on the 576-dim pair carrier, with no
 /// dimension-threshold argument. Exhibits an explicit element of `Lie(H_2)` that provably does
 /// not lie in the local (non-entangling) subalgebra `L = u(24) (x) 1 + 1 (x) u(24)`.
 ///
-/// For a per-handle generator `A` (so `A (x) 1` is in `Lie(H_2)`, the per-handle Lie algebra
-/// embedding), `Ad(U)(A (x) 1) = U (A (x) 1) U^dagger = sum_y M_y (x) E_{yy}` with
-/// `M_y = D_y A D_y^dagger`, `D_y = diag_x chi(x,y)`, `E_{yy} = |y><y|`. Its projection onto `L`
-/// is exactly `M_bar (x) 1` with `M_bar = avg_y M_y` (the `1 (x)` part cancels because
-/// `tr_1 M_y = tr(A)` is `y`-independent), so the non-local part is `sum_y (M_y - M_bar) (x) E_{yy}`,
-/// which is nonzero iff the `M_y` are not all equal. Since
+/// Each input matrix `A` is an EXPLICIT element of `Lie(H_2)` with membership machine-computed
+/// (not assumed): it is `Ad(g)(iM)` for a group word `g` in the actual two-handle generators
+/// (see `spectral_flow_adjoint_seed`), and `iM (x) 1 in Lie(H_2)` is the density chain's
+/// Kronecker-Weyl spectral-flow seed. `Ad(U)(A (x) 1) = U (A (x) 1) U^dagger = sum_y M_y (x) E_{yy}`
+/// with `M_y = D_y A D_y^dagger`, `D_y = diag_x chi(x,y)`, `E_{yy} = |y><y|`; its projection onto
+/// `L` is exactly `M_bar (x) 1` with `M_bar = avg_y M_y` (the `1 (x)` part cancels because
+/// `tr_1 M_y = tr(A)` is `y`-independent, using `|chi| = 1`), so the non-local part is
+/// `sum_y (M_y - M_bar) (x) E_{yy}`, nonzero iff the `M_y` are not all equal. Since
 /// `M_y[x][x'] = chi(x,y) conj(chi(x',y)) A[x][x']`, a single coordinate pair `(x, x')` with
-/// `A[x][x'] != 0` and `chi(x,y) conj(chi(x',y))` non-constant in `y` certifies it. `Ad(U)` is
-/// an automorphism of `Lie(H_2)` (the monodromy `U` is a group generator), so the witnessed
-/// element lies in `Lie(H_2)`.
+/// `A[x][x'] != 0` and `chi(x,y) conj(chi(x',y))` non-constant in `y` certifies it. `U` is the
+/// monodromy generator of `H_2`, so `Ad(U)` preserves `Lie(H_2)` and the whole witnessed element
+/// `Ad(U (G_S (x) 1))(iM (x) 1)` lies in `Lie(H_2)` -- resting only on the cited spectral-flow
+/// seed, no `K (x) 1 subset Lie(H_2)` assumption.
 ///
 /// Soundness: `A[x][x'] != 0 mod p` implies `A[x][x'] != 0` exactly (0 reduces to 0); the
 /// bicharacter inequality is decided exactly over `Q(zeta_24)`. Missing an entry that vanishes
 /// mod p only makes the search conservative (it can never manufacture a false witness).
 fn native_nonlocal_direction(
-    handle_basis: &[MatS],
+    reachable: &[MatS],
     dim: usize,
     modality: usize,
     context: usize,
@@ -2282,7 +2349,7 @@ fn native_nonlocal_direction(
     }
     // r(x,x',y) = chi(x,y) * conj(chi(x',y)); non-constant in y across a nonzero A[x][x']
     // coordinate pair witnesses a non-local Ad(U)(A (x) 1).
-    for a in handle_basis {
+    for a in reachable {
         for x in 0..dim {
             for xp in 0..dim {
                 if x == xp || a[x][xp] == 0 {

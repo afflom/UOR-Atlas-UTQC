@@ -260,14 +260,14 @@ cited = ["Kronecker-Weyl"]
 [[row]]
 id = "pair-carrier-structure"
 tqc = "Pair-Carrier Density (PU(576))"
-atlas = "The two-handle native group acts irreducibly on the 576-dim pair carrier (exact commutant dim 1) and its projective closure is dense in PU(576): the certified adj-tensor-adj component forces su(484) on the corner (multiplicity-one isotypic), complement reachability saturates at rank 92, and the classical closure yields su(576) inside Lie(H_2); by the two-local composition lemma the n-handle closure is dense in PU(24^n) for every n >= 2 -- gate-level universal quantum computation scaling in n. The separation theorem stands: no monodromy power preserves the 22-block tensor code, so the carrier is the irreducible pair block, not a tensor code"
+atlas = "The two-handle native group acts irreducibly on the 576-dim pair carrier (exact commutant dim 1) and its projective closure is dense in PU(576): a native entangling direction is certified DIRECTLY by an explicit Lie(H_2) element Ad(U (G_S x 1))(iM x 1) -- machine-computed from the Kronecker-Weyl spectral-flow seed by conjugation with actual generators -- shown to lie outside the local subalgebra u(24) x 1 + 1 x u(24); the certified adj-tensor-adj component forces su(484) on the corner (multiplicity-one isotypic), complement reachability saturates at rank 92, and the classical closure yields su(576) inside Lie(H_2); by the two-local composition lemma the n-handle closure is dense in PU(24^n) for every n >= 2 -- gate-level universal quantum computation scaling in n. The separation theorem stands: no monodromy power preserves the 22-block tensor code, so the carrier is the irreducible pair block, not a tensor code"
 source = "(derived)"
 status = "build"
 stage = "S4"
 oracle = "exact-algebra"
 tier = "suite"
 feature = "features/suites/s4_equivalency/pair_carrier_structure.feature"
-cited = ["multiplicity-one isotypic", "classical closure", "two-local composition lemma"]
+cited = ["Kronecker-Weyl", "multiplicity-one isotypic", "classical closure", "two-local composition lemma"]
 
 [[row]]
 id = "advantage"

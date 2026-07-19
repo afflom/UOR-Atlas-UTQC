@@ -1465,9 +1465,12 @@ pub fn archimedean_continuity_witness(p: &UseCaseParams) -> Result<(), String> {
 /// (3) native continuous entanglement: an EXPLICIT element of `Lie(H_2)` is exhibited that
 /// lies outside the local (non-entangling) subalgebra `u(24) (x) 1 + 1 (x) u(24)` -- a
 /// direct, threshold-free certificate of a native continuous entangling flow on the pair
-/// carrier (the reachable `Ad(U)(A (x) 1)` whose `x`-blocks vary with `y`; the mod-p Lie
-/// dimension lower bound, which exceeds the per-handle block-diagonal `976` but not the true
-/// local subalgebra dimension `1151`, is reported only as evidence of a large closure);
+/// carrier. Membership is machine-computed, not assumed: the element is
+/// `Ad(U (G_S (x) 1))(iM (x) 1)`, conjugation of the spectral-flow seed `iM (x) 1` (in
+/// `Lie(H_2)` by Kronecker-Weyl, the density chain's cited seed) by an explicit word in the
+/// actual two-handle generators, and its `x`-blocks vary with `y` (the mod-p Lie dimension
+/// lower bound, which exceeds the per-handle block-diagonal `976` but not the true local
+/// subalgebra dimension `1151`, is reported only as evidence of a large closure);
 /// (4) density: the T1 certificate (nonzero adj (x) adj component, multiplicity-one
 /// isotypic, hence su(484) on the corner) and the T2 certificate (complement reachability
 /// rank 92, the ambient cap) combine with the classical closure T3 to force su(576)
