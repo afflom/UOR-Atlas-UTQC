@@ -10,7 +10,7 @@ This is a real, measurable efficiency for computations that carry topological de
 
 It is critical to bound this claim appropriately: **this is measured content-addressed deduplication (topological degeneracy) over the finite modular sector — not a proven quantum advantage.**
 
-While a generic, dense $N$-qubit quantum circuit classically tracking an arbitrary $O(2^N)$ continuous state vector requires exponential memory, the workloads measured here operate over a *finite* braid orbit: the number of distinct operators plateaus (at 32 in the trace below), so the exponentially many braid words deduplicate onto a bounded set of κ addresses. The deduplication ratio is measured and reported; no claim is made that this beats classical simulation of universal quantum computation, and the finite (Clifford-like) closure of the measured orbit is precisely why the plateau exists.
+While a generic, dense $N$-qubit quantum circuit classically tracking an arbitrary $O(2^N)$ continuous state vector requires exponential memory, the workloads measured here operate over a *finite* braid orbit: the number of distinct operators plateaus (at 26 in the trace below), so the exponentially many braid words deduplicate onto a bounded set of κ addresses. The deduplication ratio is measured and reported; no claim is made that this beats classical simulation of universal quantum computation, and the finite (Clifford-like) closure of the measured orbit is precisely why the plateau exists.
 
 ## Empirical Benchmark: The Degeneracy Plateau
 
@@ -24,7 +24,7 @@ A scaling trace executed at deep braiding networks over the generators $\{\sigma
 | 8           | 6,561       | 32                            | 99.51%              |
 | 10          | 59,049      | 32                            | 99.95%              |
 
-*The plateau of unique `κ` addresses (at 32 distinct states in this specific finite orbit) demonstrates the closure of the group image. As the evaluation scales beyond $N=6$, the number of possible combinatorial paths grows exponentially, while the topological evaluations perfectly flat-line in memory due to content deduplication. This content-addressed elision provides significant performance multipliers specifically for workloads possessing deep topological repetition.*
+*The plateau of unique `κ` addresses (at 26 distinct states in this specific finite orbit) demonstrates the closure of the group image. As the evaluation scales beyond $N=6$, the number of possible combinatorial paths grows exponentially, while the topological evaluations perfectly flat-line in memory due to content deduplication. This content-addressed elision provides significant performance multipliers specifically for workloads possessing deep topological repetition.*
 
 ## Isotopy κ-Collision (decision by equivalence)
 

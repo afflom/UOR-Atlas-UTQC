@@ -1462,9 +1462,12 @@ pub fn archimedean_continuity_witness(p: &UseCaseParams) -> Result<(), String> {
 /// powers is empty), so the native diagonal sector cannot entangle the continuous
 /// carriers -- the multi-handle carrier is the irreducible pair block itself, not a
 /// tensor code;
-/// (3) native continuous entanglement: the closure's identity component strictly exceeds
-/// the local subalgebra (sound mod-p lower bound > 976), so continuous entangling flows
-/// exist natively on the pair carrier;
+/// (3) native continuous entanglement: an EXPLICIT element of `Lie(H_2)` is exhibited that
+/// lies outside the local (non-entangling) subalgebra `u(24) (x) 1 + 1 (x) u(24)` -- a
+/// direct, threshold-free certificate of a native continuous entangling flow on the pair
+/// carrier (the reachable `Ad(U)(A (x) 1)` whose `x`-blocks vary with `y`; the mod-p Lie
+/// dimension lower bound, which exceeds the per-handle block-diagonal `976` but not the true
+/// local subalgebra dimension `1151`, is reported only as evidence of a large closure);
 /// (4) density: the T1 certificate (nonzero adj (x) adj component, multiplicity-one
 /// isotypic, hence su(484) on the corner) and the T2 certificate (complement reachability
 /// rank 92, the ambient cap) combine with the classical closure T3 to force su(576)
@@ -1496,9 +1499,20 @@ pub fn pair_carrier_witness(p: &UseCaseParams) -> Result<(), String> {
     if r.qudit_universal {
         return Err("qudit_universal flag inconsistent with the separation theorem".into());
     }
-    if r.pair_lie_dim_lower <= 976 || !r.pair_entangling_flow {
+    // Native entangling flow: the DIRECT certificate (an explicit Lie(H_2) element outside the
+    // local subalgebra u(24)(x)1 + 1(x)u(24)), not a dimension threshold. The mod-p dimension
+    // lower bound is reported separately as evidence of a large closure.
+    if !r.pair_entangling_flow || r.pair_nonlocal_witness.is_none() {
+        return Err(
+            "native entangling flow not certified: no explicit non-local element of \
+                    Lie(H_2) exhibited (all Ad(U)(A (x) 1) candidates were local)"
+                .into(),
+        );
+    }
+    if r.pair_lie_dim_lower <= 976 {
         return Err(format!(
-            "pair Lie lower bound {} does not exceed the local subalgebra bound 976",
+            "pair Lie lower bound {} does not exceed the per-handle block-diagonal algebra \
+             dimension 976 (reported evidence of a large closure)",
             r.pair_lie_dim_lower
         ));
     }
@@ -1971,5 +1985,23 @@ mod tests {
     fn reduction_crux_decided_on_the_atlas() {
         let (_, _, p) = atlas();
         reduction_crux_witness(&p).unwrap();
+    }
+
+    #[test]
+    fn advantage_probe_distinct_count_is_pinned() {
+        // The paper (abstract, section 6, section 8) reports this MEASURED number. The
+        // `advantage` row is open/non-gating, so nothing else pins it; this deterministic
+        // regression guard keeps the prose and the code from drifting apart (an earlier "32"
+        // went stale exactly because nothing pinned it).
+        let (_, _, p) = atlas();
+        let m = advantage_probe(&p).unwrap();
+        assert_eq!(
+            m.total_paths, 2187,
+            "3^7 length-7 braid words over {{sigma, tau, mu}}"
+        );
+        assert_eq!(
+            m.distinct_states, 26,
+            "measured distinct-kappa plateau reported in the paper"
+        );
     }
 }

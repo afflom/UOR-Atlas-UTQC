@@ -54,4 +54,11 @@ fn exact_density_atlas() {
         report.finite_image_order.is_some(),
         "projective image is finite"
     );
+    // Direct, threshold-free native-entangling-flow certificate: an explicit Lie(H_2) element
+    // outside the local subalgebra u(24)(x)1 + 1(x)u(24).
+    println!("pair nonlocal wit  = {:?}", report.pair_nonlocal_witness);
+    assert!(
+        report.pair_entangling_flow && report.pair_nonlocal_witness.is_some(),
+        "native entangling flow must be certified directly (explicit non-local element)"
+    );
 }

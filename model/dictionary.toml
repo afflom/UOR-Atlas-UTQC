@@ -232,6 +232,7 @@ stage = "S4"
 oracle = "exact-algebra"
 tier = "suite"
 feature = "features/suites/s4_equivalency/finite_closure.feature"
+cited = ["Ng-Schauenburg"]
 
 [[row]]
 id = "solovay-kitaev"
@@ -254,6 +255,7 @@ stage = "S4"
 oracle = "exact-algebra"
 tier = "suite"
 feature = "features/suites/s4_equivalency/archimedean_continuity.feature"
+cited = ["Kronecker-Weyl"]
 
 [[row]]
 id = "pair-carrier-structure"
@@ -265,6 +267,7 @@ stage = "S4"
 oracle = "exact-algebra"
 tier = "suite"
 feature = "features/suites/s4_equivalency/pair_carrier_structure.feature"
+cited = ["multiplicity-one isotypic", "classical closure", "two-local composition lemma"]
 
 [[row]]
 id = "advantage"
@@ -463,6 +466,7 @@ stage = "S4"
 oracle = "exact-algebra"
 tier = "suite"
 feature = "features/suites/s4_equivalency/encoded_qubit_universality.feature"
+cited = ["closed-subgroup"]
 
 [[row]]
 id = "certified-carrier-compilation"
@@ -485,6 +489,7 @@ stage = "S4"
 oracle = "exact-algebra"
 tier = "suite"
 feature = "features/suites/s4_equivalency/reduction_crux.feature"
+cited = ["ping-pong lemma"]
 
 [[row]]
 id = "eps-free-decision-path"

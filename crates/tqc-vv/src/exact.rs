@@ -307,6 +307,13 @@ fn mat_eq(a: &Mat, b: &Mat) -> bool {
 
 /// Exact `sqrt(24) * S` at (modality 3, context 8): entries `zeta_3^{m1 m2} * (-1)^{c1.c2}`.
 fn build_s_tilde(modality: usize, context: usize) -> Mat {
+    // Invariant: this construction bakes in zeta_3 = zeta_24^8 (the odd-modality phase), so it
+    // is correct only at modality 3. Every caller is gated to the Atlas instance (3, 8); guard
+    // the invariant here so the generic-looking signature cannot be silently misused.
+    assert_eq!(
+        modality, 3,
+        "build_s_tilde is defined only at modality 3 (zeta_3 = zeta_24^8 is hardcoded)"
+    );
     let n = modality * context;
     let mut s = mat_zero(n);
     for x in 0..n {
@@ -323,6 +330,11 @@ fn build_s_tilde(modality: usize, context: usize) -> Mat {
 
 /// Exact `T` diagonal at (modality 3, context 8): `zeta_3^{m^2} * i^{|c|}` (odd modality).
 fn build_t_diag(modality: usize, context: usize) -> Vec<Cyc> {
+    // Same modality-3 invariant as `build_s_tilde` (zeta_3 = zeta_24^8 hardcoded).
+    assert_eq!(
+        modality, 3,
+        "build_t_diag is defined only at modality 3 (zeta_3 = zeta_24^8 is hardcoded)"
+    );
     let n = modality * context;
     let mut t = Vec::with_capacity(n);
     for x in 0..n {
@@ -398,12 +410,26 @@ pub struct ExactDensityReport {
     /// Multi-qudit tensor universality on 22-dim carriers: PU(22)-density per carrier plus
     /// a native imprimitive code-space entangler (Brylinski-Brylinski for qudits).
     pub qudit_universal: bool,
-    /// Sound mod-p lower bound on `dim_R Lie(H_2)` for the two-handle native group.
+    /// Sound mod-p lower bound on `dim_R Lie(H_2)` for the two-handle native group. Reported
+    /// as evidence of a large closure; it strictly exceeds the per-handle block-diagonal
+    /// algebra dimension (976), but note that this alone does NOT certify a non-local
+    /// direction (the full local subalgebra `u(24) (x) 1 + 1 (x) u(24)` has real dimension
+    /// `2*576 - 1 = 1151`, not 976). The entangling-flow verdict is carried by the DIRECT
+    /// certificate `pair_nonlocal_witness` below, not by this dimension count.
     pub pair_lie_dim_lower: usize,
-    /// `pair_lie_dim_lower > 976` (the local subalgebra bound): the identity component of
-    /// the two-handle closure contains a non-local direction, a native continuous
-    /// entangling flow on the irreducible 576-dim pair carrier.
+    /// A native continuous entangling flow exists on the irreducible 576-dim pair carrier:
+    /// an EXPLICIT element of `Lie(H_2)` is certified to lie outside the local (non-entangling)
+    /// subalgebra `u(24) (x) 1 + 1 (x) u(24)`, with no dimension-threshold argument. Set iff
+    /// `pair_nonlocal_witness` is present.
     pub pair_entangling_flow: bool,
+    /// The direct non-local witness `(x, x', y, y'')`: for a per-handle generator `A` (so
+    /// `A (x) 1` lies in `Lie(H_2)`) with `A[x][x'] != 0`, the element `Ad(U)(A (x) 1)` has
+    /// `x`-blocks `M_y = D_y A D_y^dagger` (`D_y = diag_x chi(x,y)`) that differ between `y`
+    /// and `y''` at coordinate `(x, x')` -- so `Ad(U)(A (x) 1)` is not of the form
+    /// `B (x) 1 + 1 (x) C` and is a genuine entangling direction. The inequality
+    /// `chi(x,y) conj(chi(x',y)) != chi(x,y'') conj(chi(x',y''))` is decided exactly over
+    /// `Q(zeta_24)`; `A[x][x'] != 0 mod p` implies it exactly (the sound direction).
+    pub pair_nonlocal_witness: Option<(usize, usize, usize, usize)>,
     /// T1: an element of `Lie(H_2)` has nonzero `adj (x) adj` component (multiplicity-one
     /// isotypic, certified nonzero mod p), forcing `su(484)` on the corner `W' (x) W'`.
     pub pair_adj_component: bool,
@@ -1036,8 +1062,13 @@ fn exact_density_certificate_uncached(
     let monodromy_code_preserving_powers = ent.code_preserving_powers.clone();
     let pair_commutant_dim = ent.pair_commutant_dim;
     let qudit_universal = pu22_dense && native_code_entangler.is_some();
-    let (pair_lie_dim_lower, pair_entangling_flow) =
+    // Reported dimension lower bound (evidence of a large closure); NOT the entangling proof.
+    let (pair_lie_dim_lower, _pair_lie_exceeds_perhandle) =
         pair_lie_lower_bound(&handle_basis, dim, modality, context)?;
+    // DIRECT entangling-flow certificate: an explicit element of Lie(H_2) outside the local
+    // subalgebra u(24)(x)1 + 1(x)u(24), threshold-free.
+    let pair_nonlocal_witness = native_nonlocal_direction(&handle_basis, dim, modality, context);
+    let pair_entangling_flow = pair_nonlocal_witness.is_some();
     let (pair_adj_component, pair_reach_rank) = pair_density_certificates(
         &s_tilde,
         &t_diag,
@@ -1196,6 +1227,7 @@ fn exact_density_certificate_uncached(
         qudit_universal,
         pair_lie_dim_lower,
         pair_entangling_flow,
+        pair_nonlocal_witness,
         pair_adj_component,
         pair_reach_rank,
         pu576_dense,
@@ -1682,6 +1714,12 @@ fn lie_closure_lower_bound(
     evals: &[i64],
     dim: usize,
 ) -> Result<(usize, bool, Vec<MatS>), String> {
+    // Soundness of every mod-p rank below rests on LIE_P being prime (so F_p is a field and
+    // the specialization zeta -> w is a ring homomorphism into it). Guard the dependency at the
+    // point of use, not only in a sibling witness.
+    if !is_prime_u64(LIE_P) {
+        return Err("LIE_P is not prime: mod-p rank bounds are unsound".into());
+    }
     let w = primitive_24th_root()?;
     let mut wpows = [1u64; 8];
     for k in 1..8 {
@@ -2056,18 +2094,28 @@ fn entangler_decision(
 }
 
 // ---------------------------------------------------------------------------
-// Two-handle identity component: does Lie(H_2) exceed the local subalgebra?
-// Targeted, sound construction: the per-handle Lie basis embeds as B (x) 1 and
-// 1 (x) B (locals, <= 976 dims); the non-local candidates Ad(U)(A (x) 1) and
+// Two-handle identity component: a sound mod-p lower bound on dim_R Lie(H_2).
+// The per-handle Lie basis embeds as B (x) 1 and 1 (x) B (the per-handle
+// block-diagonal locals, <= 976 dims); the candidates Ad(U)(A (x) 1) and
 // Ad(U)(1 (x) A) have closed-form entries and are projected without
 // materialization. Every element is certified inside Lie(H_2): per-handle Lie
 // algebras embed since K (x) 1 and 1 (x) K lie in the closure, and Ad(U) is an
 // automorphism of Lie(H_2) because the monodromy U is a group generator.
-// A sound mod-p rank > 976 certifies a non-local direction: a native
-// continuous entangling flow on the irreducible 576-dim pair carrier.
+//
+// NOTE (soundness): a rank > 976 shows only that Lie(H_2) STRICTLY EXCEEDS the
+// per-handle block-diagonal algebra. It does NOT by itself certify a non-local
+// direction: the full local (non-entangling) subalgebra is
+// u(24) (x) 1 + 1 (x) u(24), of real dimension 2*576 - 1 = 1151 > 976, and the
+// 175-dim gap is full of local-but-not-per-handle operators. The entangling-flow
+// verdict is instead carried by the DIRECT, threshold-free certificate
+// `native_nonlocal_direction`, which exhibits an explicit Lie(H_2) element
+// outside u(24) (x) 1 + 1 (x) u(24). This bound is retained only as reported
+// evidence that the closure is large.
 // ---------------------------------------------------------------------------
 
-/// Sound lower bound on `dim_R Lie(H_2)` for the two-handle native group.
+/// Sound lower bound on `dim_R Lie(H_2)` for the two-handle native group. The returned flag is
+/// `rank >= 977` (strictly exceeds the per-handle block-diagonal algebra), reported as evidence
+/// of a large closure -- it is NOT the entangling-flow certificate (see `native_nonlocal_direction`).
 fn pair_lie_lower_bound(
     handle_basis: &[MatS],
     dim: usize,
@@ -2196,6 +2244,60 @@ fn pair_lie_lower_bound(
     }
     let r = rank.rank();
     Ok((r, r >= target))
+}
+
+/// DIRECT certificate of a native entangling direction on the 576-dim pair carrier, with no
+/// dimension-threshold argument. Exhibits an explicit element of `Lie(H_2)` that provably does
+/// not lie in the local (non-entangling) subalgebra `L = u(24) (x) 1 + 1 (x) u(24)`.
+///
+/// For a per-handle generator `A` (so `A (x) 1` is in `Lie(H_2)`, the per-handle Lie algebra
+/// embedding), `Ad(U)(A (x) 1) = U (A (x) 1) U^dagger = sum_y M_y (x) E_{yy}` with
+/// `M_y = D_y A D_y^dagger`, `D_y = diag_x chi(x,y)`, `E_{yy} = |y><y|`. Its projection onto `L`
+/// is exactly `M_bar (x) 1` with `M_bar = avg_y M_y` (the `1 (x)` part cancels because
+/// `tr_1 M_y = tr(A)` is `y`-independent), so the non-local part is `sum_y (M_y - M_bar) (x) E_{yy}`,
+/// which is nonzero iff the `M_y` are not all equal. Since
+/// `M_y[x][x'] = chi(x,y) conj(chi(x',y)) A[x][x']`, a single coordinate pair `(x, x')` with
+/// `A[x][x'] != 0` and `chi(x,y) conj(chi(x',y))` non-constant in `y` certifies it. `Ad(U)` is
+/// an automorphism of `Lie(H_2)` (the monodromy `U` is a group generator), so the witnessed
+/// element lies in `Lie(H_2)`.
+///
+/// Soundness: `A[x][x'] != 0 mod p` implies `A[x][x'] != 0` exactly (0 reduces to 0); the
+/// bicharacter inequality is decided exactly over `Q(zeta_24)`. Missing an entry that vanishes
+/// mod p only makes the search conservative (it can never manufacture a false witness).
+fn native_nonlocal_direction(
+    handle_basis: &[MatS],
+    dim: usize,
+    modality: usize,
+    context: usize,
+) -> Option<(usize, usize, usize, usize)> {
+    // Exact monodromy table chi[x][y] and its complex conjugate, over Q(zeta_24).
+    let mut chi = vec![vec![Cyc::zero(); dim]; dim];
+    let mut chi_c = vec![vec![Cyc::zero(); dim]; dim];
+    for x in 0..dim {
+        for y in 0..dim {
+            let c = chi_exact(x, y, modality, context);
+            chi_c[x][y] = c.conj();
+            chi[x][y] = c;
+        }
+    }
+    // r(x,x',y) = chi(x,y) * conj(chi(x',y)); non-constant in y across a nonzero A[x][x']
+    // coordinate pair witnesses a non-local Ad(U)(A (x) 1).
+    for a in handle_basis {
+        for x in 0..dim {
+            for xp in 0..dim {
+                if x == xp || a[x][xp] == 0 {
+                    continue;
+                }
+                let r0 = chi[x][0].mul(&chi_c[xp][0]);
+                for yy in 1..dim {
+                    if chi[x][yy].mul(&chi_c[xp][yy]) != r0 {
+                        return Some((x, xp, 0, yy));
+                    }
+                }
+            }
+        }
+    }
+    None
 }
 
 // ---------------------------------------------------------------------------
@@ -2547,10 +2649,13 @@ pub struct EncodedQubitReport {
     /// The encoded generators satisfy their defining relations exactly (H²=I, CZ²=I, the
     /// two single-qubit H commute, and CZ is diagonal ±1 — a genuine entangler).
     pub relations_hold: bool,
-    /// The block embedding `U ↦ U ⊕ I` is verified an exact `*`-preserving, injective map on
-    /// the generators (each unitary; `(AB)† = B†A†` on every pair; distinct generators →
-    /// distinct blocks). Image closedness (`SU(2^k) ⊕ I` closed in `SU(24^n)`) is the cited
-    /// structural fact, not separately machine-checked.
+    /// The block embedding `e(U) = U ⊕ I` is verified faithful and relation-preserving on the
+    /// EXPLICIT embedded operators over `Q(zeta_24)`: the code inclusion is an injective in-range
+    /// index map; each `e(g)` is unitary, acts as `g` on the code block and as the identity off
+    /// it; and the embedded generators satisfy the encoded relations (`e(H_i)^2 = e(CZ)^2 = I`,
+    /// the two `e(H_i)` commute). The `*`-homomorphism property of a coordinate block embedding
+    /// is structural/automatic and is NOT dressed as a certificate; image closedness
+    /// (`SU(2^k) ⊕ I` closed in `SU(24^n)`) is the cited structural fact.
     pub faithful_star_embedding: bool,
     /// PU(24^n) density premise (from the pair-carrier certificate, `n >= 2`).
     pub density_premise: bool,
@@ -2639,40 +2744,78 @@ pub fn encoded_qubit_certificate(
     let cz_entangling = cz[0][0].mul(&cz[3][3]) != cz[1][1].mul(&cz[2][2]);
     let relations_hold = h0_sq && h1_sq && cz_sq && h_commute && cz_entangling;
 
-    // (3) Faithful *-embedding U ↦ U ⊕ I onto a closed subgroup. The code index set is the
-    // coordinate block [0, 4) of [0, 576), so the embedding is block ⊕ I; verify on the
-    // generators and their pairwise products that embed(A)embed(B) = embed(AB) and
-    // embed(A)† = embed(A†) exactly (checked on the 4x4 code block, which determines the
-    // 576-dim embedding since the identity part composes trivially).
-    // The embedding e(U) = U ⊕ I_{D-4} restricts to U on the code block (a coordinate
-    // subspace), so its *-homomorphism property is exactly the *-homomorphism property of
-    // the 4x4 block map, which we verify exactly on the generators and their products:
-    //   (i)   e is *-preserving: e(U)† = e(U†), i.e. (AB)† = B† A† on every generator pair;
-    //   (ii)  e is injective on the generators: distinct generators have distinct blocks;
-    //   (iii) each generator is unitary (U U† = I), so e(U) is unitary.
-    // Image closedness ("onto a closed subgroup SU(2^k) ⊕ I") is the cited structural fact,
-    // not separately machine-checked.
-    let mut faithful_star_embedding = true;
-    for a in gens {
-        if !mat_eq(&mat_mul(a, &mat_adjoint(a)), &i4) {
-            faithful_star_embedding = false; // (iii)
-        }
-        for b in gens {
-            // (i) anti-homomorphism of the adjoint on the block: (AB)† = B† A†.
-            let ab_adj = mat_adjoint(&mat_mul(a, b));
-            let badj_aadj = mat_mul(&mat_adjoint(b), &mat_adjoint(a));
-            if !mat_eq(&ab_adj, &badj_aadj) {
-                faithful_star_embedding = false;
+    // (3) The encoded block map e(U) = U ⊕ I is a coordinate-block embedding, so its
+    // *-homomorphism property (e(U)e(V) = e(UV), e(U)† = e(U†)) is STRUCTURAL and automatic --
+    // asserting it via (AB)† = B†A† would be a tautology and certify nothing. The substantive,
+    // falsifiable content is instead: (a) the code inclusion is a well-formed INJECTIVE index
+    // map (distinct, in range), so the embedding is faithful; (b) the EXPLICIT embedded
+    // operators e(g) on a larger carrier act as g on the code block and as the identity off it
+    // (a malformed inclusion or index collision would break this); and (c) the encoded defining
+    // relations are preserved by those explicit embedded operators. We build e(g) = g ⊕ I on a
+    // (code_dim + 2)-dim test carrier via the pinned inclusion and verify all three exactly.
+    // Image closedness ("onto a closed subgroup SU(2^k) ⊕ I") remains the cited structural fact.
+    let incl: Vec<usize> = (0..code_dim).collect(); // κ-pinned code→carrier inclusion
+    let td = code_dim + 2; // explicit test carrier: code block plus a nontrivial complement
+                           // (a) injective, in-range inclusion.
+    let mut faithful_star_embedding = incl.len() == code_dim
+        && incl.iter().all(|&i| i < td)
+        && incl.iter().collect::<std::collections::BTreeSet<_>>().len() == code_dim;
+    // embed a code-block 4x4 matrix as e(g) = g ⊕ I_{td-code_dim} through `incl`.
+    let embed = |g: &Mat| -> Mat {
+        let mut e = mat_id(td); // identity off the code block
+        for i in 0..code_dim {
+            for j in 0..code_dim {
+                e[incl[i]][incl[j]] = g[i][j].clone();
             }
-            // (ii) injectivity on the generators.
-            if !std::ptr::eq(a, b) && mat_eq(a, b) {
+        }
+        e
+    };
+    let e_h0 = embed(&h_on_0);
+    let e_h1 = embed(&h_on_1);
+    let e_cz = embed(&cz);
+    let id_td = mat_id(td);
+    for (g, src) in [(&e_h0, &h_on_0), (&e_h1, &h_on_1), (&e_cz, &cz)] {
+        // (b/c) each embedded generator is unitary on the full test carrier.
+        if !mat_eq(&mat_mul(g, &mat_adjoint(g)), &id_td) {
+            faithful_star_embedding = false;
+        }
+        // Read back: e(g) reproduces g EXACTLY on the code block through the inclusion. This
+        // exercises the inclusion indexing itself -- a colliding or misordered `incl` would
+        // fail to reproduce `src` here -- so faithfulness is verified, not assumed by
+        // construction.
+        for i in 0..code_dim {
+            for j in 0..code_dim {
+                if g[incl[i]][incl[j]] != src[i][j] {
+                    faithful_star_embedding = false;
+                }
+            }
+        }
+    }
+    // (c) the embedded operators preserve the encoded relations on the real carrier:
+    // e(H0)² = e(H1)² = e(CZ)² = I, and the two embedded Hadamards commute.
+    faithful_star_embedding &= mat_eq(&mat_mul(&e_h0, &e_h0), &id_td)
+        && mat_eq(&mat_mul(&e_h1, &e_h1), &id_td)
+        && mat_eq(&mat_mul(&e_cz, &e_cz), &id_td)
+        && mat_eq(&mat_mul(&e_h0, &e_h1), &mat_mul(&e_h1, &e_h0));
+    // (b) e(CZ) acts as the identity strictly outside the code block (faithful ⊕ I structure):
+    // every complement row is a standard basis vector.
+    for a in 0..td {
+        if incl.contains(&a) {
+            continue;
+        }
+        for b in 0..td {
+            let expected = if a == b { one.clone() } else { Cyc::zero() };
+            if e_cz[a][b] != expected {
                 faithful_star_embedding = false;
             }
         }
     }
 
-    // Pin the encoding: the code→carrier inclusion is the identity index list [0, 2^k).
-    let encoding_bytes: Vec<u8> = (0..code_dim as u64).flat_map(|i| i.to_le_bytes()).collect();
+    // Pin the encoding: the code→carrier inclusion index list.
+    let encoding_bytes: Vec<u8> = incl
+        .iter()
+        .flat_map(|&i| (i as u64).to_le_bytes())
+        .collect();
     let encoding_kappa = tqc_substrate::kappa(&encoding_bytes).to_string();
 
     let encoded_universal = code_fits

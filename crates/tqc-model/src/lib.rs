@@ -110,6 +110,12 @@ pub struct Row {
     pub tier: Tier,
     /// Path of the Gherkin feature.
     pub feature: String,
+    /// Classical lemmas whose conclusions this row's certificate relies on but does NOT
+    /// machine-check (its trust boundary). Each entry must also appear verbatim in `atlas`, so
+    /// the disclosure is a structured, gated artifact rather than prose-only (enforced by the
+    /// honesty meta-gate). Empty for rows whose asserted content is fully machine-checked.
+    #[serde(default)]
+    pub cited: Vec<String>,
 }
 
 #[derive(Deserialize)]

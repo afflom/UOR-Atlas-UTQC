@@ -6,7 +6,10 @@ A **parametric, BDD-driven, V&V-gated** realization of The UOR Atlas UTQC. This 
 > realized on a content-addressed substrate. It provides an **exactly-decided density/universality
 > certificate chain** — density is *refuted* on the 2-dim SU(2) block (the gate image there is a finite
 > projective Clifford group of order 24, decided over Q(ζ₂₄)) and *established* on the 22-dim block
-> (PU(22)) and the 576-dim pair carrier (PU(576)) — plus **measured content-addressed deduplication
+> (PU(22)) and the 576-dim pair carrier (PU(576)) — where the PU(576) density conclusion combines
+> the machine-checked certificates (adjoint component, reachability rank 92, the direct entangling
+> witness) with **cited** classical lemmas (multiplicity-one closure, two-local composition), a
+> distinction the dictionary records per-row — plus **measured content-addressed deduplication
 > (cache-collapse) metrics**, a capability natively inherited by Hologram Holospaces. The deduplication
 > numbers are engineering measurements, not a proven quantum advantage.
 > Every claim is tracked against an authoritative source and never asserted beyond what that source shows.

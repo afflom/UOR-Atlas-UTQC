@@ -89,6 +89,29 @@ pub fn audit(model: &Model, root: &Path) -> Result<AuditReport, String> {
                 row.id, row.status
             ));
         }
+
+        // Cited-lemma disclosure discipline (a mechanized trust boundary). A `build`/`some-true`
+        // row may assert a conclusion that rests on classical lemmas it does not machine-check;
+        // when it does, each such lemma MUST be declared in `cited` AND appear verbatim in the
+        // row's `atlas` prose, so the trust boundary is a structured, gated artifact and cannot
+        // silently drift from the text. An `open` (non-asserting) row may not declare any.
+        for lemma in &row.cited {
+            if lemma.trim().is_empty() {
+                return Err(format!("row `{}`: empty `cited` lemma entry", row.id));
+            }
+            if !status.gating {
+                return Err(format!(
+                    "row `{}`: non-asserting status `{}` may not declare cited lemmas",
+                    row.id, row.status
+                ));
+            }
+            if !row.atlas.contains(lemma.as_str()) {
+                return Err(format!(
+                    "row `{}`: cited lemma `{lemma}` not disclosed verbatim in the row's atlas prose",
+                    row.id
+                ));
+            }
+        }
     }
 
     // Bidirectional coverage: dictionary <-> features on disk.

@@ -150,7 +150,7 @@ composition / addressing structure; it never touches that crux.
 - **open** (genuine unknowns, tier `target`, non-gating; measured via `just report`, never
   asserted true):
   - **advantage** — content-addressed deduplication (cache-collapse) over a finite braid
-    orbit (plateauing at 32 distinct operators). The metrics are measured and reported;
+    orbit (plateauing at 26 distinct operators). The metrics are measured and reported;
     proven quantum advantage is never asserted.
 
 ## Build stages
