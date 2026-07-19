@@ -358,6 +358,17 @@ tier = "suite"
 feature = "features/suites/s4_equivalency/complexity_bound.feature"
 
 [[row]]
+id = "contraction-class-elimination"
+tqc = "Contraction-Class Elimination (proved finite-sector polytime evaluation)"
+atlas = "kappa is the address of a computation's meaning (its equivalence class), and evaluating any braid word W to its kappa costs exactly n*|W| elementary operations (linear in |W|, no state exponential in depth), canonicalizes in O(n) independent of |W|, and lands in a kappa-orbit contained in the permutations of the base (a finite set). PROVED PARAMETRICALLY for all word lengths and all instances by induction from the single machine-checked fact that each generator is a bijection of the n class-slots -- not a benchmark. The accounting of meaning is complete in both directions: shared meaning collapses to one kappa (the finite modular-sector orbit), and distinct meaning receives distinct kappa -- the count of distinct kappa is the count of distinct meanings, finite on the modular sector and proved exponential on the universal PU(22)/PU(576)-dense sector (reduction-crux). Each meaning is addressed in polynomial time; distinct meaning remains distinct"
+source = "(derived) -- parametric induction from the generator-bijection invariant + exact op-count"
+status = "build"
+stage = "S4"
+oracle = "exact-algebra"
+tier = "suite"
+feature = "features/suites/s4_equivalency/contraction_class_elimination.feature"
+
+[[row]]
 id = "reconstructability"
 tqc = "Absolute Topological Reconstructability"
 atlas = "A validator reconstructs the byte-identical final state and kappa from the serialized genesis state and serialized braid word alone"

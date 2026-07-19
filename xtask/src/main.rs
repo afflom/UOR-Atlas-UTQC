@@ -408,6 +408,7 @@ fn run_suite_witness(
         "eps-free-decision-path" => witness::eps_free_decision_path_witness(p),
         "canonical-kappa-form" => witness::canonical_kappa_witness(p),
         "reduction-crux" => witness::reduction_crux_witness(p),
+        "contraction-class-elimination" => witness::contraction_class_elimination_witness(p),
         "finite-closure" => witness::finite_closure_probe(p).map(|_| ()),
         "s4-modal-logic" => witness::s4_frame_witness(p),
         "mac-lane-coherence" => witness::mac_lane_coherence(p),

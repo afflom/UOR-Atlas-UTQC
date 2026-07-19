@@ -224,6 +224,11 @@ async fn t_reduction_crux(w: &mut TqcWorld) {
     witness::reduction_crux_witness(&w.params()).unwrap();
 }
 
+#[then("the finite-sector contraction class evaluates in proved polynomial time with a finite kappa-orbit")]
+async fn t_contraction_class_elimination(w: &mut TqcWorld) {
+    witness::contraction_class_elimination_witness(&w.params()).unwrap();
+}
+
 #[then("the canonical-form kappa serialization roundtrips and two factorization paths agree")]
 async fn t_canonical_kappa(w: &mut TqcWorld) {
     witness::canonical_kappa_witness(&w.params()).unwrap();

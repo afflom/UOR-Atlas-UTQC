@@ -72,6 +72,10 @@ row = "canonical-kappa-form"
 claim = "two-sided evaluation boundary: finite-sector plateau, universal-sector exponential operator multiplicity, linear coefficient cost"
 row = "reduction-crux"
 
+[[assert]]
+claim = "each computation is addressed to its kappa in proved polynomial time (linear op-count, bounded canonicalization, finite modular-sector orbit), parametric by induction from the generator-bijection invariant"
+row = "contraction-class-elimination"
+
 # --- Open-row claims the paper must NOT affirm. Every `open` model row must appear here.
 #     The listed phrases are affirmative assertion forms; the gate scans for them with a
 #     negation window, so disclaimed mentions ("not a proven ... advantage") are permitted. ---

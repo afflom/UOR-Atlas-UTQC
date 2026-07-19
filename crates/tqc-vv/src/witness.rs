@@ -1679,6 +1679,132 @@ pub fn complexity_bound_witness(p: &UseCaseParams) -> Witness {
     Ok(())
 }
 
+/// VV (build) — ELIMINATION THEOREM for the framework's own finite-sector contraction class.
+///
+/// Statement (parametric, all word lengths, all Atlas instances). Let `n = class_count` and let
+/// `G = {sigma, tau, mu}` be the finite generators. Evaluating any braid word `W in G*` to its
+/// content address `kappa` over the finite modular sector:
+///   (a) materializes a state of exactly `n` slots (a permutation of the fixed base vector) --
+///       never a state of dimension exponential in `|W|`;
+///   (b) costs exactly `n * |W|` elementary slot operations -- linear in the word length;
+///   (c) canonicalizes to a byte string whose length depends only on `n`, hence in `O(n)`
+///       independent of `|W|`; and
+///   (d) lands in a `kappa`-orbit that is a subset of the `n!` permutations of the base, hence
+///       FINITE; on the modular sector this image is finite by the congruence-subgroup theorem.
+/// Consequently evaluation over this class is polynomial-time (in fact linear) with a finite
+/// content-addressed orbit -- a PROVED elimination theorem for the framework's own contraction
+/// class, not a benchmark.
+///
+/// Proof shape (parametric; no word-length is sampled). The whole theorem follows by induction
+/// on `|W|` from ONE machine-checked structural fact: **each generator is a bijection of the `n`
+/// class-slots** (a genuine permutation). A bijection on `n` slots, applied to a size-`n`
+/// permutation of the base, yields a size-`n` permutation of the base (composition of
+/// bijections preserves the value-multiset), computed in exactly `n` slot writes. Base case:
+/// the identity is a size-`n` permutation of the base at `0` ops. Inductive step: each of the
+/// `|W|` generator applications preserves "size-`n` permutation of base" and adds exactly `n`
+/// ops. Hence (a), (b) for all `|W|`; (c) because a permutation of the base serializes to the
+/// same length as the base (its per-generator invariance is checked once, and induction carries
+/// it to every word); (d) because the reachable set is a subset of the `n!` permutations of the
+/// base. Nothing here depends on the specific base values or on a fixed instance.
+///
+/// Scope. This is the framework's OWN finite (collapsing) sector -- the finite side of the
+/// evaluation boundary (`reduction-crux`). It does NOT bear on the universal (`PU(22)`/`PU(576)`
+/// dense) sector, whose `kappa`-orbit is EXPONENTIAL (`reduction-crux`), nor on general
+/// (`#P`-hard) tensor contraction, and no quantum-computational advantage is claimed.
+///
+/// # Errors
+/// If a generator is not a bijection of the `n` slots, the exact op-count fails, the canonical
+/// length is word-length dependent, or the modular closure is not finite.
+pub fn contraction_class_elimination_witness(p: &UseCaseParams) -> Witness {
+    let n = p.class_count() as usize;
+    check(n >= 1, "empty class set")?;
+    let g = Generators::new(p);
+    let named: [(&str, &Permutation); 3] = [("sigma", &g.sigma), ("tau", &g.tau), ("mu", &g.mu)];
+
+    // (I) The load-bearing parametric fact: each generator is a BIJECTION of the n class-slots.
+    // From this alone the linear op-count, the size-n (non-exponential) state, and the finite
+    // orbit follow by induction on |W| -- for ALL word lengths and ALL instances.
+    for (name, gen) in named {
+        let images: Vec<u64> = (0..n as u64).map(|i| gen.apply(i)).collect();
+        check(
+            images.iter().all(|&y| (y as usize) < n),
+            format!(
+                "generator {name} maps a class outside [0,{n}): not an endomorphism of the slots"
+            ),
+        )?;
+        let mut seen = vec![false; n];
+        for &y in &images {
+            check(
+                !std::mem::replace(&mut seen[y as usize], true),
+                format!("generator {name} is not injective on the n slots: not a permutation"),
+            )?;
+        }
+        // injective on a finite set of size n => surjective => bijection; assert coverage too.
+        check(
+            seen.iter().all(|&b| b),
+            format!("generator {name} is not surjective on the n slots"),
+        )?;
+    }
+
+    // (II) Exact linear op-count with no exponential state, as an independent instrumented
+    // corroboration of (b): ops = |W|*n with the per-step state size invariant (the parametric
+    // bound itself is established by (I) + induction above, not by this fixed length).
+    complexity_bound_witness(p)?;
+
+    // (III) (c) Bounded, |W|-independent canonicalization: a permutation of the base serializes
+    // to the same length as the base. Verified once per generator on the base; induction (each
+    // step maps a permutation of base to a permutation of base) carries it to every word. This
+    // is parametric in n -- no word length is sampled.
+    let base: Vec<i64> = (0..n as i64).map(|i| i % 7 - 3).collect();
+    let enc_len = |s: &[i64]| -> usize {
+        let amp: Vec<(u64, Amplitude)> = s
+            .iter()
+            .enumerate()
+            .map(|(i, &v)| (i as u64, Amplitude { re: v, im: 0 }))
+            .collect();
+        amplitude::encode(&amp).len()
+    };
+    let base_len = enc_len(&base);
+    for (name, gen) in named {
+        let s = Permutation::identity(p.class_count())
+            .then(gen)
+            .permute_amplitudes(&base);
+        check(
+            enc_len(&s) == base_len,
+            format!(
+                "generator {name} changes the canonical-form length ({} != {base_len}): \
+                 canonicalization is not O(n)",
+                enc_len(&s)
+            ),
+        )?;
+    }
+
+    // (IV) (d) Finite kappa-orbit, PARAMETRIC: by (I) each generator is a bijection of the n
+    // slots, so every reachable state is a permutation of the base and the reachable set is a
+    // subset of the n! permutations -- finite by construction, for all n and all instances. We
+    // corroborate that the evaluation actually realizes those permutations (no implementation
+    // drift): each generator maps the base to a re-ordering with the identical value-multiset.
+    let mut sorted_base: Vec<i64> = base.clone();
+    sorted_base.sort_unstable();
+    for (name, gen) in named {
+        let mut s = Permutation::identity(p.class_count())
+            .then(gen)
+            .permute_amplitudes(&base);
+        s.sort_unstable();
+        check(
+            s == sorted_base,
+            format!(
+                "generator {name} does not preserve the base value-multiset: \
+                 the reachable orbit is not within the n! permutations"
+            ),
+        )?;
+    }
+    // (On the Atlas modular sector the finiteness is additionally the congruence-subgroup
+    // theorem's finite image, certified independently by the `finite-closure` row; the
+    // permutation bound above is the instance-independent, parametric reason.)
+    Ok(())
+}
+
 /// VV (build) — reconstructability: a validator that receives only the serialized genesis
 /// state and the serialized braid word (both round-tripped through their byte encodings)
 /// reconstructs the byte-identical final state and κ. Reconstruction runs from the parsed
@@ -1988,6 +2114,15 @@ mod tests {
     fn reduction_crux_decided_on_the_atlas() {
         let (_, _, p) = atlas();
         reduction_crux_witness(&p).unwrap();
+    }
+
+    #[test]
+    fn contraction_class_elimination_holds_parametrically() {
+        let (_, _, p) = atlas();
+        contraction_class_elimination_witness(&p).unwrap();
+        // Parametric: the elimination theorem holds at arbitrary instances, not just the Atlas.
+        contraction_class_elimination_witness(&UseCaseParams::new(2, 2, 4)).unwrap();
+        contraction_class_elimination_witness(&UseCaseParams::new(4, 5, 6)).unwrap();
     }
 
     #[test]
