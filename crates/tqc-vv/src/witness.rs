@@ -930,13 +930,16 @@ pub struct ParetoMetrics {
 }
 
 /// PROBE (open) — **measured content-addressed deduplication** over the finite braid orbit:
-/// every braid word of generators evaluates to a state content-addressed to a κ; isotopic
-/// words (those composing to the same operator) collapse to the identical κ. The braid group
-/// image here is finite, so the orbit plateaus; the metrics quantify the deduplication, and
-/// nothing more — no quantum-advantage claim is attached.
+/// every braid word of generators evaluates to a canonical byte state, content-addressed to a
+/// κ; isotopic words (those composing to the same operator) collapse to the identical state.
+/// The braid group image here is finite, so the orbit plateaus. `distinct_states` counts
+/// distinct canonical BYTE states (hash-independent); the probe additionally verifies that κ is
+/// injective on this materialized set (the distinct-κ count equals the distinct-byte-state
+/// count), so labelling a state by its κ carries no undisclosed collision-freeness assumption.
+/// The metrics quantify the deduplication and nothing more — no quantum-advantage claim.
 ///
 /// # Errors
-/// If the enumeration produces no states (an internal defect).
+/// If the enumeration produces no states, or if κ is not injective on the materialized set.
 pub fn advantage_probe(p: &UseCaseParams) -> Result<ParetoMetrics, String> {
     let g = Generators::new(p);
     let gens = [&g.sigma, &g.tau, &g.mu];
@@ -944,8 +947,15 @@ pub fn advantage_probe(p: &UseCaseParams) -> Result<ParetoMetrics, String> {
     let base: Vec<i64> = (0..n as i64).map(|i| i % 7 - 3).collect();
     let length = 7u32;
     let total = 3usize.pow(length); // all length-7 braid words over {σ, τ, μ}
-    let mut distinct: std::collections::BTreeMap<tqc_substrate::Kappa, usize> =
+                                    // Distinctness of meaning is a property of the CANONICAL FORM (the exact byte state), not
+                                    // of its hash. Count distinct canonical byte states directly (hash-independent), and
+                                    // separately content-address each with kappa. Asserting the two counts agree VERIFIES that
+                                    // kappa is injective on this materialized set -- no collision -- so identifying meaning with
+                                    // kappa is a checked fact here, not an assumption the count silently leans on.
+    let mut distinct_forms: std::collections::BTreeMap<Vec<u8>, usize> =
         std::collections::BTreeMap::new();
+    let mut distinct_kappa: std::collections::BTreeSet<tqc_substrate::Kappa> =
+        std::collections::BTreeSet::new();
     let mut total_state_bytes = 0usize;
     for w in 0..total {
         let mut perm = Permutation::identity(p.class_count());
@@ -962,16 +972,25 @@ pub fn advantage_probe(p: &UseCaseParams) -> Result<ParetoMetrics, String> {
             .collect();
         let encoded = amplitude::encode(&amp);
         total_state_bytes += encoded.len();
-        distinct
-            .entry(tqc_substrate::kappa(&encoded))
+        distinct_kappa.insert(tqc_substrate::kappa(&encoded));
+        distinct_forms
+            .entry(encoded.clone())
             .or_insert(encoded.len());
     }
 
-    if distinct.is_empty() {
+    if distinct_forms.is_empty() {
         return Err("advantage probe enumerated no states".into());
     }
-    let distinct_count = distinct.len();
-    let unique_state_bytes: usize = distinct.values().sum();
+    // The reported count is of distinct canonical byte states -- hash-independent.
+    let distinct_count = distinct_forms.len();
+    if distinct_kappa.len() != distinct_count {
+        return Err(format!(
+            "kappa is not injective on the materialized set: {distinct_count} distinct canonical \
+             byte states but {} distinct kappa (a hash collision)",
+            distinct_kappa.len()
+        ));
+    }
+    let unique_state_bytes: usize = distinct_forms.values().sum();
     let degeneracy = total as f64 / distinct_count as f64;
     let compute_savings = 100.0 * (1.0 - (distinct_count as f64 / total as f64));
 

@@ -2953,7 +2953,10 @@ pub fn diagonal_sector_crux_measure(p: &tqc_core::UseCaseParams) -> Result<CruxM
     // (x, y) is chi(x, ·)^a evaluated diagonally times chi(y, ·)^b — we use the exact
     // per-handle monodromy phase on the diagonal, chi(x, x) and chi(y, y), as the graded
     // generators (both diagonal, hence commuting; the graded state is their exponent vector).
-    let graded_kappa = |a: usize, b: usize| -> String {
+    // The graded state's CANONICAL EXACT BYTES over Q(zeta_24) -- distinctness of a graded
+    // operator is a property of these bytes, not of their hash, so the orbit is counted at the
+    // byte level (hash-independent); kappa is computed separately only to verify injectivity.
+    let graded_form = |a: usize, b: usize| -> Vec<u8> {
         let mut bytes: Vec<u8> = Vec::with_capacity(dim * dim * 8);
         for x in 0..dim {
             let cx = chi_exact(x, x, modality, context);
@@ -2983,19 +2986,22 @@ pub fn diagonal_sector_crux_measure(p: &tqc_core::UseCaseParams) -> Result<CruxM
                 }
             }
         }
-        tqc_substrate::kappa(&bytes).to_string()
+        bytes
     };
 
     // Enumerate words of increasing length over the two generators, tracking the (a, b)
-    // exponent state and the graded kappa; measure distinct kappa per length and cumulative.
+    // exponent state and the graded canonical form; measure distinct forms per length and
+    // cumulative. `seen` counts distinct canonical BYTE states (hash-independent); `seen_kappa`
+    // tracks their content addresses so injectivity can be verified after the sweep.
     use std::collections::BTreeSet;
-    let mut seen: BTreeSet<String> = BTreeSet::new();
+    let mut seen: BTreeSet<Vec<u8>> = BTreeSet::new();
+    let mut seen_kappa: BTreeSet<String> = BTreeSet::new();
     let mut distinct_kappa_by_len = Vec::with_capacity(max_word_len);
     let mut plateau_len = None;
     let mut max_graded_degree = 0usize;
     let mut prev_total = 0usize;
     for len in 1..=max_word_len {
-        let mut this_len: BTreeSet<String> = BTreeSet::new();
+        let mut this_len: BTreeSet<Vec<u8>> = BTreeSet::new();
         for w in 0..(1usize << len) {
             let (mut a, mut b) = (0usize, 0usize);
             for bit in 0..len {
@@ -3006,15 +3012,27 @@ pub fn diagonal_sector_crux_measure(p: &tqc_core::UseCaseParams) -> Result<CruxM
                 }
             }
             max_graded_degree = max_graded_degree.max(a.max(b));
-            let k = graded_kappa(a, b);
-            this_len.insert(k.clone());
-            seen.insert(k);
+            let form = graded_form(a, b);
+            seen_kappa.insert(tqc_substrate::kappa(&form).to_string());
+            this_len.insert(form.clone());
+            seen.insert(form);
         }
         distinct_kappa_by_len.push(this_len.len());
         if plateau_len.is_none() && seen.len() == prev_total && len > 1 {
             plateau_len = Some(len);
         }
         prev_total = seen.len();
+    }
+    // kappa is injective on the materialized diagonal set: the distinct-byte-state count equals
+    // the distinct-kappa count, so the reported "distinct kappa" is a hash-independent operator
+    // count -- no collision-freeness assumption enters the finite-side plateau.
+    if seen_kappa.len() != seen.len() {
+        return Err(format!(
+            "kappa is not injective on the materialized diagonal set: {} distinct canonical \
+             byte states but {} distinct kappa (a hash collision)",
+            seen.len(),
+            seen_kappa.len()
+        ));
     }
 
     Ok(CruxMetrics {
@@ -3392,21 +3410,27 @@ pub fn full_alphabet_crux_measure(
     // operator kappa). At each level, extend every previous vector by G_S and G_T.
     let max_len = 14usize;
     let mut frontier: Vec<Vec<u64>> = vec![probe.clone()];
-    let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
-    seen.insert(tqc_substrate::kappa(&canonical_probe_bytes(&probe)).to_string());
+    // A distinct action-on-probe forces a distinct operator, so distinct operators are counted
+    // at the mod-p VECTOR level (hash-independent); `seen_kappa` tracks the content addresses so
+    // injectivity of kappa on the materialized set is verified after the sweep rather than assumed.
+    let mut seen: std::collections::BTreeSet<Vec<u64>> = std::collections::BTreeSet::new();
+    let mut seen_kappa: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    seen.insert(probe.clone());
+    seen_kappa.insert(tqc_substrate::kappa(&canonical_probe_bytes(&probe)).to_string());
     let mut distinct_by_len = Vec::with_capacity(max_len);
     let mut full_binary_len = 0usize;
     let mut cumulative_ok = true;
     let mut prev_total = seen.len();
     for len in 1..=max_len {
         let mut next: Vec<Vec<u64>> = Vec::with_capacity(frontier.len() * 2);
-        let mut this_level: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+        let mut this_level: std::collections::BTreeSet<Vec<u64>> =
+            std::collections::BTreeSet::new();
         for u in &frontier {
             for g in [&gs, &gt] {
                 let v = matvec_modp(g, u);
-                let k = tqc_substrate::kappa(&canonical_probe_bytes(&v)).to_string();
-                this_level.insert(k.clone());
-                seen.insert(k);
+                seen_kappa.insert(tqc_substrate::kappa(&canonical_probe_bytes(&v)).to_string());
+                this_level.insert(v.clone());
+                seen.insert(v.clone());
                 next.push(v);
             }
         }
@@ -3425,6 +3449,17 @@ pub fn full_alphabet_crux_measure(
         if frontier.len() > 20000 {
             frontier.truncate(20000);
         }
+    }
+    // kappa is injective on the materialized dense set: the distinct mod-p operator count equals
+    // the distinct-kappa count, so "distinct kappa" is a hash-independent operator count and the
+    // >= 2^L multiplicity carries no collision-freeness assumption.
+    if seen_kappa.len() != seen.len() {
+        return Err(format!(
+            "kappa is not injective on the materialized dense set: {} distinct mod-p operators \
+             but {} distinct kappa (a hash collision)",
+            seen.len(),
+            seen_kappa.len()
+        ));
     }
 
     // Coefficient-growth certificate: exact graded product of G_S (as a t-graded map of
